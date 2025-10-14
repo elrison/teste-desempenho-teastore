@@ -16,11 +16,9 @@ jobs:
       - name: 2. Baixar e iniciar a aplicação TeaStore
         run: |
           echo "Baixando o arquivo de configuração do TeaStore..."
-          # Baixa o docker-compose.yml direto do repositório oficial
           curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
           
           echo "Iniciando TeaStore..."
-          # Usa o arquivo que acabamos de baixar
           docker compose -f docker-compose.yml up -d
           
           echo "Aguardando 45 segundos para os serviços estabilizarem..."
@@ -44,6 +42,8 @@ jobs:
       - name: 5. Executar Teste de Carga com JMeter
         run: |
           echo "Rodando teste do JMeter..."
+          # CORREÇÃO: Remove a pasta de relatório antes da execução para garantir que esteja limpa
+          rm -rf ./jmeter-teastore/report
           docker run --rm --add-host=host.docker.internal:host-gateway \
             -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
             justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
