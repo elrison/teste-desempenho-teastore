@@ -3,7 +3,7 @@ name: Testes de Desempenho Contínuos
 # Gatilho: Este pipeline vai rodar a cada 'push' na branch 'main'
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch: # Permite iniciar manualmente pela interface do GitHub
 
 jobs:
