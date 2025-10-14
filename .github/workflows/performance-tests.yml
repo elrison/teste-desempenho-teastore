@@ -42,8 +42,9 @@ jobs:
       - name: 5. Executar Teste de Carga com JMeter
         run: |
           echo "Rodando teste do JMeter..."
-          # CORREÇÃO: Remove a pasta de relatório antes da execução para garantir que esteja limpa
+          # CORREÇÃO FINAL: Remove a pasta de relatório E o arquivo de log antes da execução
           rm -rf ./jmeter-teastore/report
+          rm -f ./jmeter-teastore/results.jtl
           docker run --rm --add-host=host.docker.internal:host-gateway \
             -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
             justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
