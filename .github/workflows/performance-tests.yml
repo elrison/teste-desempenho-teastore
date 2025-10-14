@@ -46,7 +46,7 @@ jobs:
             justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
 
       - name: 6. Salvar o Relatório do JMeter como Artefato
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: jmeter-report
           path: ./jmeter-tests/report/ # O caminho para a pasta do relatório HTML
