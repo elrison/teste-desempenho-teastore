@@ -1,0 +1,52 @@
+name: Testes de Desempenho Contínuos
+
+# Gatilho: Este pipeline vai rodar a cada 'push' na branch 'main'
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Permite iniciar manualmente pela interface do GitHub
+
+jobs:
+  run-performance-tests:
+    runs-on: ubuntu-latest # O pipeline vai rodar em uma máquina virtual Linux (Ubuntu)
+
+    steps:
+      - name: 1. Baixar o código do repositório
+        uses: actions/checkout@v3
+
+      - name: 2. Subir a aplicação TeaStore com Docker Compose
+        run: |
+          echo "Iniciando TeaStore..."
+          # Navega até a pasta correta e sobe a aplicação em background
+          docker-compose -f ./teastore-code/examples/docker/docker-compose_default.yaml up -d
+          echo "Aguardando 30 segundos para os serviços estabilizarem..."
+          sleep 30
+
+      - name: 3. Executar Teste de Carga com k6
+        run: |
+          echo "Rodando teste do k6..."
+          # O '--add-host' é o truque para o k6 no container enxergar o host no Linux do GitHub Actions
+          docker run --rm -i --add-host=host.docker.internal:host-gateway \
+            -v ${{ github.workspace }}/k6-tests:/app \
+            grafana/k6 run /app/teste-carga-simples.js
+
+      - name: 4. Executar Teste de Carga com Locust
+        run: |
+          echo "Rodando teste do Locust..."
+          docker run --rm --add-host=host.docker.internal:host-gateway \
+            -v ${{ github.workspace }}/locust-tests:/app \
+            locustio/locust -f /app/locustfile.py \
+            --host http://host.docker.internal:8080 --users 10 --spawn-rate 10 --headless --run-time 30s
+
+      - name: 5. Executar Teste de Carga com JMeter
+        run: |
+          echo "Rodando teste do JMeter..."
+          docker run --rm --add-host=host.docker.internal:host-gateway \
+            -v ${{ github.workspace }}/jmeter-tests:/app -w /app \
+            justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
+
+      - name: 6. Salvar o Relatório do JMeter como Artefato
+        uses: actions/upload-artifact@v3
+        with:
+          name: jmeter-report
+          path: ./jmeter-tests/report/ # O caminho para a pasta do relatório HTML
