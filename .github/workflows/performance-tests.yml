@@ -2,7 +2,7 @@ name: Testes de Desempenho Contínuos
 
 on:
   push:
-    branches: [ master ] # Ou 'main', dependendo do nome da sua branch
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -16,22 +16,20 @@ jobs:
       - name: 2. Configurar Java e Maven
         uses: actions/setup-java@v3
         with:
-          java-version: '17' # A versão do Java que instalamos localmente
+          java-version: '17'
           distribution: 'temurin'
 
       - name: 3. Construir (Build) o projeto TeaStore
         run: |
-          # Navega para a pasta do TeaStore e executa o build do Maven
-          cd TeaStore
-          mvn clean install -DskipTests # Usamos -DskipTests para acelerar o build no pipeline
+          # CORREÇÃO FINAL: Executa o Maven apontando diretamente para o arquivo pom.xml
+          mvn -f TeaStore/pom.xml clean install -DskipTests
 
       - name: 4. Subir a aplicação TeaStore com Docker Compose
         run: |
           echo "Iniciando TeaStore..."
-          # Agora usamos o caminho para o arquivo GERADO PELO BUILD
           docker compose -f ./TeaStore/utilities/tools.descartes.teastore.docker.all/target/docker-compose.yml up -d
           echo "Aguardando 45 segundos para os serviços estabilizarem..."
-          sleep 45 # Aumentamos o tempo de espera, pois o build pode levar mais tempo
+          sleep 45
 
       - name: 5. Executar Teste de Carga com k6
         run: |
