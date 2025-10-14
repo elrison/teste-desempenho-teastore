@@ -10,35 +10,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Baixar o código do repositório
+      - name: 1. Baixar os scripts de teste
         uses: actions/checkout@v3
 
-      - name: 2. Configurar Java e Maven
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: 3. Construir (Build) o projeto TeaStore
+      - name: 2. Baixar e iniciar a aplicação TeaStore
         run: |
-          # CORREÇÃO FINAL: Executa o Maven apontando diretamente para o arquivo pom.xml
-          mvn -f TeaStore/pom.xml clean install -DskipTests
-
-      - name: 4. Subir a aplicação TeaStore com Docker Compose
-        run: |
+          echo "Baixando o arquivo de configuração do TeaStore..."
+          # Baixa o docker-compose.yml direto do repositório oficial
+          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
+          
           echo "Iniciando TeaStore..."
-          docker compose -f ./TeaStore/utilities/tools.descartes.teastore.docker.all/target/docker-compose.yml up -d
+          # Usa o arquivo que acabamos de baixar
+          docker compose -f docker-compose.yml up -d
+          
           echo "Aguardando 45 segundos para os serviços estabilizarem..."
           sleep 45
 
-      - name: 5. Executar Teste de Carga com k6
+      - name: 3. Executar Teste de Carga com k6
         run: |
           echo "Rodando teste do k6..."
           docker run --rm -i --add-host=host.docker.internal:host-gateway \
             -v ${{ github.workspace }}/k6-teastore:/app \
             grafana/k6 run /app/teste-carga-simples.js
 
-      - name: 6. Executar Teste de Carga com Locust
+      - name: 4. Executar Teste de Carga com Locust
         run: |
           echo "Rodando teste do Locust..."
           docker run --rm --add-host=host.docker.internal:host-gateway \
@@ -46,14 +41,14 @@ jobs:
             locustio/locust -f /app/locustfile.py \
             --host http://host.docker.internal:8080 --users 10 --spawn-rate 10 --headless --run-time 30s
 
-      - name: 7. Executar Teste de Carga com JMeter
+      - name: 5. Executar Teste de Carga com JMeter
         run: |
           echo "Rodando teste do JMeter..."
           docker run --rm --add-host=host.docker.internal:host-gateway \
             -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
             justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
 
-      - name: 8. Salvar o Relatório do JMeter como Artefato
+      - name: 6. Salvar o Relatório do JMeter como Artefato
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-report
