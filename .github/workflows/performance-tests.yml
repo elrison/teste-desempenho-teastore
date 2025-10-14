@@ -1,63 +1,62 @@
 name: Testes de Desempenho Contínuos
 
-# Gatilho: Este pipeline vai rodar a cada 'push' na branch 'main'
 on:
   push:
-    branches: [ master ]
-  workflow_dispatch: # Permite iniciar manualmente pela interface do GitHub
+    branches: [ master ] # Ou 'main', dependendo do nome da sua branch
+  workflow_dispatch:
 
 jobs:
   run-performance-tests:
-    runs-on: ubuntu-latest # O pipeline vai rodar em uma máquina virtual Linux (Ubuntu)
+    runs-on: ubuntu-latest
 
     steps:
       - name: 1. Baixar o código do repositório
         uses: actions/checkout@v3
 
-      - name: 2. Subir a aplicação TeaStore com Docker Compose
+      - name: 2. Configurar Java e Maven
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17' # A versão do Java que instalamos localmente
+          distribution: 'temurin'
+
+      - name: 3. Construir (Build) o projeto TeaStore
         run: |
+          # Navega para a pasta do TeaStore e executa o build do Maven
+          cd TeaStore
+          mvn clean install -DskipTests # Usamos -DskipTests para acelerar o build no pipeline
 
-          echo "--- INICIANDO DEBUG: Listando todos os arquivos e pastas ---"
-          ls -R
-          echo "--- FIM DO DEBUG ---"
-
+      - name: 4. Subir a aplicação TeaStore com Docker Compose
+        run: |
           echo "Iniciando TeaStore..."
-          docker compose -f ./TeaStore/examples/docker/docker-compose_default.yaml up -d
-          echo "Aguardando 30 segundos para os serviços estabilizarem..."
-          sleep 30
+          # Agora usamos o caminho para o arquivo GERADO PELO BUILD
+          docker compose -f ./TeaStore/utilities/tools.descartes.teastore.docker.all/target/docker-compose.yml up -d
+          echo "Aguardando 45 segundos para os serviços estabilizarem..."
+          sleep 45 # Aumentamos o tempo de espera, pois o build pode levar mais tempo
 
-          echo "Iniciando TeaStore..."
-          # Correção: Usando o caminho exato do seu repositório
-           docker compose -f ./TeaStore/examples/docker/docker-compose_default.yaml up -d
-           echo "Aguardando 30 segundos para os serviços estabilizarem..."
-           sleep 30
-
-
-      - name: 3. Executar Teste de Carga com k6
+      - name: 5. Executar Teste de Carga com k6
         run: |
           echo "Rodando teste do k6..."
-          # O '--add-host' é o truque para o k6 no container enxergar o host no Linux do GitHub Actions
           docker run --rm -i --add-host=host.docker.internal:host-gateway \
-            -v ${{ github.workspace }}/k6-tests:/app \
+            -v ${{ github.workspace }}/k6-teastore:/app \
             grafana/k6 run /app/teste-carga-simples.js
 
-      - name: 4. Executar Teste de Carga com Locust
+      - name: 6. Executar Teste de Carga com Locust
         run: |
           echo "Rodando teste do Locust..."
           docker run --rm --add-host=host.docker.internal:host-gateway \
-            -v ${{ github.workspace }}/locust-tests:/app \
+            -v ${{ github.workspace }}/locust-teastore:/app \
             locustio/locust -f /app/locustfile.py \
             --host http://host.docker.internal:8080 --users 10 --spawn-rate 10 --headless --run-time 30s
 
-      - name: 5. Executar Teste de Carga com JMeter
+      - name: 7. Executar Teste de Carga com JMeter
         run: |
           echo "Rodando teste do JMeter..."
           docker run --rm --add-host=host.docker.internal:host-gateway \
-            -v ${{ github.workspace }}/jmeter-tests:/app -w /app \
+            -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
             justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
 
-      - name: 6. Salvar o Relatório do JMeter como Artefato
+      - name: 8. Salvar o Relatório do JMeter como Artefato
         uses: actions/upload-artifact@v4
         with:
           name: jmeter-report
-          path: ./jmeter-tests/report/ # O caminho para a pasta do relatório HTML
+          path: ./jmeter-teastore/report/
