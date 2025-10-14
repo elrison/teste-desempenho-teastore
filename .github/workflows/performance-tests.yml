@@ -18,7 +18,7 @@ jobs:
         run: |
           echo "Iniciando TeaStore..."
           # Navega até a pasta correta e sobe a aplicação em background
-          docker-compose -f ./teastore-code/examples/docker/docker-compose_default.yaml up -d
+          docker compose -f ./teastore-code/examples/docker/docker-compose_default.yaml up -d
           echo "Aguardando 30 segundos para os serviços estabilizarem..."
           sleep 30
 
