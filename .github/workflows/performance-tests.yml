@@ -16,11 +16,14 @@ jobs:
 
       - name: 2. Subir a aplicação TeaStore com Docker Compose
         run: |
-          echo "Iniciando TeaStore..."
-          # Navega até a pasta correta e sobe a aplicação em background
-          docker-compose -f ./teastore-code/examples/docker/docker-compose_default.yaml up -d
-          echo "Aguardando 30 segundos para os serviços estabilizarem..."
-          sleep 30
+           echo "--- INICIANDO DEBUG: Listando todos os arquivos e pastas ---"
+           ls -R
+           echo "--- FIM DO DEBUG ---"
+
+           echo "Iniciando TeaStore..."
+           docker compose -f ./TeaStore/examples/docker/docker-compose_default.yaml up -d
+            echo "Aguardando 30 segundos para os serviços estabilizarem..."
+           sleep 30
 
       - name: 3. Executar Teste de Carga com k6
         run: |
