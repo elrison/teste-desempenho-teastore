@@ -3,7 +3,7 @@ name: Testes de Desempenho Contínuos
 # Gatilho: Este pipeline vai rodar a cada 'push' na branch 'main'
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch: # Permite iniciar manualmente pela interface do GitHub
 
 jobs:
@@ -16,14 +16,22 @@ jobs:
 
       - name: 2. Subir a aplicação TeaStore com Docker Compose
         run: |
-           echo "--- INICIANDO DEBUG: Listando todos os arquivos e pastas ---"
-           ls -R
-           echo "--- FIM DO DEBUG ---"
 
-           echo "Iniciando TeaStore..."
+          echo "--- INICIANDO DEBUG: Listando todos os arquivos e pastas ---"
+          ls -R
+          echo "--- FIM DO DEBUG ---"
+
+          echo "Iniciando TeaStore..."
+          docker compose -f ./TeaStore/examples/docker/docker-compose_default.yaml up -d
+          echo "Aguardando 30 segundos para os serviços estabilizarem..."
+          sleep 30
+
+          echo "Iniciando TeaStore..."
+          # Correção: Usando o caminho exato do seu repositório
            docker compose -f ./TeaStore/examples/docker/docker-compose_default.yaml up -d
-            echo "Aguardando 30 segundos para os serviços estabilizarem..."
+           echo "Aguardando 30 segundos para os serviços estabilizarem..."
            sleep 30
+
 
       - name: 3. Executar Teste de Carga com k6
         run: |
@@ -49,7 +57,7 @@ jobs:
             justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
 
       - name: 6. Salvar o Relatório do JMeter como Artefato
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: jmeter-report
           path: ./jmeter-tests/report/ # O caminho para a pasta do relatório HTML
