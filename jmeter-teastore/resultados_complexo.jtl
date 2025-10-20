@@ -1,0 +1,36 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1760995057846,29,GET Home,200,,Usuário Simples 1-1,text,true,,9118,148,1,1,http://localhost:8080/tools.descartes.teastore.webui/,28,0,14
+1760995057877,38,GET Product Earl Grey,200,,Usuário Simples 1-1,text,true,,87347,160,1,1,http://localhost:8080/tools.descartes.teastore.webui/product?id=7,38,0,0
+1760995057915,29,POST Add to Cart,200,,Usuário Simples 1-1,text,true,,10580,428,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,11,0,0
+1760995057915,11,POST Add to Cart-0,302,,Usuário Simples 1-1,,true,,788,276,1,1,http://localhost:8080/tools.descartes.teastore.webui/cartAction,11,0,0
+1760995057927,17,POST Add to Cart-1,200,,Usuário Simples 1-1,text,true,,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,17,0,0
+1760995057944,15,GET Cart,200,,Usuário Simples 1-1,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,15,0,0
+1760995057944,15,GET Cart,200,,Usuário Simples 1-1,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,15,0,0
+1760995057976,11,GET Home,200,,Usuário Simples 1-2,text,true,,9118,148,1,1,http://localhost:8080/tools.descartes.teastore.webui/,10,0,1
+1760995057987,30,GET Product Earl Grey,200,,Usuário Simples 1-2,text,true,,87347,160,1,1,http://localhost:8080/tools.descartes.teastore.webui/product?id=7,30,0,0
+1760995058017,26,POST Add to Cart,200,,Usuário Simples 1-2,text,true,,10580,428,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,10,0,0
+1760995058017,10,POST Add to Cart-0,302,,Usuário Simples 1-2,,true,,788,276,1,1,http://localhost:8080/tools.descartes.teastore.webui/cartAction,10,0,0
+1760995058027,16,POST Add to Cart-1,200,,Usuário Simples 1-2,text,true,,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,16,0,0
+1760995058043,17,GET Cart,200,,Usuário Simples 1-2,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,16,0,0
+1760995058043,17,GET Cart,200,,Usuário Simples 1-2,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,16,0,0
+1760995058180,19,GET Home,200,,Usuário Simples 1-3,text,true,,9118,148,1,1,http://localhost:8080/tools.descartes.teastore.webui/,19,0,3
+1760995058199,41,GET Product Earl Grey,200,,Usuário Simples 1-3,text,true,,87347,160,1,1,http://localhost:8080/tools.descartes.teastore.webui/product?id=7,41,0,0
+1760995058241,23,POST Add to Cart,200,,Usuário Simples 1-3,text,true,,10580,428,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,9,0,0
+1760995058241,9,POST Add to Cart-0,302,,Usuário Simples 1-3,,true,,788,276,1,1,http://localhost:8080/tools.descartes.teastore.webui/cartAction,9,0,0
+1760995058250,14,POST Add to Cart-1,200,,Usuário Simples 1-3,text,true,,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,14,0,0
+1760995058265,15,GET Cart,200,,Usuário Simples 1-3,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,15,0,0
+1760995058265,15,GET Cart,200,,Usuário Simples 1-3,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,15,0,0
+1760995058379,16,GET Home,200,,Usuário Simples 1-4,text,true,,9118,148,1,1,http://localhost:8080/tools.descartes.teastore.webui/,16,0,2
+1760995058396,36,GET Product Earl Grey,200,,Usuário Simples 1-4,text,true,,87347,160,1,1,http://localhost:8080/tools.descartes.teastore.webui/product?id=7,36,0,0
+1760995058433,25,POST Add to Cart,200,,Usuário Simples 1-4,text,true,,10580,428,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,10,0,0
+1760995058433,10,POST Add to Cart-0,302,,Usuário Simples 1-4,,true,,788,276,1,1,http://localhost:8080/tools.descartes.teastore.webui/cartAction,10,0,0
+1760995058443,15,POST Add to Cart-1,200,,Usuário Simples 1-4,text,true,,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,15,0,0
+1760995058458,20,GET Cart,200,,Usuário Simples 1-4,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,20,0,0
+1760995058458,20,GET Cart,200,,Usuário Simples 1-4,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,20,0,0
+1760995058576,17,GET Home,200,,Usuário Simples 1-5,text,true,,9118,148,1,1,http://localhost:8080/tools.descartes.teastore.webui/,17,0,3
+1760995058593,46,GET Product Earl Grey,200,,Usuário Simples 1-5,text,true,,87347,160,1,1,http://localhost:8080/tools.descartes.teastore.webui/product?id=7,46,0,0
+1760995058640,26,POST Add to Cart,200,,Usuário Simples 1-5,text,true,,10580,428,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,12,0,0
+1760995058640,12,POST Add to Cart-0,302,,Usuário Simples 1-5,,true,,788,276,1,1,http://localhost:8080/tools.descartes.teastore.webui/cartAction,12,0,0
+1760995058652,14,POST Add to Cart-1,200,,Usuário Simples 1-5,text,true,,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,14,0,0
+1760995058666,15,GET Cart,200,,Usuário Simples 1-5,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,14,0,0
+1760995058666,15,GET Cart,200,,Usuário Simples 1-5,text,false,Test failed: text expected to contain /Earl Grey (loose)/,9792,152,1,1,http://localhost:8080/tools.descartes.teastore.webui/cart,14,0,0
