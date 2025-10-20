@@ -1,4 +1,4 @@
-name: Testes de Desempenho Contínuos
+name: Executar Testes de Desempenho (Simples e Complexos)
 
 on:
   push:
@@ -10,47 +10,84 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Baixar os scripts de teste
-        uses: actions/checkout@v3
+      # 1. Baixa o código do repositório, incluindo o sub-módulo do TeaStore
+      - name: 1. Baixar o código do repositório
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
-      - name: 2. Baixar e iniciar a aplicação TeaStore
+      # 2. Sobe a aplicação TeaStore usando o arquivo de compose oficial
+      - name: 2. Subir a aplicação TeaStore com Docker Compose
+        working-directory: ./TeaStore/examples/docker
+        run: docker-compose -f docker-compose_default.yaml up -d
+
+      # 3. Espera a aplicação iniciar completamente antes de começar os testes
+      - name: 3. Aguardar inicialização da aplicação
         run: |
-          echo "Baixando o arquivo de configuração do TeaStore..."
-          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
-          
-          echo "Iniciando TeaStore..."
-          docker compose -f docker-compose.yml up -d
-          
-          echo "Aguardando 45 segundos para os serviços estabilizarem..."
+          echo "Aguardando 45 segundos para os serviços do TeaStore iniciarem..."
           sleep 45
+          echo "Verificando se o serviço web está no ar..."
+          # Tenta acessar a página até obter sucesso ou o tempo esgotar
+          timeout 60s bash -c 'until curl --fail http://localhost:8080/tools.descartes.teastore.webui/; do sleep 5; done'
+          echo "Aplicação TeaStore está pronta."
 
-      - name: 3. Executar Teste de Carga com k6
-        run: |
-          echo "Rodando teste do k6..."
-          docker run --rm -i --add-host=host.docker.internal:host-gateway \
-            -v ${{ github.workspace }}/k6-teastore:/app \
-            grafana/k6 run /app/teste-carga-simples.js
+      # ======================================================
+      # === TESTES SIMPLES ===
+      # ======================================================
 
-      - name: 4. Executar Teste de Carga com Locust
+      - name: 4.1. Executar Teste de Carga Simples com k6
+        uses: grafana/k6-action@v0.2.0
+        with:
+          filename: k6-teastore/teste-carga-simples.js
+
+      - name: 4.2. Executar Teste de Carga Simples com Locust
         run: |
-          echo "Rodando teste do Locust..."
-          docker run --rm --add-host=host.docker.internal:host-gateway \
-            -v ${{ github.workspace }}/locust-teastore:/app \
+          docker run --network=host --rm -v ${{ github.workspace }}/locust-teastore:/app \
             locustio/locust -f /app/locustfile.py \
-            --host http://host.docker.internal:8080 --users 10 --spawn-rate 10 --headless --run-time 30s
+            --host http://localhost:8080 --users 10 --spawn-rate 10 --headless --run-time 30s
 
-      - name: 5. Executar Teste de Carga com JMeter
+      - name: 4.3. Executar Teste de Carga Simples com JMeter
         run: |
-          echo "Rodando teste do JMeter..."
-          # CORREÇÃO FINAL: Remove a pasta de relatório E o arquivo de log antes da execução
-          rm -rf ./jmeter-teastore/report
-          rm -f ./jmeter-teastore/results.jtl
-          docker run --rm --add-host=host.docker.internal:host-gateway \
-            -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
-            justb4/jmeter -n -t teste-carga-simples.jmx -l results.jtl -e -o report
+          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
+            justb4/jmeter -n -t teste-carga-simples.jmx -l resultados_simples.jtl -e -o relatorio-simples
 
-      - name: 6. Salvar o Relatório do JMeter como Artefato
+      # ======================================================
+      # === TESTES COMPLEXOS ===
+      # ======================================================
+
+      - name: 5.1. Executar Teste de Carga Complexo com k6
+        uses: grafana/k6-action@v0.2.0
+        with:
+          filename: k6-teastore/cenarios-complexos.js
+
+      - name: 5.2. Executar Teste de Carga Complexo com Locust
+        working-directory: ./locust-teastore
+        run: |
+          docker build -t locust-teastore-custom .
+          docker run --network=host --rm locust-teastore-custom \
+            -f cenarios-complexos-locust.py \
+            --host http://localhost:8080 --users 5 --spawn-rate 5 --headless --run-time 30s \
+            --html relatorio_locust.html --csv resultados_locust
+
+      - name: 5.3. Executar Teste de Carga Complexo com JMeter
+        working-directory: ./jmeter-teastore
+        run: |
+          docker build -t jmeter-teastore-custom .
+          docker run --network=host --rm -v $PWD:/jmeter jmeter-teastore-custom \
+            -n -t cenarios-complexos.jmx -l resultados_complexo.jtl -e -o relatorio-complexo \
+            -Jhostname=localhost -Jport=8080
+
+      # ======================================================
+      # === SALVAR ARTEFATOS ===
+      # ======================================================
+      
+      - name: 6. Salvar Relatórios como Artefatos
         uses: actions/upload-artifact@v4
         with:
-          name: jmeter-report
-          path: ./jmeter-teastore/report/
+          name: relatorios-de-desempenho
+          path: |
+            k6-teastore/summary.json
+            locust-teastore/relatorio_locust.html
+            locust-teastore/resultados_locust_stats.csv
+            jmeter-teastore/relatorio-simples/
+            jmeter-teastore/relatorio-complexo/
