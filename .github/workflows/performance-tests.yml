@@ -38,15 +38,32 @@ jobs:
         with:
           filename: k6-teastore/teste-carga-simples.js
 
+
+      # ======================================================
+      # === TESTES SIMPLES ===
+      # ======================================================
+
+      - name: 4.1. Executar Teste de Carga Simples com k6
+        uses: grafana/k6-action@v0.2.0
+        with:
+          filename: k6-teastore/teste-carga-simples.js
+
       - name: 4.2. Executar Teste de Carga Simples com Locust
         run: |
           docker run --network=host --rm -v ${{ github.workspace }}/locust-teastore:/app \
             locustio/locust -f /app/locustfile.py \
             --host http://localhost:8080 --users 10 --spawn-rate 10 --headless --run-time 30s
+
       - name: 4.3. Executar Teste de Carga Simples com JMeter
         run: |
           docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
             justb4/jmeter -n -t teste-carga-simples.jmx -l resultados_simples.jtl -e -o relatorio-simples
+      # ======================================================
+      # === TESTES COMPLEXOS ===
+      # ======================================================
+
+
+
       # ======================================================
       # === TESTES COMPLEXOS ===
       # ======================================================
@@ -63,6 +80,7 @@ jobs:
             -f cenarios-complexos-locust.py \
             --host http://localhost:8080 --users 5 --spawn-rate 5 --headless --run-time 30s \
             --html relatorio_locust.html --csv resultados_locust
+
       - name: 5.3. Executar Teste de Carga Complexo com JMeter
         run: |
           docker build -t jmeter-teastore-custom jmeter-teastore
@@ -82,4 +100,5 @@ jobs:
             locust-teastore/relatorio_locust.html
             locust-teastore/resultados_locust_stats.csv
             jmeter-teastore/relatorio-simples/
+            jmeter-teastore/relatorio-complexo/
             jmeter-teastore/relatorio-complexo/
