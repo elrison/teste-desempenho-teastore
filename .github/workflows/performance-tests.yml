@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: false
+          fetch-depth: 0 # CORREÇÃO: Adicionado para evitar erro de submódulos no .gitmodules
 
       - name: Instalar Java e JMeter
         run: |
@@ -52,6 +53,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: false
+          fetch-depth: 0 # CORREÇÃO: Adicionado para evitar erro de submódulos no .gitmodules
 
       - name: Instalar K6
         run: |
@@ -81,6 +83,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: false
+          fetch-depth: 0 # CORREÇÃO: Adicionado para evitar erro de submódulos no .gitmodules
 
       - name: Instalar Python e dependências
         run: |
