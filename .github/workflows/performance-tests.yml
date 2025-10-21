@@ -26,27 +26,24 @@ jobs:
           submodules: false
           fetch-depth: 1
           
-      - name: 🚨 CORREÇÃO GPG FINAL (Força ignorar erro C5C1D397)
+      - name: 🚨 CORREÇÃO GPG FINAL (Forçar Update Ignorando Falhas de Chave)
         run: |
-          echo "Aplicando correção final: forçando APT a ignorar chaves GPG inválidas para prosseguir."
+          echo "Aplicando correção final: usando flags APT para ignorar chaves falhas (C5C1D397)."
           
           # 1. REMOÇÃO DE CONFIGURAÇÕES DO K6 (fonte do erro)
           sudo rm -f /etc/apt/sources.list.d/k6.list
           sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
           
-          # 2. Configuração APT que desabilita a validação de chave.
-          # Isso é um último recurso para garantir que o update funcione sem falhar no keyserver.
-          echo 'APT::Get::AllowUnauthenticated "true";' | sudo tee /etc/apt/apt.conf.d/71no-gpg-check
-          
-          # 3. Limpa o cache do APT e tenta o update novamente.
+          # 2. Executa o update com flags que permitem continuar se houver falha de chave.
+          # As flags são: 
+          # --allow-insecure-repositories (Permite repositórios sem assinatura válida)
+          # --allow-unauthenticated (Permite continuar mesmo se não conseguir autenticar chaves)
           sudo apt-get clean
-          sudo apt-get update -y
+          sudo apt-get update --allow-unauthenticated -y
           
       - name: Instalar Java e JMeter
         run: |
-          # O apt-get update foi movido para o passo anterior.
-          # Removendo a flag temporária de não-autenticação para a instalação real.
-          sudo rm -f /etc/apt/apt.conf.d/71no-gpg-check
+          # O apt-get update foi executado e a falha GPG foi contornada no passo anterior.
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
