@@ -4,67 +4,42 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master # ALTERADO: A branch principal agora é 'master'
-      - main # Mantido para compatibilidade, caso a branch 'main' exista
+      - master
+      - main
 
 jobs:
   jmeter-tests:
     name: JMeter - Carga Simples e Complexa
     runs-on: ubuntu-latest
-
     steps:
-      - name: Remover arquivo .gitmodules (Correção Forçada)
-        run: |
-          if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
-            rm .gitmodules
-          fi
-          
-      - name: Checkout repository (sem submodules)
+      - name: Checkout (sem submodules)
         uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: 1
 
-      - name: 🔐 Correção Moderna do GPG (Google Cloud SDK compatível com Ubuntu Noble)
+      - name: Setup Java (OpenJDK 11)
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Download e extrair Apache JMeter
         run: |
-          echo "Iniciando correção GPG moderna..."
-          sudo apt-get update -y
-          sudo apt-get install -y gnupg software-properties-common curl
-
-          # Cria diretório de keyrings (padrão moderno)
-          sudo mkdir -p /etc/apt/keyrings
-          sudo chmod 755 /etc/apt/keyrings
-
-          # Baixa e converte a chave GPG de forma segura
-          curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-            sudo gpg --dearmor -o /etc/apt/keyrings/cloud.google.gpg
-
-          # Adiciona o repositório do Google Cloud SDK
-          echo "deb [signed-by=/etc/apt/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | \
-            sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-
-          # Atualiza e instala o SDK (exemplo: usado por Dataflow)
-          sudo apt-get update -y
-          sudo apt-get install -y google-cloud-sdk
-          echo "✅ Correção GPG aplicada com sucesso!"
-
-      - name: Instalar Java e JMeter
-        run: |
-          sudo apt-get install -y openjdk-11-jre-headless
-          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
+          echo "Baixando JMeter..."
+          curl -fsSL -o apache-jmeter-5.6.2.tgz https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
-          export PATH=$PATH:$(pwd)/apache-jmeter-5.6.2/bin
+          ls -la apache-jmeter-5.6.2
 
       - name: Teste de Carga Simples (JMeter)
         run: |
-          echo "Executando teste de carga simples..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/teste-carga-simples.jmx -l jmeter-teastore/results-simples.jtl -e -o jmeter-teastore/report-simples
+          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl -e -o jmeter-teastore/report-simples
 
       - name: Teste de Carga Complexo (JMeter)
         run: |
-          echo "Executando teste de carga complexo..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/cenarios-complexos.jmx -l jmeter-teastore/results-complexos.jtl -e -o jmeter-teastore/report-complexos
+          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl -e -o jmeter-teastore/report-complexos
 
       - name: Upload Relatórios JMeter
         uses: actions/upload-artifact@v4
@@ -77,69 +52,56 @@ jobs:
   k6-tests:
     name: K6 - Carga Simples e Complexa
     runs-on: ubuntu-latest
-
     steps:
-      - name: Remover arquivo .gitmodules (Correção Forçada)
-        run: |
-          if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
-            rm .gitmodules
-          fi
-          
-      - name: Checkout repository (sem submodules)
+      - name: Checkout (sem submodules)
         uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar Dependências Essenciais e Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'    # ajuste se quiser outra versão
+
+      - name: Instalar K6 via NPM (evita apt)
         run: |
-          sudo apt-get install -y nodejs npm
-          
-      - name: Instalar K6 via NPM (Solução Definitiva)
-        run: |
+          npm config set depth 0
           npm install -g k6
-          
+          k6 version
+
       - name: Teste de Carga Simples (K6)
         run: |
-          echo "Executando teste simples no K6..."
           k6 run k6-teastore/teste-carga-simples.js
 
       - name: Teste de Carga Complexo (K6)
         run: |
-          echo "Executando teste complexo no K6..."
           k6 run k6-teastore/cenarios-complexos.js
 
   locust-tests:
     name: Locust - Carga Simples e Complexa
     runs-on: ubuntu-latest
-
     steps:
-      - name: Remover arquivo .gitmodules (Correção Forçada)
-        run: |
-          if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
-            rm .gitmodules
-          fi
-          
-      - name: Checkout repository (sem submodules)
+      - name: Checkout (sem submodules)
         uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar Python e dependências
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'  # ajuste se precisar outra versão
+
+      - name: Instalar Locust (pip)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3 python3-pip
-          pip install locust
+          python -m pip install --upgrade pip
+          python -m pip install locust
 
       - name: Teste de Carga Simples (Locust)
         run: |
-          echo "Executando Locust - Carga Simples..."
           locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 30s --host http://localhost:8080
 
       - name: Teste de Carga Complexo (Locust)
         run: |
-          echo "Executando Locust - Cenarios Complexos..."
           locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 5 -t 1m --host http://localhost:8080
