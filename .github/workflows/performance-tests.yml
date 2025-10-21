@@ -69,15 +69,24 @@ jobs:
           submodules: false
           fetch-depth: 1
 
+      - name: Limpar Configuração Antiga do K6 (Forçar a remoção do source list)
+        run: |
+          # Remove o arquivo de source list que aponta para o repositório k6
+          if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
+            echo "Removendo /etc/apt/sources.list.d/k6.list para prevenir erro GPG."
+            sudo rm /etc/apt/sources.list.d/k6.list
+          fi
+          # Executa o update para limpar o cache de pacotes
+          sudo apt-get update
+
       - name: Instalar Dependências Essenciais e Node.js
         run: |
-          # Atualiza APT, instala Node/NPM (que é leve) e outras dependências básicas
-          sudo apt-get update
+          # Instala Node/NPM via APT
           sudo apt-get install -y nodejs npm
           
-      - name: Instalar K6 via NPM (Tentativa Final)
+      - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
-          # O comando 'npm install -g k6' deve funcionar agora que temos Node/NPM instalados via apt
+          # Instala o k6 via NPM, que não usa repositórios APT
           npm install -g k6
           
       - name: Teste de Carga Simples (K6)
@@ -89,7 +98,7 @@ jobs:
         run: |
           echo "Executando teste complexo no K6..."
           k6 run k6-teastore/cenarios-complexos.js
-          
+
   locust-tests:
     name: Locust - Carga Simples e Complexa
     runs-on: ubuntu-latest
