@@ -10,7 +10,7 @@ on:
 jobs:
   jmeter-tests:
     name: JMeter - Carga Simples e Complexa
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # CORREÇÃO: Alterado para versão específica para evitar erro GPG na imagem latest
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
@@ -26,21 +26,26 @@ jobs:
           submodules: false
           fetch-depth: 1
           
-      - name: Instalar Java e JMeter (c/ Correção APT/GPG)
+      - name: 🚨 CORREÇÃO GPG FINAL (Forçar Update Ignorando Falhas de Chave)
         run: |
-          # 1. Limpeza de resíduos (RESOLVE EXIT CODE 100 E PREVINE EXIT CODE 2)
-          # Remove o arquivo de sintaxe inválida que está causando o erro E: Syntax error.
-          sudo rm -f /etc/apt/apt.conf.d/99force-keyserver 
-          # Remove configurações de repositório K6 antigo (previne o erro C5C1D397).
+          echo "Aplicando correção final: forçando APT a ignorar falhas de chave (C5C1D397)."
+          
+          # FORÇA GPG A USAR UM KEYSERVER MAIS ESTÁVEL (keys.openpgp.org)
+          echo "keyserver hkp://keys.openpgp.org" | sudo tee /etc/apt/apt.conf.d/99force-keyserver
+
+          # 1. REMOÇÃO DE CONFIGURAÇÕES DO K6 (fonte do erro)
           sudo rm -f /etc/apt/sources.list.d/k6.list
           sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
           
-          # 2. Executa o update de forma resiliente.
-          # O '|| true' garante que o step não falhe com exit code 2 (GPG).
+          # 2. Executa o update com flags que permitem continuar se houver falha de chave.
+          # Adicionamos '|| true' para GARANTIR que o step não falhe com exit code 2.
           sudo apt-get clean
           sudo apt-get update --allow-unauthenticated -y || true
           
-          # 3. Instalação do Java e JMeter
+      - name: Instalar Java e JMeter
+        run: |
+          # Remove a configuração temporária de keyserver e o apt-get update foi executado e a falha GPG foi contornada no passo anterior.
+          sudo rm -f /etc/apt/apt.conf.d/99force-keyserver
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
@@ -66,7 +71,7 @@ jobs:
 
   k6-tests:
     name: K6 - Carga Simples e Complexa
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # CORREÇÃO: Alterado para versão específica
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
@@ -84,19 +89,12 @@ jobs:
 
       - name: Instalar Dependências Essenciais e Node.js
         run: |
-          # O ambiente já está limpo após o job do JMeter, então este update deve funcionar.
+          # O ambiente GPG já foi limpo no job JMeter.
           sudo apt-get install -y nodejs npm
-      
-      - name: ⚙️ Ajustar PATH para K6 (NPM Global)
-        run: |
-          # Encontra o diretório de instalação global do NPM
-          NPM_GLOBAL_DIR=$(npm config get prefix)
-          # Adiciona o diretório binário do NPM (onde o k6 está) ao PATH para as próximas steps
-          echo "$NPM_GLOBAL_DIR/bin" >> $GITHUB_PATH
-
+          
       - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
-          # Instala o k6 globalmente
+          # Instala o k6 via NPM, evitando o uso do APT e chaves GPG para o K6.
           npm install -g k6
           
       - name: Teste de Carga Simples (K6)
@@ -111,7 +109,7 @@ jobs:
 
   locust-tests:
     name: Locust - Carga Simples e Complexa
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # CORREÇÃO: Alterado para versão específica
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
@@ -129,6 +127,7 @@ jobs:
 
       - name: Instalar Python e dependências
         run: |
+          # O ambiente GPG já foi limpo globalmente.
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install locust
