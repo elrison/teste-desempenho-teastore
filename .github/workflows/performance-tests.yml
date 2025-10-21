@@ -69,14 +69,15 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Configurar Node.js (Pré-requisito para NPM)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Instalar K6 via NPM (Solução Definitiva)
+      - name: Instalar Dependências Essenciais e Node.js
         run: |
-          echo "Instalando k6 via NPM para contornar problemas de APT/GPG."
+          # Atualiza APT, instala Node/NPM (que é leve) e outras dependências básicas
+          sudo apt-get update
+          sudo apt-get install -y nodejs npm
+          
+      - name: Instalar K6 via NPM (Tentativa Final)
+        run: |
+          # O comando 'npm install -g k6' deve funcionar agora que temos Node/NPM instalados via apt
           npm install -g k6
           
       - name: Teste de Carga Simples (K6)
@@ -88,7 +89,7 @@ jobs:
         run: |
           echo "Executando teste complexo no K6..."
           k6 run k6-teastore/cenarios-complexos.js
-
+          
   locust-tests:
     name: Locust - Carga Simples e Complexa
     runs-on: ubuntu-latest
