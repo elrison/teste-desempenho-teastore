@@ -14,7 +14,6 @@ jobs:
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
-          # Este comando remove o arquivo do runner ANTES do checkout.
           if [ -f ".gitmodules" ]; then
             echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
             rm .gitmodules
@@ -23,11 +22,8 @@ jobs:
       - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
         with:
-          # Parâmetros de segurança (não devem mais ser estritamente necessários após a remoção do arquivo)
           submodules: false
-          fetch-depth: 1 # Voltamos para profundidade 1, pois não precisamos do histórico completo.
-
-      # Removemos o step extra de "Correção forçada do erro do submódulo" pois o .gitmodules já foi removido.
+          fetch-depth: 1
 
       - name: Instalar Java e JMeter
         run: |
@@ -73,12 +69,23 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar K6
+      - name: Instalar K6 (Método Moderno)
         run: |
           sudo apt-get update
-          sudo apt-get install -y gnupg software-properties-common
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C5C1D397
-          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          
+          # Instala dependências necessárias para o método moderno
+          sudo apt-get install -y ca-certificates curl gnupg
+
+          # 1. Cria o diretório keyring para armazenar a chave
+          sudo mkdir -p /etc/apt/keyrings
+          
+          # 2. Baixa a chave GPG do k6 e a salva no diretório keyring
+          curl -sS -L https://dl.k6.io/key.gpg | sudo gpg --dearmor --output /etc/apt/keyrings/k6.gpg
+
+          # 3. Adiciona o repositório do k6, referenciando a nova localização da chave
+          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/k6.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+
+          # 4. Atualiza os pacotes e instala o k6
           sudo apt-get update
           sudo apt-get install -y k6
 
