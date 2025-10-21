@@ -11,7 +11,18 @@ jobs:
   jmeter-tests:
     name: JMeter - Carga Simples e Complexa
     runs-on: ubuntu-latest
+
     steps:
+      - name: Limpeza total de repositórios problemáticos (C5C1D397 fix)
+        run: |
+          echo "Removendo repositórios externos com chaves quebradas (Microsoft, K6, etc)..."
+          sudo rm -f /etc/apt/sources.list.d/*.list
+          sudo rm -f /etc/apt/trusted.gpg.d/*.gpg
+          sudo rm -f /etc/apt/trusted.gpg
+          sudo apt-get clean
+          sudo apt-get update --allow-unauthenticated -y || true
+          echo "Repositórios limpos com sucesso."
+
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
         with:
@@ -24,12 +35,10 @@ jobs:
           distribution: temurin
           java-version: '11'
 
-      - name: Download e extrair Apache JMeter
+      - name: Baixar e extrair Apache JMeter
         run: |
-          echo "Baixando JMeter..."
           curl -fsSL -o apache-jmeter-5.6.2.tgz https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
-          ls -la apache-jmeter-5.6.2
 
       - name: Teste de Carga Simples (JMeter)
         run: |
@@ -52,7 +61,16 @@ jobs:
   k6-tests:
     name: K6 - Carga Simples e Complexa
     runs-on: ubuntu-latest
+
     steps:
+      - name: Limpeza de repositórios externos (C5C1D397 fix)
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/*.list
+          sudo rm -f /etc/apt/trusted.gpg.d/*.gpg
+          sudo rm -f /etc/apt/trusted.gpg
+          sudo apt-get clean
+          sudo apt-get update --allow-unauthenticated -y || true
+
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
         with:
@@ -62,11 +80,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'    # ajuste se quiser outra versão
+          node-version: '20'
 
-      - name: Instalar K6 via NPM (evita apt)
+      - name: Instalar K6 via NPM (sem apt)
         run: |
-          npm config set depth 0
           npm install -g k6
           k6 version
 
@@ -81,7 +98,16 @@ jobs:
   locust-tests:
     name: Locust - Carga Simples e Complexa
     runs-on: ubuntu-latest
+
     steps:
+      - name: Limpeza de repositórios externos (C5C1D397 fix)
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/*.list
+          sudo rm -f /etc/apt/trusted.gpg.d/*.gpg
+          sudo rm -f /etc/apt/trusted.gpg
+          sudo apt-get clean
+          sudo apt-get update --allow-unauthenticated -y || true
+
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
         with:
@@ -91,12 +117,12 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # ajuste se precisar outra versão
+          python-version: '3.11'
 
-      - name: Instalar Locust (pip)
+      - name: Instalar Locust
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install locust
+          pip install --upgrade pip
+          pip install locust
 
       - name: Teste de Carga Simples (Locust)
         run: |
