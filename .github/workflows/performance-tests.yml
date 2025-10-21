@@ -81,9 +81,16 @@ jobs:
           submodules: false
           fetch-depth: 1
 
+      - name: Corrigir GPG (repositórios confiáveis)
+        run: |
+          # Evita erros de apt-key deprecated e falha de chaves
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+            | gpg --dearmor \
+            | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null
+          sudo apt-get update
+
       - name: Instalar Python e Locust
         run: |
-          sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install --upgrade pip
           pip install locust
