@@ -1,104 +1,168 @@
-name: Executar Testes de Desempenho (Simples e Complexos)
+name: Performance Tests - TeaStore
 
 on:
-  push:
-    branches: [ master ]
   workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
 
 jobs:
-  run-performance-tests:
+  # ======================
+  # 🧪 JMETER - CARGA SIMPLES
+  # ======================
+  jmeter-simples:
+    name: JMeter - Carga Simples
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout do código, incluindo submódulos
-      - name: 1. Baixar o código do repositório
+      - name: 📦 Checkout código
         uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
 
-      # 2. Subir aplicação TeaStore com Docker Compose
-      - name: 2. Subir a aplicação TeaStore com Docker Compose
-        run: docker-compose -f examples/docker/docker-compose_default.yaml up -d
-        working-directory: ./TeaStore
-
-      # 3. Aguarda a aplicação iniciar
-      - name: 3. Aguardar inicialização da aplicação
+      - name: 🐳 Rodando teste JMeter (Simples)
         run: |
-          echo "Aguardando 45 segundos para os serviços do TeaStore iniciarem..."
-          sleep 45
-          echo "Verificando se o serviço web está no ar..."
-          timeout 60s bash -c 'until curl --fail http://localhost:8080/tools.descartes.teastore.webui/; do sleep 5; done'
-          echo "Aplicação TeaStore está pronta."
-      # ======================================================
-      # === TESTES SIMPLES ===
-      # ======================================================
+          docker build -t jmeter-simples ./jmeter-teastore
+          docker run --rm -v ${{ github.workspace }}/jmeter-teastore:/opt/jmeter \
+            jmeter-simples \
+            -n -t /opt/jmeter/teste-carga-simples.jmx \
+            -l /opt/jmeter/results-simples.jtl \
+            -e -o /opt/jmeter/report-simples
 
-      - name: 4.1. Executar Teste de Carga Simples com k6
-        uses: grafana/k6-action@v0.2.0
-        with:
-          filename: k6-teastore/teste-carga-simples.js
-
-
-      # ======================================================
-      # === TESTES SIMPLES ===
-      # ======================================================
-
-      - name: 4.1. Executar Teste de Carga Simples com k6
-        uses: grafana/k6-action@v0.2.0
-        with:
-          filename: k6-teastore/teste-carga-simples.js
-
-      - name: 4.2. Executar Teste de Carga Simples com Locust
-        run: |
-          docker run --network=host --rm -v ${{ github.workspace }}/locust-teastore:/app \
-            locustio/locust -f /app/locustfile.py \
-            --host http://localhost:8080 --users 10 --spawn-rate 10 --headless --run-time 30s
-
-      - name: 4.3. Executar Teste de Carga Simples com JMeter
-        run: |
-          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/app -w /app \
-            justb4/jmeter -n -t teste-carga-simples.jmx -l resultados_simples.jtl -e -o relatorio-simples
-      # ======================================================
-      # === TESTES COMPLEXOS ===
-      # ======================================================
-
-
-
-      # ======================================================
-      # === TESTES COMPLEXOS ===
-      # ======================================================
-
-      - name: 5.1. Executar Teste de Carga Complexo com k6
-        uses: grafana/k6-action@v0.2.0
-        with:
-          filename: k6-teastore/cenarios-complexos.js
-
-      - name: 5.2. Executar Teste de Carga Complexo com Locust
-        run: |
-          docker build -t locust-teastore-custom locust-teastore
-          docker run --network=host --rm locust-teastore-custom \
-            -f cenarios-complexos-locust.py \
-            --host http://localhost:8080 --users 5 --spawn-rate 5 --headless --run-time 30s \
-            --html relatorio_locust.html --csv resultados_locust
-
-      - name: 5.3. Executar Teste de Carga Complexo com JMeter
-        run: |
-          docker build -t jmeter-teastore-custom jmeter-teastore
-          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
-            -n -t cenarios-complexos.jmx -l resultados_complexo.jtl -e -o relatorio-complexo \
-            -Jhostname=localhost -Jport=8080
-      # ======================================================
-      # === SALVAR ARTEFATOS ===
-      # ======================================================
-
-      - name: 6. Salvar Relatórios como Artefatos
+      - name: 📤 Upload do Relatório JMeter Simples
         uses: actions/upload-artifact@v4
         with:
-          name: relatorios-de-desempenho
-          path: |
-            k6-teastore/summary.json
-            locust-teastore/relatorio_locust.html
-            locust-teastore/resultados_locust_stats.csv
-            jmeter-teastore/relatorio-simples/
-            jmeter-teastore/relatorio-complexo/
-            jmeter-teastore/relatorio-complexo/
+          name: jmeter-relatorio-simples
+          path: jmeter-teastore/report-simples
+
+  # ======================
+  # 🧪 JMETER - CENÁRIO COMPLEXO
+  # ======================
+  jmeter-complexo:
+    name: JMeter - Cenário Complexo
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🐳 Rodando teste JMeter (Complexo)
+        run: |
+          docker build -t jmeter-complexo ./jmeter-teastore
+          docker run --rm -v ${{ github.workspace }}/jmeter-teastore:/opt/jmeter \
+            jmeter-complexo \
+            -n -t /opt/jmeter/cenarios-complexos.jmx \
+            -l /opt/jmeter/results-complexos.jtl \
+            -e -o /opt/jmeter/report-complexos
+
+      - name: 📤 Upload do Relatório JMeter Complexo
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmeter-relatorio-complexo
+          path: jmeter-teastore/report-complexos
+
+  # ======================
+  # ⚡ K6 - CARGA SIMPLES
+  # ======================
+  k6-simples:
+    name: K6 - Carga Simples
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout código
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Instalar K6
+        run: sudo apt-get update && sudo apt-get install -y k6
+
+      - name: 🚀 Rodar teste K6 (Simples)
+        run: |
+          cd k6-teastore
+          k6 run teste-carga-simples.js --out json=../k6-teastore/results-simples.json
+
+      - name: 📤 Upload do Relatório K6 Simples
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-resultados-simples
+          path: k6-teastore/results-simples.json
+
+  # ======================
+  # ⚡ K6 - CENÁRIO COMPLEXO
+  # ======================
+  k6-complexo:
+    name: K6 - Cenário Complexo
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout código
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Instalar K6
+        run: sudo apt-get update && sudo apt-get install -y k6
+
+      - name: 🚀 Rodar teste K6 (Complexo)
+        run: |
+          cd k6-teastore
+          k6 run cenarios-complexos.js --out json=../k6-teastore/results-complexos.json
+
+      - name: 📤 Upload do Relatório K6 Complexo
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-resultados-complexos
+          path: k6-teastore/results-complexos.json
+
+  # ======================
+  # 🐍 LOCUST - CARGA SIMPLES
+  # ======================
+  locust-simples:
+    name: Locust - Carga Simples
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar ambiente Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Instalar dependências
+        run: |
+          cd locust-teastore
+          pip install -r requirements.txt
+
+      - name: 🚀 Rodar teste Locust (Simples)
+        run: |
+          cd locust-teastore
+          locust -f teste-carga-simples-locust.py --headless -u 10 -r 2 -t 30s --html relatorio-simples.html
+
+      - name: 📤 Upload Relatório Locust Simples
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-relatorio-simples
+          path: locust-teastore/relatorio-simples.html
+
+  # ======================
+  # 🐍 LOCUST - CENÁRIO COMPLEXO
+  # ======================
+  locust-complexo:
+    name: Locust - Cenário Complexo
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📦 Checkout código
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar ambiente Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Instalar dependências
+        run: |
+          cd locust-teastore
+          pip install -r requirements.txt
+
+      - name: 🚀 Rodar teste Locust (Complexo)
+        run: |
+          cd locust-teastore
+          locust -f cenarios-complexos-locust.py --headless -u 10 -r 2 -t 30s --html relatorio-complexo.html
+
+      - name: 📤 Upload Relatório Locust Complexo
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-relatorio-complexo
+          path: locust-teastore/relatorio-complexo.html
