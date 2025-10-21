@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   jmeter-tests:
@@ -12,18 +12,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (com tentativa de ignorar submodules)
+      - name: Remover arquivo .gitmodules (Correção Forçada)
+        run: |
+          # Este comando remove o arquivo do runner ANTES do checkout.
+          if [ -f ".gitmodules" ]; then
+            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+            rm .gitmodules
+          fi
+          
+      - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive # Usado em conjunto com fetch-depth: 0
-          fetch-depth: 0 
+          # Parâmetros de segurança (não devem mais ser estritamente necessários após a remoção do arquivo)
+          submodules: false
+          fetch-depth: 1 # Voltamos para profundidade 1, pois não precisamos do histórico completo.
 
-      - name: Correção forçada do erro do submódulo
-        run: |
-          if [ -d ".git/modules/TeaStore" ]; then
-            echo "Removendo diretório .git/modules/TeaStore para forçar tratamento como pasta normal."
-            rm -rf .git/modules/TeaStore
-          fi
+      # Removemos o step extra de "Correção forçada do erro do submódulo" pois o .gitmodules já foi removido.
 
       - name: Instalar Java e JMeter
         run: |
@@ -56,18 +60,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (com tentativa de ignorar submodules)
+      - name: Remover arquivo .gitmodules (Correção Forçada)
+        run: |
+          if [ -f ".gitmodules" ]; then
+            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+            rm .gitmodules
+          fi
+          
+      - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Correção forçada do erro do submódulo
-        run: |
-          if [ -d ".git/modules/TeaStore" ]; then
-            echo "Removendo diretório .git/modules/TeaStore para forçar tratamento como pasta normal."
-            rm -rf .git/modules/TeaStore
-          fi
+          submodules: false
+          fetch-depth: 1
 
       - name: Instalar K6
         run: |
@@ -93,18 +97,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (com tentativa de ignorar submodules)
+      - name: Remover arquivo .gitmodules (Correção Forçada)
+        run: |
+          if [ -f ".gitmodules" ]; then
+            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+            rm .gitmodules
+          fi
+          
+      - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Correção forçada do erro do submódulo
-        run: |
-          if [ -d ".git/modules/TeaStore" ]; then
-            echo "Removendo diretório .git/modules/TeaStore para forçar tratamento como pasta normal."
-            rm -rf .git/modules/TeaStore
-          fi
+          submodules: false
+          fetch-depth: 1
 
       - name: Instalar Python e dependências
         run: |
