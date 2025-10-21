@@ -25,27 +25,32 @@ jobs:
         with:
           submodules: false
           fetch-depth: 1
-          
-      - name: 🚨 CORREÇÃO GPG FINAL (Forçar Update Ignorando Falhas de Chave)
-        run: |
-          echo "Aplicando correção final: forçando APT a ignorar falhas de chave (C5C1D397)."
-          
-          # FORÇA GPG A USAR UM KEYSERVER MAIS ESTÁVEL (keys.openpgp.org)
-          echo "keyserver hkp://keys.openpgp.org" | sudo tee /etc/apt/apt.conf.d/99force-keyserver
 
-          # 1. REMOÇÃO DE CONFIGURAÇÕES DO K6 (fonte do erro)
-          sudo rm -f /etc/apt/sources.list.d/k6.list
-          sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
-          
-          # 2. Executa o update com flags que permitem continuar se houver falha de chave.
-          # Adicionamos '|| true' para GARANTIR que o step não falhe com exit code 2.
-          sudo apt-get clean
-          sudo apt-get update --allow-unauthenticated -y || true
-          
+      - name: 🔐 Correção Moderna do GPG (Google Cloud SDK compatível com Ubuntu Noble)
+        run: |
+          echo "Iniciando correção GPG moderna..."
+          sudo apt-get update -y
+          sudo apt-get install -y gnupg software-properties-common curl
+
+          # Cria diretório de keyrings (padrão moderno)
+          sudo mkdir -p /etc/apt/keyrings
+          sudo chmod 755 /etc/apt/keyrings
+
+          # Baixa e converte a chave GPG de forma segura
+          curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+            sudo gpg --dearmor -o /etc/apt/keyrings/cloud.google.gpg
+
+          # Adiciona o repositório do Google Cloud SDK
+          echo "deb [signed-by=/etc/apt/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | \
+            sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+
+          # Atualiza e instala o SDK (exemplo: usado por Dataflow)
+          sudo apt-get update -y
+          sudo apt-get install -y google-cloud-sdk
+          echo "✅ Correção GPG aplicada com sucesso!"
+
       - name: Instalar Java e JMeter
         run: |
-          # Remove a configuração temporária de keyserver e o apt-get update foi executado e a falha GPG foi contornada no passo anterior.
-          sudo rm -f /etc/apt/apt.conf.d/99force-keyserver
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
@@ -89,12 +94,10 @@ jobs:
 
       - name: Instalar Dependências Essenciais e Node.js
         run: |
-          # O ambiente GPG já foi limpo no job JMeter.
           sudo apt-get install -y nodejs npm
           
       - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
-          # Instala o k6 via NPM, evitando o uso do APT e chaves GPG para o K6.
           npm install -g k6
           
       - name: Teste de Carga Simples (K6)
@@ -127,7 +130,6 @@ jobs:
 
       - name: Instalar Python e dependências
         run: |
-          # O ambiente GPG já foi limpo globalmente.
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install locust
