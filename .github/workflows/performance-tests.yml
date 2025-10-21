@@ -10,7 +10,7 @@ on:
 jobs:
   jmeter-tests:
     name: JMeter - Carga Simples e Complexa
-    runs-on: ubuntu-22.04 # CORREÇÃO: Alterado para versão específica para evitar erro GPG na imagem latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
@@ -71,7 +71,7 @@ jobs:
 
   k6-tests:
     name: K6 - Carga Simples e Complexa
-    runs-on: ubuntu-22.04 # CORREÇÃO: Alterado para versão específica
+    runs-on: ubuntu-latest
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
@@ -89,17 +89,24 @@ jobs:
 
       - name: Instalar Dependências Essenciais e Node.js
         run: |
-          # O ambiente GPG já foi limpo no job JMeter.
           sudo apt-get install -y nodejs npm
-          
+      
+      - name: ⚙️ Ajustar PATH para K6 (NPM Global)
+        run: |
+          # Encontra o diretório de instalação global do NPM
+          NPM_GLOBAL_DIR=$(npm config get prefix)
+          # Adiciona o diretório binário do NPM (onde o k6 está) ao PATH para as próximas steps
+          echo "$NPM_GLOBAL_DIR/bin" >> $GITHUB_PATH
+
       - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
-          # Instala o k6 via NPM, evitando o uso do APT e chaves GPG para o K6.
+          # Instala o k6 globalmente
           npm install -g k6
           
       - name: Teste de Carga Simples (K6)
         run: |
           echo "Executando teste simples no K6..."
+          # O comando 'k6' agora deve ser encontrado graças à etapa anterior
           k6 run k6-teastore/teste-carga-simples.js
 
       - name: Teste de Carga Complexo (K6)
@@ -109,7 +116,7 @@ jobs:
 
   locust-tests:
     name: Locust - Carga Simples e Complexa
-    runs-on: ubuntu-22.04 # CORREÇÃO: Alterado para versão específica
+    runs-on: ubuntu-latest
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
@@ -127,7 +134,6 @@ jobs:
 
       - name: Instalar Python e dependências
         run: |
-          # O ambiente GPG já foi limpo globalmente.
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install locust
