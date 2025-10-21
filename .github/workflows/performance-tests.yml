@@ -30,10 +30,11 @@ jobs:
         run: |
           echo "Aplicando correção final: forçando APT a ignorar falhas de chave (C5C1D397) e limpando o cache de erro de sintaxe."
           
-          # REMOÇÃO AGRESSIVA DE CONFIGURAÇÕES ANTIGAS E RESÍDUOS DE TENTATIVAS ANTERIORES
+          # 1. REMOÇÃO DE RESÍDUOS E CONFIGURAÇÕES DE REPOSITÓRIOS PROBLEMÁTICOS (RESOLVE EXIT CODE 100 E PREVINE EXIT CODE 2)
+          # A remoção do arquivo de sintaxe inválida deve ser a primeira prioridade.
+          sudo rm -f /etc/apt/apt.conf.d/99force-keyserver 
           sudo rm -f /etc/apt/sources.list.d/k6.list
           sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
-          sudo rm -f /etc/apt/apt.conf.d/99force-keyserver # <-- REMOÇÃO DO ARQUIVO DE SINTAXE INVÁLIDA (SOLUÇÃO PARA EXIT CODE 100)
           
           # 2. Executa o update com flags que permitem continuar se houver falha de chave.
           # Adicionamos '|| true' para GARANTIR que o step não falhe com exit code 2 (GPG).
