@@ -10,24 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Baixa o código do repositório, incluindo o sub-módulo do TeaStore
+      # 1. Checkout do código, incluindo submódulos
       - name: 1. Baixar o código do repositório
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Sobe a aplicação TeaStore usando o arquivo de compose oficial
+      # 2. Subir aplicação TeaStore com Docker Compose
       - name: 2. Subir a aplicação TeaStore com Docker Compose
-        working-directory: ./TeaStore/examples/docker
-        run: docker-compose -f docker-compose_default.yaml up -d
+        run: docker-compose -f examples/docker/docker-compose_default.yaml up -d
+        working-directory: ./TeaStore
 
-      # 3. Espera a aplicação iniciar completamente antes de começar os testes
+      # 3. Aguarda a aplicação iniciar
       - name: 3. Aguardar inicialização da aplicação
         run: |
           echo "Aguardando 45 segundos para os serviços do TeaStore iniciarem..."
           sleep 45
           echo "Verificando se o serviço web está no ar..."
-          # Tenta acessar a página até obter sucesso ou o tempo esgotar
           timeout 60s bash -c 'until curl --fail http://localhost:8080/tools.descartes.teastore.webui/; do sleep 5; done'
           echo "Aplicação TeaStore está pronta."
 
@@ -61,26 +60,24 @@ jobs:
           filename: k6-teastore/cenarios-complexos.js
 
       - name: 5.2. Executar Teste de Carga Complexo com Locust
-        working-directory: ./locust-teastore
         run: |
-          docker build -t locust-teastore-custom .
+          docker build -t locust-teastore-custom locust-teastore
           docker run --network=host --rm locust-teastore-custom \
             -f cenarios-complexos-locust.py \
             --host http://localhost:8080 --users 5 --spawn-rate 5 --headless --run-time 30s \
             --html relatorio_locust.html --csv resultados_locust
 
       - name: 5.3. Executar Teste de Carga Complexo com JMeter
-        working-directory: ./jmeter-teastore
         run: |
-          docker build -t jmeter-teastore-custom .
-          docker run --network=host --rm -v $PWD:/jmeter jmeter-teastore-custom \
+          docker build -t jmeter-teastore-custom jmeter-teastore
+          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
             -n -t cenarios-complexos.jmx -l resultados_complexo.jtl -e -o relatorio-complexo \
             -Jhostname=localhost -Jport=8080
 
       # ======================================================
       # === SALVAR ARTEFATOS ===
       # ======================================================
-      
+
       - name: 6. Salvar Relatórios como Artefatos
         uses: actions/upload-artifact@v4
         with:
