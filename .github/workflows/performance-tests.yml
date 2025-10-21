@@ -24,27 +24,10 @@ jobs:
         with:
           submodules: false
           fetch-depth: 1
-
-      - name: 🚨 CORREÇÃO GPG/APT-KEY (Evita falha de keyserver)
-        run: |
-          echo "Aplicando correção GPG: Forçando uso da porta 80 para keyserver e removendo a chave k6 problemática."
-          # 1. Configura o GPG para usar HTTP na porta 80 (mais estável em CI/CD).
-          echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
-
-          # 2. Remove a configuração antiga do k6 que contém a chave problemática (C5C1D397).
-          if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
-            sudo rm -f /etc/apt/sources.list.d/k6.list
-          fi
-          
-          # 3. Força a remoção da chave GPG falha, se existir.
-          sudo apt-key del C5C1D397 2>/dev/null || true
-          
-          # 4. Executa o update de forma segura agora.
-          sudo apt-get update -y
           
       - name: Instalar Java e JMeter
         run: |
-          # Não precisa mais do apt-get update aqui
+          sudo apt-get update
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
@@ -86,26 +69,33 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: 🚨 CORREÇÃO GPG - Limpar e Forçar Update
+      - name: 🚨 CORREÇÃO GPG AGRESSIVA (Foco na falha C5C1D397 do K6)
         run: |
-          echo "Aplicando correção GPG: Forçando uso da porta 80 para keyserver e removendo a chave k6 problemática."
-          # 1. Configura o GPG para usar HTTP na porta 80 (mais estável em CI/CD).
-          echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
+          echo "Aplicando correção forçada: Removendo o repositório K6 e a chave falha."
           
-          # 2. Remove o arquivo de repositório do K6 que causa o erro
+          # 1. Tenta remover o arquivo de repositório k6, que é a origem do erro de chave.
           if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
             sudo rm -f /etc/apt/sources.list.d/k6.list
           fi
+
+          # 2. Remove o arquivo de chave antiga (que a chave C5C1D397 pode ter sido armazenada).
+          # Esta etapa é mais agressiva e resolve problemas de compatibilidade com apt-key deprecated.
+          if [ -f "/etc/apt/trusted.gpg.d/k6.gpg" ]; then
+            sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
+          fi
           
-          # 3. Tenta forçar a remoção da chave que falhou (C5C1D397)
+          # 3. Força a remoção da chave GPG falha do keyring (com tolerância a erros).
           sudo apt-key del C5C1D397 2>/dev/null || true
           
-          # 4. Executa o update de forma segura AGORA
+          # 4. Configura o GPG para usar HTTP na porta 80 (mais estável em CI/CD).
+          echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
+          
+          # 5. Executa o update de forma segura AGORA
           sudo apt-get update -y
 
       - name: Instalar Dependências Essenciais e Node.js
         run: |
-          # Instala Node/NPM via APT. Não é mais necessário o apt-get update aqui.
+          # Instala Node/NPM via APT.
           sudo apt-get install -y nodejs npm
           
       - name: Instalar K6 via NPM (Solução Definitiva)
@@ -141,26 +131,9 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: 🚨 CORREÇÃO GPG/APT-KEY (Evita falha de keyserver)
-        run: |
-          echo "Aplicando correção GPG: Forçando uso da porta 80 para keyserver e removendo a chave k6 problemática."
-          # 1. Configura o GPG para usar HTTP na porta 80 (mais estável em CI/CD).
-          echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
-
-          # 2. Remove a configuração antiga do k6 que contém a chave problemática (C5C1D397).
-          if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
-            sudo rm -f /etc/apt/sources.list.d/k6.list
-          fi
-          
-          # 3. Força a remoção da chave GPG falha, se existir.
-          sudo apt-key del C5C1D397 2>/dev/null || true
-          
-          # 4. Executa o update de forma segura agora.
-          sudo apt-get update -y
-
       - name: Instalar Python e dependências
         run: |
-          # Não precisa mais do apt-get update aqui
+          sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install locust
 
