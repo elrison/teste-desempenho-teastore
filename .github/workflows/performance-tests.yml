@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - master # ALTERADO: A branch principal agora é 'master'
+      - main # Mantido para compatibilidade, caso a branch 'main' exista
 
 jobs:
   jmeter-tests:
@@ -69,33 +70,24 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: 🚨 CORREÇÃO GPG AGRESSIVA (Foco na falha C5C1D397 do K6)
+      - name: 🚨 CORREÇÃO GPG FINAL e Instalação de Dependências Node
         run: |
-          echo "Aplicando correção forçada: Removendo o repositório K6 e a chave falha."
+          echo "Executando limpeza agressiva da chave GPG C5C1D397 e instalando Node.js."
           
-          # 1. Tenta remover o arquivo de repositório k6, que é a origem do erro de chave.
-          if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
-            sudo rm -f /etc/apt/sources.list.d/k6.list
-          fi
-
-          # 2. Remove o arquivo de chave antiga (que a chave C5C1D397 pode ter sido armazenada).
-          # Esta etapa é mais agressiva e resolve problemas de compatibilidade com apt-key deprecated.
-          if [ -f "/etc/apt/trusted.gpg.d/k6.gpg" ]; then
-            sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
-          fi
+          # 1. REMOÇÃO AGRESSIVA da configuração do repositório k6
+          # Este é o passo mais crítico para evitar que o APT tente buscar a chave.
+          sudo rm -f /etc/apt/sources.list.d/k6.list
+          sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
           
-          # 3. Força a remoção da chave GPG falha do keyring (com tolerância a erros).
-          sudo apt-key del C5C1D397 2>/dev/null || true
-          
-          # 4. Configura o GPG para usar HTTP na porta 80 (mais estável em CI/CD).
+          # 2. Configura o GPG para usar a porta HTTP 80 (mais estável)
           echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
           
-          # 5. Executa o update de forma segura AGORA
+          # 3. Força o APT a limpar o cache antigo e atualizar a lista de pacotes.
+          # Isso deve funcionar, pois a configuração do k6 foi removida.
+          sudo apt-get clean
           sudo apt-get update -y
-
-      - name: Instalar Dependências Essenciais e Node.js
-        run: |
-          # Instala Node/NPM via APT.
+          
+          # 4. Instala Node/NPM via APT.
           sudo apt-get install -y nodejs npm
           
       - name: Instalar K6 via NPM (Solução Definitiva)
