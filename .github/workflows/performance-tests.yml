@@ -28,11 +28,12 @@ jobs:
           
       - name: 🚨 CORREÇÃO GPG FINAL (Forçar Update Ignorando Falhas de Chave)
         run: |
-          echo "Aplicando correção final: forçando APT a ignorar falhas de chave (C5C1D397)."
+          echo "Aplicando correção final: forçando APT a ignorar falhas de chave (C5C1D397) e limpando o cache de erro de sintaxe."
           
-          # 1. REMOÇÃO DE CONFIGURAÇÕES DO K6 (fonte do erro)
+          # REMOÇÃO AGRESSIVA DE CONFIGURAÇÕES ANTIGAS E RESÍDUOS DE TENTATIVAS ANTERIORES
           sudo rm -f /etc/apt/sources.list.d/k6.list
           sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
+          sudo rm -f /etc/apt/apt.conf.d/99force-keyserver # <-- REMOÇÃO DO ARQUIVO DE SINTAXE INVÁLIDA (SOLUÇÃO PARA EXIT CODE 100)
           
           # 2. Executa o update com flags que permitem continuar se houver falha de chave.
           # Adicionamos '|| true' para GARANTIR que o step não falhe com exit code 2 (GPG).
