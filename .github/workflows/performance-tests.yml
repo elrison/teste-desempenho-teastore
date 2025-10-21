@@ -13,15 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Neutralizar apt-key (bloquear erro C5C1D397)
+      - name: Corrigir chave GPG (C5C1D397) e atualizar sistema
         run: |
-          echo "🔧 Bloqueando apt-key para evitar erro de chave C5C1D397..."
-          sudo mv /usr/bin/apt-key /usr/bin/apt-key.bak
-          echo '#!/bin/bash' | sudo tee /usr/bin/apt-key > /dev/null
-          echo 'echo "[Fake apt-key] Ignorando importação de chave: $@"' | sudo tee -a /usr/bin/apt-key > /dev/null
-          echo 'exit 0' | sudo tee -a /usr/bin/apt-key > /dev/null
-          sudo chmod +x /usr/bin/apt-key
-          echo "✅ apt-key neutralizado com sucesso!"
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y curl gpg ca-certificates
+          echo "🔑 Adicionando chave C5C1D397 via HTTPS (sem apt-key)..."
+          curl -fsSL https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC5C1D397 | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/custom-key.gpg > /dev/null
+          sudo apt-get update
 
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
@@ -63,13 +62,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Neutralizar apt-key (bloquear erro C5C1D397)
+      - name: Corrigir chave GPG (C5C1D397)
         run: |
-          sudo mv /usr/bin/apt-key /usr/bin/apt-key.bak
-          echo '#!/bin/bash' | sudo tee /usr/bin/apt-key > /dev/null
-          echo 'echo "[Fake apt-key] Ignorando importação de chave: $@"' | sudo tee -a /usr/bin/apt-key > /dev/null
-          echo 'exit 0' | sudo tee -a /usr/bin/apt-key > /dev/null
-          sudo chmod +x /usr/bin/apt-key
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y curl gpg ca-certificates
+          echo "🔑 Adicionando chave C5C1D397 via HTTPS (sem apt-key)..."
+          curl -fsSL https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC5C1D397 | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/custom-key.gpg > /dev/null
+          sudo apt-get update
 
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
@@ -100,13 +100,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Neutralizar apt-key (bloquear erro C5C1D397)
+      - name: Corrigir chave GPG (C5C1D397)
         run: |
-          sudo mv /usr/bin/apt-key /usr/bin/apt-key.bak
-          echo '#!/bin/bash' | sudo tee /usr/bin/apt-key > /dev/null
-          echo 'echo "[Fake apt-key] Ignorando importação de chave: $@"' | sudo tee -a /usr/bin/apt-key > /dev/null
-          echo 'exit 0' | sudo tee -a /usr/bin/apt-key > /dev/null
-          sudo chmod +x /usr/bin/apt-key
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y curl gpg ca-certificates
+          echo "🔑 Adicionando chave C5C1D397 via HTTPS (sem apt-key)..."
+          curl -fsSL https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC5C1D397 | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/custom-key.gpg > /dev/null
+          sudo apt-get update
 
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
