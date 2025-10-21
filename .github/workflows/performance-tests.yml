@@ -26,20 +26,26 @@ jobs:
           submodules: false
           fetch-depth: 1
           
-      - name: 🚨 CORREÇÃO GPG GLOBAL (Remove configuração K6 que falha)
+      - name: 🚨 CORREÇÃO GPG GLOBAL (Limpeza Agressiva de Chaves Falhas)
         run: |
-          echo "Aplicando correção GPG no ambiente."
-          # Remove o arquivo de source list e a chave GPG do k6 que causam o erro C5C1D397.
+          echo "Aplicando correção GPG AGRESSIVA no ambiente para resolver C5C1D397."
+          
+          # 1. REMOÇÃO DE CONFIGURAÇÕES DO K6 (fonte do erro)
           sudo rm -f /etc/apt/sources.list.d/k6.list
           sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
-          # Garante que o keyserver use a porta HTTP 80 (mais estável em CI).
-          echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
-          # Executa o update de forma segura AGORA
+          
+          # 2. REMOÇÃO DE KEYRINGS GERAIS (força o APT a recriar o cache de chaves)
+          # Isso é mais agressivo e resolve erros de chaves legadas.
+          sudo rm -f /etc/apt/trusted.gpg
+          sudo rm -f /etc/apt/trusted.gpg.d/*
+          
+          # 3. Limpa o cache do APT e tenta o update novamente.
+          sudo apt-get clean
           sudo apt-get update -y
           
       - name: Instalar Java e JMeter
         run: |
-          # O apt-get update foi movido para o passo anterior para evitar o erro GPG.
+          # O apt-get update foi movido para o passo anterior e o ambiente GPG foi limpo.
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
@@ -83,7 +89,7 @@ jobs:
 
       - name: Instalar Dependências Essenciais e Node.js
         run: |
-          # O ambiente já foi limpo no job JMeter.
+          # O ambiente GPG já foi limpo globalmente no job JMeter.
           sudo apt-get install -y nodejs npm
           
       - name: Instalar K6 via NPM (Solução Definitiva)
@@ -121,6 +127,7 @@ jobs:
 
       - name: Instalar Python e dependências
         run: |
+          # O ambiente GPG já foi limpo globalmente.
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install locust
