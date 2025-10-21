@@ -12,11 +12,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (sem submodules)
+      - name: Checkout repository (com tentativa de ignorar submodules)
         uses: actions/checkout@v4
         with:
-          submodules: false
-          fetch-depth: 0 # CORREÇÃO: Adicionado para evitar erro de submódulos no .gitmodules
+          submodules: recursive # Usado em conjunto com fetch-depth: 0
+          fetch-depth: 0 
+
+      - name: Correção forçada do erro do submódulo
+        run: |
+          if [ -d ".git/modules/TeaStore" ]; then
+            echo "Removendo diretório .git/modules/TeaStore para forçar tratamento como pasta normal."
+            rm -rf .git/modules/TeaStore
+          fi
 
       - name: Instalar Java e JMeter
         run: |
@@ -49,11 +56,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (sem submodules)
+      - name: Checkout repository (com tentativa de ignorar submodules)
         uses: actions/checkout@v4
         with:
-          submodules: false
-          fetch-depth: 0 # CORREÇÃO: Adicionado para evitar erro de submódulos no .gitmodules
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Correção forçada do erro do submódulo
+        run: |
+          if [ -d ".git/modules/TeaStore" ]; then
+            echo "Removendo diretório .git/modules/TeaStore para forçar tratamento como pasta normal."
+            rm -rf .git/modules/TeaStore
+          fi
 
       - name: Instalar K6
         run: |
@@ -79,11 +93,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (sem submodules)
+      - name: Checkout repository (com tentativa de ignorar submodules)
         uses: actions/checkout@v4
         with:
-          submodules: false
-          fetch-depth: 0 # CORREÇÃO: Adicionado para evitar erro de submódulos no .gitmodules
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Correção forçada do erro do submódulo
+        run: |
+          if [ -d ".git/modules/TeaStore" ]; then
+            echo "Removendo diretório .git/modules/TeaStore para forçar tratamento como pasta normal."
+            rm -rf .git/modules/TeaStore
+          fi
 
       - name: Instalar Python e dependências
         run: |
