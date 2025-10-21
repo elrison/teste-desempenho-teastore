@@ -25,9 +25,21 @@ jobs:
           submodules: false
           fetch-depth: 1
 
+      - name: 🚨 CORREÇÃO GPG/APT-KEY (Evita falha de keyserver)
+        run: |
+          # A chave C5C1D397 (a que falha) é do k6. Removemos a configuração
+          # antiga para garantir que o apt-get update não falhe.
+          if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
+            sudo rm -f /etc/apt/sources.list.d/k6.list
+          fi
+          # Força a remoção da chave GPG falha, se existir.
+          sudo apt-key del C5C1D397 2>/dev/null || true
+          # Executa o update de forma segura agora
+          sudo apt-get update -y
+          
       - name: Instalar Java e JMeter
         run: |
-          sudo apt-get update
+          # Não precisa mais do apt-get update aqui
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
@@ -69,24 +81,29 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Limpar Configuração Antiga do K6 (Forçar a remoção do source list)
+      - name: 🚨 CORREÇÃO GPG - Limpar e Forçar Update
         run: |
-          # Remove o arquivo de source list que aponta para o repositório k6
+          echo "Forçando a remoção da chave GPG e da source list antiga do k6 para evitar o erro C5C1D397."
+          
+          # 1. Remove o arquivo de repositório do K6 que causa o erro
           if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
-            echo "Removendo /etc/apt/sources.list.d/k6.list para prevenir erro GPG."
-            sudo rm /etc/apt/sources.list.d/k6.list
+            sudo rm -f /etc/apt/sources.list.d/k6.list
           fi
-          # Executa o update para limpar o cache de pacotes
-          sudo apt-get update
+          
+          # 2. Tenta forçar a remoção da chave que falhou (C5C1D397)
+          sudo apt-key del C5C1D397 2>/dev/null || true
+          
+          # 3. Executa o update de forma segura AGORA
+          sudo apt-get update -y
 
       - name: Instalar Dependências Essenciais e Node.js
         run: |
-          # Instala Node/NPM via APT
+          # Instala Node/NPM via APT. Não é mais necessário o apt-get update aqui.
           sudo apt-get install -y nodejs npm
           
       - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
-          # Instala o k6 via NPM, que não usa repositórios APT
+          # Instala o k6 via NPM, evitando o uso do APT e chaves GPG para o K6.
           npm install -g k6
           
       - name: Teste de Carga Simples (K6)
@@ -117,9 +134,21 @@ jobs:
           submodules: false
           fetch-depth: 1
 
+      - name: 🚨 CORREÇÃO GPG/APT-KEY (Evita falha de keyserver)
+        run: |
+          # A chave C5C1D397 (a que falha) é do k6. Removemos a configuração
+          # antiga para garantir que o apt-get update não falhe.
+          if [ -f "/etc/apt/sources.list.d/k6.list" ]; then
+            sudo rm -f /etc/apt/sources.list.d/k6.list
+          fi
+          # Força a remoção da chave GPG falha, se existir.
+          sudo apt-key del C5C1D397 2>/dev/null || true
+          # Executa o update de forma segura agora
+          sudo apt-get update -y
+
       - name: Instalar Python e dependências
         run: |
-          sudo apt-get update
+          # Não precisa mais do apt-get update aqui
           sudo apt-get install -y python3 python3-pip
           pip install locust
 
