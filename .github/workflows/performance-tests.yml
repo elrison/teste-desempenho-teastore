@@ -13,15 +13,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Limpeza total de repositórios problemáticos (C5C1D397 fix)
+      - name: Correção definitiva de repositórios e chaves (C5C1D397 fix)
         run: |
-          echo "Removendo repositórios externos com chaves quebradas (Microsoft, K6, etc)..."
+          echo "🔧 Corrigindo repositórios com chaves quebradas (Microsoft, K6, etc)..."
           sudo rm -f /etc/apt/sources.list.d/*.list
           sudo rm -f /etc/apt/trusted.gpg.d/*.gpg
           sudo rm -f /etc/apt/trusted.gpg
           sudo apt-get clean
-          sudo apt-get update --allow-unauthenticated -y || true
-          echo "Repositórios limpos com sucesso."
+
+          # ✅ Método moderno: adicionar chave GPG de forma segura
+          sudo mkdir -p /usr/share/keyrings
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
+
+          # ✅ Recria o repositório Microsoft de forma válida
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" | sudo tee /etc/apt/sources.list.d/microsoft.list
+
+          sudo apt-get update -y || true
+          echo "✅ Repositórios atualizados com sucesso."
 
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
@@ -63,13 +71,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Limpeza de repositórios externos (C5C1D397 fix)
+      - name: Corrigir repositórios e chaves (C5C1D397 fix)
         run: |
           sudo rm -f /etc/apt/sources.list.d/*.list
           sudo rm -f /etc/apt/trusted.gpg.d/*.gpg
-          sudo rm -f /etc/apt/trusted.gpg
           sudo apt-get clean
-          sudo apt-get update --allow-unauthenticated -y || true
+          sudo mkdir -p /usr/share/keyrings
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" | sudo tee /etc/apt/sources.list.d/microsoft.list
+          sudo apt-get update -y || true
 
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
@@ -100,13 +110,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Limpeza de repositórios externos (C5C1D397 fix)
+      - name: Corrigir repositórios e chaves (C5C1D397 fix)
         run: |
           sudo rm -f /etc/apt/sources.list.d/*.list
           sudo rm -f /etc/apt/trusted.gpg.d/*.gpg
-          sudo rm -f /etc/apt/trusted.gpg
           sudo apt-get clean
-          sudo apt-get update --allow-unauthenticated -y || true
+          sudo mkdir -p /usr/share/keyrings
+          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" | sudo tee /etc/apt/sources.list.d/microsoft.list
+          sudo apt-get update -y || true
 
       - name: Checkout (sem submodules)
         uses: actions/checkout@v4
