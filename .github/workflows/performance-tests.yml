@@ -69,26 +69,14 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar K6 (Método Moderno) # ESTE É O BLOCO CORRIGIDO
+      - name: Instalar K6 (Download Direto) # SOLUÇÃO FINAL: Baixar e instalar o DEB
         run: |
-          sudo apt-get update
+          # Baixa o pacote .deb mais recente do k6
+          curl -sS -L https://github.com/grafana/k6/releases/download/v0.49.0/k6_0.49.0_amd64.deb -o k6.deb
           
-          # Instala dependências necessárias
-          sudo apt-get install -y ca-certificates curl gnupg
-
-          # 1. Cria o diretório keyring
-          sudo mkdir -p /etc/apt/keyrings
+          # Instala o pacote .deb. Isso ignora o gerenciamento de repositórios e chaves.
+          sudo apt install ./k6.deb
           
-          # 2. Baixa e desarmora a chave GPG do k6 para o diretório seguro
-          curl -sS -L https://dl.k6.io/key.gpg | sudo gpg --dearmor --output /etc/apt/keyrings/k6.gpg
-
-          # 3. Adiciona o repositório do k6, referenciando a chave recém-adicionada
-          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/k6.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-
-          # 4. Atualiza os pacotes e instala o k6
-          sudo apt-get update
-          sudo apt-get install -y k6
-
       - name: Teste de Carga Simples (K6)
         run: |
           echo "Executando teste simples no K6..."
