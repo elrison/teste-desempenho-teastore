@@ -69,20 +69,20 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar K6 (Método Moderno)
+      - name: Instalar K6 (Método Moderno) # ESTE É O BLOCO CORRIGIDO
         run: |
           sudo apt-get update
           
-          # Instala dependências necessárias para o método moderno
+          # Instala dependências necessárias
           sudo apt-get install -y ca-certificates curl gnupg
 
-          # 1. Cria o diretório keyring para armazenar a chave
+          # 1. Cria o diretório keyring
           sudo mkdir -p /etc/apt/keyrings
           
-          # 2. Baixa a chave GPG do k6 e a salva no diretório keyring
+          # 2. Baixa e desarmora a chave GPG do k6 para o diretório seguro
           curl -sS -L https://dl.k6.io/key.gpg | sudo gpg --dearmor --output /etc/apt/keyrings/k6.gpg
 
-          # 3. Adiciona o repositório do k6, referenciando a nova localização da chave
+          # 3. Adiciona o repositório do k6, referenciando a chave recém-adicionada
           echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/k6.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
 
           # 4. Atualiza os pacotes e instala o k6
