@@ -26,9 +26,20 @@ jobs:
           submodules: false
           fetch-depth: 1
           
+      - name: 🚨 CORREÇÃO GPG GLOBAL (Remove configuração K6 que falha)
+        run: |
+          echo "Aplicando correção GPG no ambiente."
+          # Remove o arquivo de source list e a chave GPG do k6 que causam o erro C5C1D397.
+          sudo rm -f /etc/apt/sources.list.d/k6.list
+          sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
+          # Garante que o keyserver use a porta HTTP 80 (mais estável em CI).
+          echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
+          # Executa o update de forma segura AGORA
+          sudo apt-get update -y
+          
       - name: Instalar Java e JMeter
         run: |
-          sudo apt-get update
+          # O apt-get update foi movido para o passo anterior para evitar o erro GPG.
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
@@ -70,24 +81,9 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: 🚨 CORREÇÃO GPG FINAL e Instalação de Dependências Node
+      - name: Instalar Dependências Essenciais e Node.js
         run: |
-          echo "Executando limpeza agressiva da chave GPG C5C1D397 e instalando Node.js."
-          
-          # 1. REMOÇÃO AGRESSIVA da configuração do repositório k6
-          # Este é o passo mais crítico para evitar que o APT tente buscar a chave.
-          sudo rm -f /etc/apt/sources.list.d/k6.list
-          sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
-          
-          # 2. Configura o GPG para usar a porta HTTP 80 (mais estável)
-          echo "keyserver hkp://keyserver.ubuntu.com:80" | sudo tee /etc/apt/apt.conf.d/99fix-keyserver
-          
-          # 3. Força o APT a limpar o cache antigo e atualizar a lista de pacotes.
-          # Isso deve funcionar, pois a configuração do k6 foi removida.
-          sudo apt-get clean
-          sudo apt-get update -y
-          
-          # 4. Instala Node/NPM via APT.
+          # O ambiente já foi limpo no job JMeter.
           sudo apt-get install -y nodejs npm
           
       - name: Instalar K6 via NPM (Solução Definitiva)
