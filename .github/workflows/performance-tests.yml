@@ -4,8 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master # ALTERADO: A branch principal agora é 'master'
-      - main # Mantido para compatibilidade, caso a branch 'main' exista
+      - main
 
 jobs:
   jmeter-tests:
@@ -25,25 +24,10 @@ jobs:
         with:
           submodules: false
           fetch-depth: 1
-          
-      - name: 🚨 CORREÇÃO GPG FINAL (Forçar Update Ignorando Falhas de Chave)
-        run: |
-          echo "Aplicando correção final: usando flags APT para ignorar chaves falhas (C5C1D397)."
-          
-          # 1. REMOÇÃO DE CONFIGURAÇÕES DO K6 (fonte do erro)
-          sudo rm -f /etc/apt/sources.list.d/k6.list
-          sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
-          
-          # 2. Executa o update com flags que permitem continuar se houver falha de chave.
-          # As flags são: 
-          # --allow-insecure-repositories (Permite repositórios sem assinatura válida)
-          # --allow-unauthenticated (Permite continuar mesmo se não conseguir autenticar chaves)
-          sudo apt-get clean
-          sudo apt-get update --allow-unauthenticated -y
-          
+
       - name: Instalar Java e JMeter
         run: |
-          # O apt-get update foi executado e a falha GPG foi contornada no passo anterior.
+          sudo apt-get update
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
@@ -85,14 +69,14 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar Dependências Essenciais e Node.js
-        run: |
-          # O ambiente GPG já foi limpo no job JMeter.
-          sudo apt-get install -y nodejs npm
-          
+      - name: Configurar Node.js (Pré-requisito para NPM)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
-          # Instala o k6 via NPM, evitando o uso do APT e chaves GPG para o K6.
+          echo "Instalando k6 via NPM para contornar problemas de APT/GPG."
           npm install -g k6
           
       - name: Teste de Carga Simples (K6)
@@ -125,7 +109,6 @@ jobs:
 
       - name: Instalar Python e dependências
         run: |
-          # O ambiente GPG já foi limpo globalmente.
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install locust
