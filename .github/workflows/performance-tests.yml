@@ -69,13 +69,15 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar K6 (Download Direto) # SOLUÇÃO FINAL: Baixar e instalar o DEB
+      - name: Configurar Node.js (Pré-requisito para NPM)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
-          # Baixa o pacote .deb mais recente do k6
-          curl -sS -L https://github.com/grafana/k6/releases/download/v0.49.0/k6_0.49.0_amd64.deb -o k6.deb
-          
-          # Instala o pacote .deb. Isso ignora o gerenciamento de repositórios e chaves.
-          sudo apt install ./k6.deb
+          echo "Instalando k6 via NPM para contornar problemas de APT/GPG."
+          npm install -g k6
           
       - name: Teste de Carga Simples (K6)
         run: |
