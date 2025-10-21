@@ -30,22 +30,18 @@ jobs:
         run: |
           echo "Aplicando correção final: forçando APT a ignorar falhas de chave (C5C1D397)."
           
-          # FORÇA GPG A USAR UM KEYSERVER MAIS ESTÁVEL (keys.openpgp.org)
-          echo "keyserver hkp://keys.openpgp.org" | sudo tee /etc/apt/apt.conf.d/99force-keyserver
-
           # 1. REMOÇÃO DE CONFIGURAÇÕES DO K6 (fonte do erro)
           sudo rm -f /etc/apt/sources.list.d/k6.list
           sudo rm -f /etc/apt/trusted.gpg.d/k6.gpg
           
           # 2. Executa o update com flags que permitem continuar se houver falha de chave.
-          # Adicionamos '|| true' para GARANTIR que o step não falhe com exit code 2.
+          # Adicionamos '|| true' para GARANTIR que o step não falhe com exit code 2 (GPG).
           sudo apt-get clean
           sudo apt-get update --allow-unauthenticated -y || true
           
       - name: Instalar Java e JMeter
         run: |
-          # Remove a configuração temporária de keyserver e o apt-get update foi executado e a falha GPG foi contornada no passo anterior.
-          sudo rm -f /etc/apt/apt.conf.d/99force-keyserver
+          # O apt-get update foi executado e a falha GPG foi contornada no passo anterior.
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
