@@ -121,6 +121,11 @@ jobs:
           pip install "gevent<24.10.0"  # versão estável antes das que quebram dependências
           pip install "zope.event<6.0" "zope.interface<7.0"
           pip install locust==2.24.1
+        
+      - name: Iniciar TeaStore
+        run: |
+          docker compose -f teastore-docker-compose.yml up -d
+          sleep 20  # dá tempo para inicializar
 
       - name: Teste de Carga Simples (Locust)
         run: |
