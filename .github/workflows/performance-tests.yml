@@ -115,8 +115,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
           pip install --user locust
-          pip install zope.event
-          pip install zope.interface
+          pip install --user zope.event
+          pip install --user zope.interface
           export PATH=$PATH:~/.local/bin
 
       - name: Teste de Carga Simples (Locust)
