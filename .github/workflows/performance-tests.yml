@@ -92,11 +92,11 @@ jobs:
           echo "Executando teste complexo no K6..."
           k6 run k6-teastore/cenarios-complexos.js
 
-  locust-tests:
-      name: Locust - Carga Simples e Complexa
-      runs-on: ubuntu-latest
+   locust-tests:
+    name: Locust - Carga Simples e Complexa
+    runs-on: ubuntu-latest
 
-      steps:
+    steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
           if [ -f ".gitmodules" ]; then
