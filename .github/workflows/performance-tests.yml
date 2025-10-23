@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      -master
+      - master
       - main
 
 jobs:
@@ -75,13 +75,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Instalar K6 via NPM (Solução Definitiva)
+      - name: Instalar K6 via Snap (Recomendado)
         run: |
-          echo "Instalando k6 via NPM para contornar problemas de APT/GPG."
-          
-          sudo apt update
-          sudo apt install -y k6
-          
+          echo "Instalando k6 via Snap para contornar problemas de APT/GPG."
+          sudo apt-get update
+          sudo apt-get install -y snapd
+          sudo snap install k6
+
       - name: Teste de Carga Simples (K6)
         run: |
           echo "Executando teste simples no K6..."
