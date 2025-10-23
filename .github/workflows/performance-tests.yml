@@ -93,35 +93,39 @@ jobs:
           k6 run k6-teastore/cenarios-complexos.js
 
   locust-tests:
-    name: Locust - Carga Simples e Complexa
-    runs-on: ubuntu-latest
+      name: Locust - Carga Simples e Complexa
+      runs-on: ubuntu-latest
 
-    steps:
+      steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
           if [ -f ".gitmodules" ]; then
             echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
             rm .gitmodules
           fi
-          
+
       - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: 1
 
-      - name: Instalar Python e dependências
+      - name: Forçar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar Locust e dependências
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3 python3-pip
+          python -m pip install --upgrade pip
           pip install locust zope.event zope.interface gevent
 
       - name: Teste de Carga Simples (Locust)
         run: |
           echo "Executando Locust - Carga Simples..."
-          $HOME/.local/bin/locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 30s --host http://localhost:8080
+          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 30s --host http://localhost:8080
 
       - name: Teste de Carga Complexo (Locust)
         run: |
           echo "Executando Locust - Cenarios Complexos..."
-          $HOME/.local/bin/locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 5 -t 1m --host http://localhost:8080
+          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 5 -t 1m --host http://localhost:8080
