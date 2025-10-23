@@ -78,9 +78,9 @@ jobs:
       - name: Instalar K6 via NPM (Solução Definitiva)
         run: |
           echo "Instalando k6 via NPM para contornar problemas de APT/GPG."
-          npm install -g k6
+          
           sudo apt update
-          udo apt install -y k6
+          sudo apt install -y k6
           
       - name: Teste de Carga Simples (K6)
         run: |
