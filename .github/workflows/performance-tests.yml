@@ -114,9 +114,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip
-          pip install --user locust
-          pip install --user zope.event
-          pip install --user zope.interface
+          pip install locust zope.event zope.interface gevent
 
       - name: Teste de Carga Simples (Locust)
         run: |
