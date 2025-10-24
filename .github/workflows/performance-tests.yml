@@ -125,7 +125,7 @@ jobs:
 
       - name: Build imagem Docker do TeaStore
         run: |
-          docker build -t teastore-webui:latest -f ./TeaStore/Dockerfile ./TeaStore
+          docker build -t teastore-webui:latest -f ./locust-teastore/Dockerfile ./locust-teastore
 
       - name: Iniciar TeaStore (Docker local)
         run: |
