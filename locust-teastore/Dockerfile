@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["locust", "-f", "seu_script.py"]
+CMD ["locust", "-f", "teste-carga-simples.py","cenarios-complexos.py"]
