@@ -93,9 +93,10 @@ jobs:
           k6 run k6-teastore/cenarios-complexos.js
 
   locust-tests:
-      name: Locust - Carga Simples e Complexa
-      runs-on: ubuntu-latest
-      steps:
+    name: Locust - Carga Simples e Complexa
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
           if [ -f ".gitmodules" ]; then
@@ -118,13 +119,17 @@ jobs:
       - name: Instalar Locust e dependências compatíveis
         run: |
           python -m pip install --upgrade pip
-          pip install "gevent<24.10.0"  # versão estável antes das que quebram dependências
+          pip install "gevent<24.10.0"
           pip install "zope.event<6.0" "zope.interface<7.0"
           pip install locust==2.24.1
-        
-      - name: Iniciar TeaStore
+
+      - name: Build imagem Docker do TeaStore
         run: |
-          docker compose -f teastore-docker-compose.yml up -d
+          docker build -t teastore-webui:latest -f ./TeaStore/Dockerfile ./TeaStore
+
+      - name: Iniciar TeaStore (Docker local)
+        run: |
+          docker run -d -p 8080:8080 --name teastore-webui teastore-webui:latest
           sleep 20  # dá tempo para inicializar
 
       - name: Teste de Carga Simples (Locust)
