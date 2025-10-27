@@ -129,8 +129,23 @@ jobs:
       - name: Construir imagem Locust customizada (com BeautifulSoup)
         run: |
           echo 'FROM locustio/locust:latest' > Dockerfile.locust-custom
-          echo 'RUN pip install bs4' >> Dockerfile.locust-custom
+          echo 'RUN pip install bs4 requests' >> Dockerfile.locust-custom
           docker build -t meu-locust:latest -f Dockerfile.locust-custom .
+
+      - name: Debug - Listar arquivos no volume do Locust (host)
+        run: ls -l ${{ github.workspace }}/locust-teastore
+
+      - name: Debug - Listar arquivos do /app dentro do container
+        run: |
+          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app meu-locust:latest ls -l /app
+
+      - name: Debug - Listar classes de usuário Locust encontradas (simples)
+        run: |
+          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app meu-locust:latest --list -f locustfile.py --host http://localhost:8080
+
+      - name: Debug - Listar classes de usuário Locust encontradas (complexo)
+        run: |
+          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app meu-locust:latest --list -f cenarios-complexos-locust.py --host http://localhost:8080
 
       - name: Teste de Carga Simples (Locust via Docker)
         run: |
@@ -139,5 +154,3 @@ jobs:
       - name: Teste de Carga Complexo (Locust via Docker)
         run: |
           docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host meu-locust:latest -f cenarios-complexos-locust.py --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
-
-          
