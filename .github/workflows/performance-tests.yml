@@ -117,7 +117,15 @@ jobs:
       - name: Iniciar TeaStore (Docker local)
         run: |
           docker run -d -p 8080:8080 --name teastore-webui teastore-webui:latest
-          sleep 20  # aguarda inicialização do serviço
+
+      - name: Esperar porta 8080 responder
+        run: |
+          for i in {1..40}; do
+            nc -z localhost 8080 && echo "Porta 8080 respondendo" && exit 0
+            echo "Aguardando porta 8080..."
+            sleep 2
+          done
+          echo "Porta 8080 não respondeu a tempo!" && exit 1
 
       - name: Teste de Carga Simples (Locust via Docker)
         run: |
