@@ -126,19 +126,16 @@ jobs:
           done
           echo "Porta 8080 não respondeu a tempo!" && exit 1
 
-      - name: Listar containers em execução
-        run: docker ps -a
-
-      - name: Logs do backend TeaStore
-        run: docker logs teastore-webui || true
-
-      - name: Verificar endpoint do backend
-        run: curl -v http://localhost:8080/tools.descartes.teastore.webui/ || true
+      - name: Construir imagem Locust customizada (com BeautifulSoup)
+        run: |
+          echo 'FROM locustio/locust:latest' > Dockerfile.locust-custom
+          echo 'RUN pip install bs4' >> Dockerfile.locust-custom
+          docker build -t meu-locust:latest -f Dockerfile.locust-custom .
 
       - name: Teste de Carga Simples (Locust via Docker)
         run: |
-          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host locustio/locust:latest -f locustfile.py --host http://localhost:8080 --users 5 --spawn-rate 5 --headless --run-time 30s
+          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host meu-locust:latest -f locustfile.py --host http://localhost:8080 --users 5 --spawn-rate 5 --headless --run-time 30s
 
       - name: Teste de Carga Complexo (Locust via Docker)
         run: |
-          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host locustio/locust:latest -f cenarios-complexos-locust.py --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
+          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host meu-locust:latest -f cenarios-complexos-locust.py --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
