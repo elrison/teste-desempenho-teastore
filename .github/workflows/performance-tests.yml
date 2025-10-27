@@ -97,18 +97,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Remover arquivo .gitmodules (Correção Forçada)
-        run: |
-          if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
-            rm .gitmodules
-          fi
+      # - name: Remover arquivo .gitmodules (Correção Forçada)
+      #   run: |
+      #     if [ -f ".gitmodules" ]; then
+      #       echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+      #       rm .gitmodules
+      #     fi
 
-      - name: Checkout repository (sem submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-          fetch-depth: 1
+      # - name: Checkout repository (sem submodules)
+      #   uses: actions/checkout@v4
+      #   with:
+      #     submodules: false
+      #     fetch-depth: 1
 
       # Forçar Python 3.11 (evita conflito com 3.12)
       - name: Configurar Python 3.11
