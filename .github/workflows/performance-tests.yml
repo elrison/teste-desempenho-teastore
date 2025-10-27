@@ -19,7 +19,7 @@ jobs:
             echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
             rm .gitmodules
           fi
-          
+
       - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
         with:
@@ -63,7 +63,7 @@ jobs:
             echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
             rm .gitmodules
           fi
-          
+
       - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
         with:
@@ -110,19 +110,6 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      # Forçar Python 3.11 (evita conflito com 3.12)
-      - name: Configurar Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Instalar Locust e dependências compatíveis
-        run: |
-          python -m pip install --upgrade pip
-          pip install "gevent<24.10.0"
-          pip install "zope.event<6.0" "zope.interface<7.0"
-          pip install locust==2.24.1
-
       - name: Build imagem Docker do TeaStore
         run: |
           docker build -t teastore-webui:latest -f ./locust-teastore/Dockerfile ./locust-teastore
@@ -130,14 +117,12 @@ jobs:
       - name: Iniciar TeaStore (Docker local)
         run: |
           docker run -d -p 8080:8080 --name teastore-webui teastore-webui:latest
-          sleep 20  # dá tempo para inicializar
+          sleep 20  # aguarda inicialização do serviço
 
-      - name: Teste de Carga Simples (Locust)
+      - name: Teste de Carga Simples (Locust via Docker)
         run: |
-          echo "Executando Locust - Carga Simples..."
-          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 30s --host http://localhost:8080
+          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host locustio/locust:latest locust -f locustfile.py --host http://localhost:8080 --users 5 --spawn-rate 5 --headless --run-time 30s
 
-      - name: Teste de Carga Complexo (Locust)
+      - name: Teste de Carga Complexo (Locust via Docker)
         run: |
-          echo "Executando Locust - Cenarios Complexos..."
-          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 5 -t 1m --host http://localhost:8080
+          docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host locustio/locust:latest locust -f cenarios-complexos-locust.py --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
