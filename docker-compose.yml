@@ -1,0 +1,57 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: passwd
+      MYSQL_DATABASE: teastore
+    ports:
+      - "13306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  registry:
+    image: descartesresearch/teastore-registry:latest
+    ports:
+      - "8080:8080"   # <--- alterada para não conflitar com 8080 em uso
+    depends_on:
+      db:
+        condition: service_healthy
+
+  persistence:
+    image: descartesresearch/teastore-persistence:latest
+    depends_on:
+      - db
+      - registry
+
+  image:
+    image: descartesresearch/teastore-image:latest
+    depends_on:
+      - registry
+
+  recommender:
+    image: descartesresearch/teastore-recommender:latest
+    depends_on:
+      - registry
+
+  auth:
+    image: descartesresearch/teastore-auth:latest
+    depends_on:
+      - registry
+
+  webui:
+    image: descartesresearch/teastore-webui:latest
+    ports:
+      - "18081:8080"   # <--- alterada para evitar conflito com a 8080 já usada no host
+    environment:
+      - SERVICE_REGISTRY_HOST=registry
+    depends_on:
+      - registry
+      - persistence
+      - image
+      - recommender
+      - auth
