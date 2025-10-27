@@ -139,3 +139,5 @@ jobs:
       - name: Teste de Carga Complexo (Locust via Docker)
         run: |
           docker run --rm -v ${{ github.workspace }}/locust-teastore:/app -w /app --network host meu-locust:latest -f cenarios-complexos-locust.py --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
+
+          
