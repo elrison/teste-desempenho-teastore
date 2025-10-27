@@ -110,13 +110,12 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Build imagem Docker do TeaStore
-        run: |
-          docker build -t teastore-webui:latest -f ./locust-teastore/Dockerfile ./locust-teastore
+      - name: Baixar imagem oficial TeaStore WebUI
+        run: docker pull descartesresearch/teastore-webui:latest
 
       - name: Iniciar TeaStore (Docker local)
         run: |
-          docker run -d -p 8080:8080 --name teastore-webui teastore-webui:latest
+          docker run -d -p 8080:8080 --name teastore-webui descartesresearch/teastore-webui:latest
 
       - name: Esperar porta 8080 responder
         run: |
@@ -130,7 +129,7 @@ jobs:
       - name: Listar containers em execução
         run: docker ps -a
 
-      - name: Logs do backend
+      - name: Logs do backend TeaStore
         run: docker logs teastore-webui || true
 
       - name: Verificar endpoint do backend
