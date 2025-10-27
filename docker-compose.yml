@@ -6,7 +6,7 @@ services:
       MYSQL_ROOT_PASSWORD: passwd
       MYSQL_DATABASE: teastore
     ports:
-     - "3306:3306"
+      - "13306:3306"
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -17,7 +17,7 @@ services:
   registry:
     image: descartesresearch/teastore-registry:latest
     ports:
-      - "8080:8080"   # <--- alterada para não conflitar com 8080 em uso
+      - "18080:8080"   # <--- alterada para não conflitar com 8080 em uso
     depends_on:
       db:
         condition: service_healthy
@@ -46,7 +46,7 @@ services:
   webui:
     image: descartesresearch/teastore-webui:latest
     ports:
-      - "8081:8080"   # <--- alterada para evitar conflito com a 8080 já usada no host
+      - "18081:8080"   # <--- alterada para evitar conflito com a 8080 já usada no host
     environment:
       - SERVICE_REGISTRY_HOST=registry
     depends_on:
