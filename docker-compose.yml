@@ -1,26 +1,32 @@
 version: "3.8"
 
 services:
-  db:
+  teastore-db:
     image: mysql:5.7
+    container_name: teastore-db
     environment:
-      MYSQL_ROOT_PASSWORD: passwd
-      MYSQL_DATABASE: teastore
+      - MYSQL_ROOT_PASSWORD=tea
+      - MYSQL_DATABASE=teadb
+      - MYSQL_USER=teauser
+      - MYSQL_PASSWORD=teapass
     ports:
       - "13306:3306"
-    command: --default-authentication-plugin=mysql_native_password
+
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+    networks:
+      - teastore-network
 
   registry:
     image: descartesresearch/teastore-registry:latest
+    container_name: teastore-registry
     ports:
       - "18080:8080"
     depends_on:
-      db:
+      teastore-db:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/tools.descartes.teastore.registry/rest/services/available"]
@@ -28,51 +34,61 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    networks:
+      - teastore-network
 
   persistence:
     image: descartesresearch/teastore-persistence:latest
+    container_name: teastore-persistence
     environment:
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_NAME=teastore
-      - DB_USER=root
-      - DB_PASSWORD=passwd
+      - REGISTRY_HOST=teastore-registry
+      - MYSQL_HOST=teastore-db
+      - MYSQL_PORT=3306
+      - MYSQL_DB=teadb
+      - MYSQL_USER=root
+      - MYSQL_PASS=tea
     depends_on:
-      db:
+      teastore-db:
         condition: service_healthy
-      registry:
+      teastore-registry:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/tools.descartes.teastore.persistence/rest/items"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
+    networks:
+      - teastore-network
 
   image:
     image: descartesresearch/teastore-image:latest
+    container_name: teastore-image
     depends_on:
       registry:
         condition: service_healthy
+    networks:
+      - teastore-network
 
   recommender:
     image: descartesresearch/teastore-recommender:latest
+    container_name: teastore-recommender
     depends_on:
       registry:
         condition: service_healthy
+    networks:
+      - teastore-network
 
   auth:
     image: descartesresearch/teastore-auth:latest
+    container_name: teastore-auth
     depends_on:
       registry:
         condition: service_healthy
+    networks:
+      - teastore-network
 
   webui:
     image: descartesresearch/teastore-webui:latest
+    container_name: teastore-webui
     ports:
       - "18081:8080"
     environment:
-      - SERVICE_REGISTRY_HOST=registry
+      - REGISTRY_HOST=teastore-registry
     depends_on:
       registry:
         condition: service_healthy
@@ -85,3 +101,9 @@ services:
       auth:
         condition: service_started
     restart: on-failure
+    networks:
+      - teastore-network
+
+networks:
+  teastore-network:
+    driver: bridge
