@@ -1,4 +1,5 @@
 version: "3.8"
+
 services:
   db:
     image: mysql:5.7
@@ -17,13 +18,19 @@ services:
   registry:
     image: descartesresearch/teastore-registry:latest
     ports:
-      - "18080:8080"   # <--- alterada para não conflitar com 8080 em uso
+      - "18080:8080"
     depends_on:
       db:
         condition: service_healthy
 
   persistence:
     image: descartesresearch/teastore-persistence:latest
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=teastore
+      - DB_USER=root
+      - DB_PASSWORD=passwd
     depends_on:
       - db
       - registry
@@ -46,7 +53,7 @@ services:
   webui:
     image: descartesresearch/teastore-webui:latest
     ports:
-      - "18081:8080"   # <--- alterada para evitar conflito com a 8080 já usada no host
+      - "18081:8080"
     environment:
       - SERVICE_REGISTRY_HOST=registry
     depends_on:
