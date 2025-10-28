@@ -22,6 +22,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/tools.descartes.teastore.registry/rest/services/available"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   persistence:
     image: descartesresearch/teastore-persistence:latest
@@ -32,23 +38,34 @@ services:
       - DB_USER=root
       - DB_PASSWORD=passwd
     depends_on:
-      - db
-      - registry
+      db:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/tools.descartes.teastore.persistence/rest/items"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   image:
     image: descartesresearch/teastore-image:latest
     depends_on:
-      - registry
+      registry:
+        condition: service_healthy
 
   recommender:
     image: descartesresearch/teastore-recommender:latest
     depends_on:
-      - registry
+      registry:
+        condition: service_healthy
 
   auth:
     image: descartesresearch/teastore-auth:latest
     depends_on:
-      - registry
+      registry:
+        condition: service_healthy
 
   webui:
     image: descartesresearch/teastore-webui:latest
@@ -57,8 +74,14 @@ services:
     environment:
       - SERVICE_REGISTRY_HOST=registry
     depends_on:
-      - registry
-      - persistence
-      - image
-      - recommender
-      - auth
+      registry:
+        condition: service_healthy
+      persistence:
+        condition: service_healthy
+      image:
+        condition: service_started
+      recommender:
+        condition: service_started
+      auth:
+        condition: service_started
+    restart: on-failure
