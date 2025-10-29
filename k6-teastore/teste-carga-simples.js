@@ -9,7 +9,7 @@ export const options = {
 
 // A URL alvo. Usamos 'host.docker.internal' para que o container Docker do k6
 // consiga "enxergar" a aplicação que está rodando na sua máquina host (localhost).
-const BASE_URL = 'http://host.docker.internal:8080/tools.descartes.teastore.webui/';
+const BASE_URL = 'http://host.docker.internal:18081/tools.descartes.teastore.webui/';
 
 // 2. Cenário de Teste: O código que cada usuário virtual vai executar repetidamente.
 export default function () {

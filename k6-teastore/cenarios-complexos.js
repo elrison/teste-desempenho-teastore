@@ -1,8 +1,8 @@
 import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 
-const BASE_URL = 'http://host.docker.internal:8080/tools.descartes.teastore.webui';
-const HOST_URL = 'http://host.docker.internal:8080';
+const BASE_URL = 'http://host.docker.internal:18081/tools.descartes.teastore.webui';
+const HOST_URL = 'http://host.docker.internal:18081';
 
 // Esta função especial roda UMA VEZ no início do teste e está FUNCIONANDO.
 export function setup() {
