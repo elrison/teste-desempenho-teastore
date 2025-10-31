@@ -11,6 +11,7 @@ jobs:
 
   setup-teastore:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,14 +24,28 @@ jobs:
       - name: Start TeaStore Stack
         run: |
           docker-compose up -d
-          echo "⏳ Aguardando serviços..."
-          sleep 40
+          echo "⏳ Aguardando serviços subirem..."
+          sleep 20
+
+      - name: Esperar WebUI responder
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:18081 > /dev/null; then
+              echo "✔️ WebUI OK!"
+              exit 0
+            fi
+            echo "⏳ Esperando WebUI..."
+            sleep 2
+          done
+          echo "❌ WebUI NÃO respondeu!"
+          exit 1
 
       - name: Show Running Containers
         run: docker ps -a
 
 
   jmeter-tests:
+    needs: setup-teastore
     name: JMeter - Carga Simples e Complexa
     runs-on: ubuntu-latest
 
@@ -38,7 +53,6 @@ jobs:
       - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
           if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
             rm .gitmodules
           fi
 
@@ -58,21 +72,19 @@ jobs:
 
       - name: Teste de Carga Simples (JMeter)
         run: |
-          echo "Executando teste de carga simples..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
           -t jmeter-teastore/teste-carga-simples.jmx \
           -Jhostname=teastore-webui \
-          -Jport=8080 \
+          -Jport=18081 \
           -l jmeter-teastore/results-simples.jtl \
           -e -o jmeter-teastore/report-simples
 
       - name: Teste de Carga Complexo (JMeter)
         run: |
-          echo "Executando teste de carga complexo..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
           -t jmeter-teastore/cenarios-complexos.jmx \
           -Jhostname=teastore-webui \
-          -Jport=8080 \
+          -Jport=18081 \
           -l jmeter-teastore/results-complexos.jtl \
           -e -o jmeter-teastore/report-complexos
 
@@ -86,16 +98,14 @@ jobs:
 
 
   k6-tests:
+    needs: setup-teastore
     name: K6 - Carga Simples e Complexa
     runs-on: ubuntu-latest
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
-          if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
-            rm .gitmodules
-          fi
+          if [ -f ".gitmodules" ]; then rm .gitmodules; fi
 
       - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
@@ -103,42 +113,30 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Configurar Node.js (Pré-requisito para NPM)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Instalar K6 via Snap (Recomendado)
+      - name: Instalar snapd e K6
         run: |
-          echo "Instalando k6 via Snap para contornar problemas de APT/GPG."
           sudo apt-get update
           sudo apt-get install -y snapd
           sudo snap install k6
 
       - name: Teste de Carga Simples (K6)
         run: |
-          echo "Executando teste simples no K6..."
-          k6 run k6-teastore/teste-carga-simples.js \
-          --address teastore-webui:8080
+          HOST=teastore-webui PORT=18081 k6 run k6-teastore/teste-carga-simples.js
 
       - name: Teste de Carga Complexo (K6)
         run: |
-          echo "Executando teste complexo no K6..."
-          k6 run k6-teastore/cenarios-complexos.js \
-          --address teastore-webui:8080
+          HOST=teastore-webui PORT=18081 k6 run k6-teastore/cenarios-complexos.js
 
 
   locust-tests:
+    needs: setup-teastore
     name: Locust - Carga Simples e Complexa
     runs-on: ubuntu-latest
 
     steps:
       - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
-          if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
-            rm .gitmodules
-          fi
+          if [ -f ".gitmodules" ]; then rm .gitmodules; fi
 
       - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
@@ -159,7 +157,7 @@ jobs:
             -w /app \
             meu-locust:latest \
             -f locustfile.py \
-            --host http://teastore-webui:8080 \
+            --host http://teastore-webui:18081 \
             --users 5 \
             --spawn-rate 5 \
             --headless \
@@ -172,7 +170,7 @@ jobs:
             -w /app \
             meu-locust:latest \
             -f cenarios-complexos-locust.py \
-            --host http://teastore-webui:8080 \
+            --host http://teastore-webui:18081 \
             --users 10 \
             --spawn-rate 5 \
             --headless \
