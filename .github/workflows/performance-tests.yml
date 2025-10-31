@@ -27,6 +27,7 @@ jobs:
           DB_HOST: teastore-db
           DB_PORT: 3306
 
+
       teastore-persistence:
         image: descartesresearch/teastore-persistence:latest
         env:
@@ -37,16 +38,19 @@ jobs:
           MYSQL_USER: root
           MYSQL_PASS: ""
 
+
       teastore-recommender:
         image: descartesresearch/teastore-recommender:latest
         env:
           REGISTRY_HOST: teastore-registry
+
 
       teastore-auth:
         image: descartesresearch/teastore-auth:latest
         env:
           REGISTRY_HOST: teastore-registry
 
+          
       teastore-image:
         image: descartesresearch/teastore-image:latest
         env:
@@ -70,15 +74,6 @@ jobs:
             sleep 2
           done
           echo "Timeout esperando o DB"
-          exit 1
-
-      - name: Esperar WebUI ficar online
-        run: |
-          for i in {1..30}; do
-            nc -z teastore-webui 8080 && echo "WebUI online" && exit 0
-            sleep 2
-          done
-          echo "Timeout esperando WebUI"
           exit 1
 
       - name: Instalar Java e JMeter
@@ -152,10 +147,3 @@ jobs:
           path: |
             jmeter-teastore/report-simples
             jmeter-teastore/report-complexos
-            jmeter-teastore/results-simples.jtl
-            jmeter-teastore/results-complexos.jtl 
-            k6-teastore/teste-carga-simples-*.json
-            k6-teastore/cenarios-complexos-*.json
-            locust-teastore/locustfile-stats.csv
-            locust-teastore/cenarios-complexos-locust-stats.csv
-  
