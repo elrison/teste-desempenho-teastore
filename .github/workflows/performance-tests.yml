@@ -8,99 +8,143 @@ on:
       - master
 
 jobs:
-
   performance-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     services:
-      mongodb:
-        image: mongo:4.4
+      teastore-db:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: "teastore"
         ports:
-          - 27017:27017
-      registry:
-        image: descartesresearch/teastore-registry
-        ports:
-          - 8080:8080
-      db:
-        image: descartesresearch/teastore-db
-      persistence:
-        image: descartesresearch/teastore-persistence
-      webui:
-        image: descartesresearch/teastore-webui
+          - 3306:3306
+
+      teastore-registry:
+        image: descartesresearch/teastore-registry:latest
+        env:
+          DB_HOST: teastore-db
+          DB_PORT: 3306
+        depends_on:
+          - teastore-db
+
+      teastore-persistence:
+        image: descartesresearch/teastore-persistence:latest
+        env:
+          REGISTRY_HOST: teastore-registry
+          MYSQL_HOST: teastore-db
+          MYSQL_PORT: 3306
+          MYSQL_DB: teastore
+          MYSQL_USER: root
+          MYSQL_PASS: ""
+        depends_on:
+          - teastore-registry
+
+      teastore-recommender:
+        image: descartesresearch/teastore-recommender:latest
+        env:
+          REGISTRY_HOST: teastore-registry
+        depends_on:
+          - teastore-persistence
+
+      teastore-auth:
+        image: descartesresearch/teastore-auth:latest
+        env:
+          REGISTRY_HOST: teastore-registry
+        depends_on:
+          - teastore-persistence
+
+      teastore-image:
+        image: descartesresearch/teastore-image:latest
+        env:
+          REGISTRY_HOST: teastore-registry
+        depends_on:
+          - teastore-persistence
+
+      teastore-webui:
+        image: descartesresearch/teastore-webui:latest
+        env:
+          REGISTRY_HOST: teastore-registry
+        depends_on:
+          - teastore-auth
+          - teastore-image
+          - teastore-recommender
         ports:
           - 18081:8080
 
     steps:
-      - name: Checkout
+      - name: Checkout do repositório
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------
-      # JMETER
-      # ---------------------------------------------------------
-      - name: Install Java and JMeter
+      - name: Instalar Java e JMeter
         run: |
           sudo apt-get update
-          sudo apt-get install -y openjdk-11-jre-headless
+          sudo apt-get install -y default-jdk
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
-          tar -xzf apache-jmeter-5.6.2.tgz
+          tar -xvzf apache-jmeter-5.6.2.tgz
+          export PATH=$PATH:apache-jmeter-5.6.2/bin
 
-      - name: Run JMeter Simple
+      - name: Rodar JMeter - Carga simples
         run: |
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
-          -t jmeter-teastore/teste-carga-simples.jmx \
-          -Jhostname=localhost \
-          -Jport=18081 \
-          -l results-simple.jtl
+          apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl
 
-      - name: Run JMeter Complex
+      - name: Gerar relatório HTML (simples)
         run: |
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
-          -t jmeter-teastore/cenarios-complexos.jmx \
-          -Jhostname=localhost \
-          -Jport=18081 \
-          -l results-complex.jtl
+          mkdir jmeter-teastore/report-simples
+          apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl \
+            -o jmeter-teastore/report-simples
 
-      # ---------------------------------------------------------
-      # K6
-      # ---------------------------------------------------------
-      - name: Install K6
+      - name: Rodar JMeter - Cenários complexos
         run: |
-          sudo apt-get install -y snapd
-          sudo snap install k6
+          apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl
 
-      - name: Run K6 Simple
+      - name: Gerar relatório HTML (complexo)
         run: |
-          HOST=localhost PORT=18081 k6 run k6-teastore/teste-carga-simples.js
+          mkdir jmeter-teastore/report-complexos
+          apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl \
+            -o jmeter-teastore/report-complexos
 
-      - name: Run K6 Complex
+      - name: Instalar k6
         run: |
-          HOST=localhost PORT=18081 k6 run k6-teastore/cenarios-complexos.js
+          sudo apt-get install -y debian-keyring debian-archive-keyring
+          curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
 
-      # ---------------------------------------------------------
-      # LOCUST
-      # ---------------------------------------------------------
-      - name: Build Locust custom image
+      - name: Rodar k6 - Simples
         run: |
-          echo 'FROM locustio/locust:latest' > Dockerfile
-          echo 'RUN pip install bs4 requests' >> Dockerfile
-          docker build -t meu-locust .
+          k6 run k6-teastore/teste-carga-simples.js
 
-      - name: Run Locust Simple
+      - name: Rodar k6 - Complexos
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/locust-teastore:/app \
-            -w /app \
-            meu-locust \
-            -f locustfile.py \
-            --host http://localhost:18081 \
-            --users 5 --spawn-rate 5 --headless --run-time 30s
+          k6 run k6-teastore/cenarios-complexos.js
 
-      - name: Run Locust Complex
+      - name: Instalar Locust
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/locust-teastore:/app \
-            -w /app \
-            meu-locust \
-            -f cenarios-complexos-locust.py \
-            --host http://localhost:18081 \
-            --users 10 --spawn-rate 5 --headless --run-time 1m
+          pip install locust==2.16.1
+
+      - name: Rodar Locust - Headless (Simples)
+        run: |
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 20 -r 5 -t 30s \
+            --host http://teastore-webui:8080
+
+      - name: Rodar Locust - Headless (Complexo)
+        run: |
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 20 -r 5 -t 30s \
+            --host http://teastore-webui:8080
+
+      - name: Publicar artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: |
+            jmeter-teastore/report-simples
+            jmeter-teastore/report-complexos
