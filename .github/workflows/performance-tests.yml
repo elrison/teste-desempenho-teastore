@@ -9,169 +9,98 @@ on:
 
 jobs:
 
-  setup-teastore:
+  performance-tests:
     runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:4.4
+        ports:
+          - 27017:27017
+      registry:
+        image: descartesresearch/teastore-registry
+        ports:
+          - 8080:8080
+      db:
+        image: descartesresearch/teastore-db
+      persistence:
+        image: descartesresearch/teastore-persistence
+      webui:
+        image: descartesresearch/teastore-webui
+        ports:
+          - 18081:8080
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
-      - name: Start TeaStore Stack
-        run: |
-          docker-compose up -d
-          echo "⏳ Aguardando serviços subirem..."
-          sleep 20
-
-      - name: Esperar WebUI responder
-        run: |
-          for i in {1..30}; do
-            if curl -s http://localhost:18081 > /dev/null; then
-              echo "✔️ WebUI OK!"
-              exit 0
-            fi
-            echo "⏳ Esperando WebUI..."
-            sleep 2
-          done
-          echo "❌ WebUI NÃO respondeu!"
-          exit 1
-
-      - name: Show Running Containers
-        run: docker ps -a
-
-
-  jmeter-tests:
-    needs: setup-teastore
-    name: JMeter - Carga Simples e Complexa
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Remover arquivo .gitmodules (Correção Forçada)
-        run: |
-          if [ -f ".gitmodules" ]; then
-            rm .gitmodules
-          fi
-
-      - name: Checkout repository (sem submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-          fetch-depth: 1
-
-      - name: Instalar Java e JMeter
+      # ---------------------------------------------------------
+      # JMETER
+      # ---------------------------------------------------------
+      - name: Install Java and JMeter
         run: |
           sudo apt-get update
           sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
-          export PATH=$PATH:$(pwd)/apache-jmeter-5.6.2/bin
 
-      - name: Teste de Carga Simples (JMeter)
+      - name: Run JMeter Simple
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
           -t jmeter-teastore/teste-carga-simples.jmx \
-          -Jhostname=teastore-webui \
+          -Jhostname=localhost \
           -Jport=18081 \
-          -l jmeter-teastore/results-simples.jtl \
-          -e -o jmeter-teastore/report-simples
+          -l results-simple.jtl
 
-      - name: Teste de Carga Complexo (JMeter)
+      - name: Run JMeter Complex
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
           -t jmeter-teastore/cenarios-complexos.jmx \
-          -Jhostname=teastore-webui \
+          -Jhostname=localhost \
           -Jport=18081 \
-          -l jmeter-teastore/results-complexos.jtl \
-          -e -o jmeter-teastore/report-complexos
+          -l results-complex.jtl
 
-      - name: Upload Relatórios JMeter
-        uses: actions/upload-artifact@v4
-        with:
-          name: relatorios-jmeter
-          path: |
-            jmeter-teastore/report-simples
-            jmeter-teastore/report-complexos
-
-
-  k6-tests:
-    needs: setup-teastore
-    name: K6 - Carga Simples e Complexa
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Remover arquivo .gitmodules (Correção Forçada)
+      # ---------------------------------------------------------
+      # K6
+      # ---------------------------------------------------------
+      - name: Install K6
         run: |
-          if [ -f ".gitmodules" ]; then rm .gitmodules; fi
-
-      - name: Checkout repository (sem submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-          fetch-depth: 1
-
-      - name: Instalar snapd e K6
-        run: |
-          sudo apt-get update
           sudo apt-get install -y snapd
           sudo snap install k6
 
-      - name: Teste de Carga Simples (K6)
+      - name: Run K6 Simple
         run: |
-          HOST=teastore-webui PORT=18081 k6 run k6-teastore/teste-carga-simples.js
+          HOST=localhost PORT=18081 k6 run k6-teastore/teste-carga-simples.js
 
-      - name: Teste de Carga Complexo (K6)
+      - name: Run K6 Complex
         run: |
-          HOST=teastore-webui PORT=18081 k6 run k6-teastore/cenarios-complexos.js
+          HOST=localhost PORT=18081 k6 run k6-teastore/cenarios-complexos.js
 
-
-  locust-tests:
-    needs: setup-teastore
-    name: Locust - Carga Simples e Complexa
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Remover arquivo .gitmodules (Correção Forçada)
+      # ---------------------------------------------------------
+      # LOCUST
+      # ---------------------------------------------------------
+      - name: Build Locust custom image
         run: |
-          if [ -f ".gitmodules" ]; then rm .gitmodules; fi
+          echo 'FROM locustio/locust:latest' > Dockerfile
+          echo 'RUN pip install bs4 requests' >> Dockerfile
+          docker build -t meu-locust .
 
-      - name: Checkout repository (sem submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-          fetch-depth: 1
-
-      - name: Construir imagem Locust customizada
-        run: |
-          echo 'FROM locustio/locust:latest' > Dockerfile.locust-custom
-          echo 'RUN pip install bs4 requests' >> Dockerfile.locust-custom
-          docker build -t meu-locust:latest -f Dockerfile.locust-custom .
-
-      - name: Teste de Carga Simples (Locust via Docker)
+      - name: Run Locust Simple
         run: |
           docker run --rm \
             -v ${{ github.workspace }}/locust-teastore:/app \
             -w /app \
-            meu-locust:latest \
+            meu-locust \
             -f locustfile.py \
-            --host http://teastore-webui:18081 \
-            --users 5 \
-            --spawn-rate 5 \
-            --headless \
-            --run-time 30s
+            --host http://localhost:18081 \
+            --users 5 --spawn-rate 5 --headless --run-time 30s
 
-      - name: Teste de Carga Complexo (Locust via Docker)
+      - name: Run Locust Complex
         run: |
           docker run --rm \
             -v ${{ github.workspace }}/locust-teastore:/app \
             -w /app \
-            meu-locust:latest \
+            meu-locust \
             -f cenarios-complexos-locust.py \
-            --host http://teastore-webui:18081 \
-            --users 10 \
-            --spawn-rate 5 \
-            --headless \
-            --run-time 1m
+            --host http://localhost:18081 \
+            --users 10 --spawn-rate 5 --headless --run-time 1m
