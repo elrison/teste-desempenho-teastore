@@ -4,146 +4,118 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
       - master
+      - main
 
 jobs:
-  performance-tests:
+  # ===============================================
+  # JOB DO K6
+  # ===============================================
+  k6-tests:
+    name: K6 - Carga Simples e Complexa
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    services:
-      teastore-db:
-        image: mysql:5.7
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-          MYSQL_DATABASE: "teastore"
-        ports:
-          - 3306:3306
-
-      teastore-registry:
-        image: descartesresearch/teastore-registry:latest
-        env:
-          DB_HOST: teastore-db
-          DB_PORT: 3306
-
-
-      teastore-persistence:
-        image: descartesresearch/teastore-persistence:latest
-        env:
-          REGISTRY_HOST: teastore-registry
-          MYSQL_HOST: teastore-db
-          MYSQL_PORT: 3306
-          MYSQL_DB: teastore
-          MYSQL_USER: root
-          MYSQL_PASS: ""
-
-
-      teastore-recommender:
-        image: descartesresearch/teastore-recommender:latest
-        env:
-          REGISTRY_HOST: teastore-registry
-
-
-      teastore-auth:
-        image: descartesresearch/teastore-auth:latest
-        env:
-          REGISTRY_HOST: teastore-registry
-
-          
-      teastore-image:
-        image: descartesresearch/teastore-image:latest
-        env:
-          REGISTRY_HOST: teastore-registry
-
-      teastore-webui:
-        image: descartesresearch/teastore-webui:latest
-        env:
-          REGISTRY_HOST: teastore-registry
-        ports:
-          - 18081:8080
-
     steps:
-      - name: Checkout do repositório
+      - name: 1. Baixar os scripts de teste
         uses: actions/checkout@v4
 
-      - name: Esperar DB ficar online
+      - name: 2. Baixar e iniciar a aplicação TeaStore
         run: |
-          for i in {1..30}; do
-            nc -z teastore-db 3306 && echo "DB online" && exit 0
-            sleep 2
-          done
-          echo "Timeout esperando o DB"
-          exit 1
+          echo "Baixando o arquivo de configuração do TeaStore..."
+          # Este 'curl' baixa o docker-compose.yml, evitando o erro de submódulo
+          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
+          
+          echo "Iniciando TeaStore..."
+          docker compose -f docker-compose.yml up -d
+          
+          echo "Aguardando 45 segundos para os serviços estabilizarem..."
+          sleep 45
+          # Verifica se a aplicação está no ar antes de continuar
+          curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
 
-      - name: Instalar Java e JMeter
+      - name: 3. Executar Teste de Carga Simples (K6)
+        uses: grafana/k6-action@v0.2.0
+        with:
+          filename: k6-teastore/teste-carga-simples.js
+
+      - name: 4. Executar Teste de Carga Complexo (K6)
+        uses: grafana/k6-action@v0.2.0
+        with:
+          filename: k6-teastore/cenarios-complexos.js
+
+  # ===============================================
+  # JOB DO LOCUST
+  # ===============================================
+  locust-tests:
+    name: Locust - Carga Simples e Complexa
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Baixar os scripts de teste
+        uses: actions/checkout@v4
+
+      - name: 2. Baixar e iniciar a aplicação TeaStore
         run: |
-          sudo apt-get update
-          sudo apt-get install -y default-jdk
-          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
-          tar -xvzf apache-jmeter-5.6.2.tgz
-          export PATH=$PATH:apache-jmeter-5.6.2/bin
+          echo "Baixando o arquivo de configuração do TeaStore..."
+          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
+          echo "Iniciando TeaStore..."
+          docker compose -f docker-compose.yml up -d
+          echo "Aguardando 45 segundos para os serviços estabilizarem..."
+          sleep 45
+          curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
 
-      - name: Rodar JMeter - Carga simples
+      - name: 3. Construir Imagem Docker do Locust (com dependências)
+        working-directory: ./locust-teastore
+        run: docker build -t locust-teastore-custom .
+
+      - name: 4. Teste de Carga Simples (Locust)
         run: |
-          apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/teste-carga-simples.jmx \
-            -l jmeter-teastore/results-simples.jtl
+          docker run --network=host --rm locust-teastore-custom \
+            -f locustfile.py \
+            --host http://localhost:8080 --users 5 --spawn-rate 2 --headless --run-time 30s
 
-      - name: Gerar relatório HTML (simples)
+      - name: 5. Teste de Carga Complexo (Locust)
         run: |
-          mkdir jmeter-teastore/report-simples
-          apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl \
-            -o jmeter-teastore/report-simples
+          docker run --network=host --rm locust-teastore-custom \
+            -f cenarios-complexos-locust.py \
+            --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
 
-      - name: Rodar JMeter - Cenários complexos
+  # ===============================================
+  # JOB DO JMETER
+  # ===============================================
+  jmeter-tests:
+    name: JMeter - Carga Simples e Complexa
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Baixar os scripts de teste
+        uses: actions/checkout@v4
+
+      - name: 2. Baixar e iniciar a aplicação TeaStore
         run: |
-          apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenarios-complexos.jmx \
-            -l jmeter-teastore/results-complexos.jtl
+          echo "Baixando o arquivo de configuração do TeaStore..."
+          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
+          echo "Iniciando TeaStore..."
+          docker compose -f docker-compose.yml up -d
+          echo "Aguardando 45 segundos para os serviços estabilizarem..."
+          sleep 45
+          curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
 
-      - name: Gerar relatório HTML (complexo)
+      - name: 3. Construir Imagem Docker do JMeter (com plugins)
+        working-directory: ./jmeter-teastore
+        run: docker build -t jmeter-teastore-custom .
+
+      - name: 4. Teste de Carga Simples (JMeter)
         run: |
-          mkdir jmeter-teastore/report-complexos
-          apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl \
-            -o jmeter-teastore/report-complexos
-
-      - name: Instalar k6
+          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
+            -n -t teste-carga-simples.jmx -l resultados_simples.jtl -e -o relatorio-simples -Jhostname=localhost -Jport=8080
+      
+      - name: 5. Teste de Carga Complexo (JMeter)
         run: |
-          sudo apt-get install -y debian-keyring debian-archive-keyring
-          curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
-          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install -y k6
-
-      - name: Rodar k6 - Simples
-        run: |
-          k6 run k6-teastore/teste-carga-simples.js
-
-      - name: Rodar k6 - Complexos
-        run: |
-          k6 run k6-teastore/cenarios-complexos.js
-
-      - name: Instalar Locust
-        run: |
-          pip install locust==2.16.1
-
-      - name: Rodar Locust - Headless (Simples)
-        run: |
-          locust -f locust-teastore/locustfile.py \
-            --headless -u 20 -r 5 -t 30s \
-            --host http://teastore-webui:8080
-
-      - name: Rodar Locust - Headless (Complexo)
-        run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless -u 20 -r 5 -t 30s \
-            --host http://teastore-webui:8080
-
-      - name: Publicar artefatos
+          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
+            -n -t cenarios-complexos.jmx -l resultados_complexos.jtl -e -o relatorio-complexos -Jhostname=localhost -Jport=8080
+      
+      - name: 6. Upload Relatórios JMeter
         uses: actions/upload-artifact@v4
         with:
-          name: performance-results
+          name: relatorios-jmeter
           path: |
-            jmeter-teastore/report-simples
-            jmeter-teastore/report-complexos
+            jmeter-teastore/relatorio-simples
+            jmeter-teastore/relatorio-complexos
