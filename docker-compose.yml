@@ -8,13 +8,18 @@ services:
       MYSQL_DATABASE: "teastore"
     networks:
       - teastore-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   teastore-registry:
     image: descartesresearch/teastore-registry:latest
     container_name: teastore-registry
-
     depends_on:
-      - teastore-db
+      teastore-db:
+        condition: service_healthy
     environment:
       DB_HOST: teastore-db
       DB_PORT: 3306
@@ -26,7 +31,6 @@ services:
     container_name: teastore-persistence
     restart: always
     depends_on:
-
       teastore-registry:
         condition: service_started
     environment:

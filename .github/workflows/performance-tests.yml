@@ -11,13 +11,25 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # necessário para docker-compose funcionar no CI
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose netcat-openbsd
+
       - name: Start TeaStore stack
         run: |
           docker compose up -d
-          echo "⏳ Aguardando serviços..."
-          sleep 40
-          curl --fail http://localhost:18081/tools.descartes.teastore.webui/ \
-            || (echo "Teastore não subiu!" && docker compose logs && exit 1)
+          echo "⏳ Aguardando MySQL responder..."
+          for i in {1..50}; do
+            nc -z localhost 3306 && break
+            sleep 3
+          done
+          echo "⏳ Aguardando WebUI..."
+          for i in {1..50}; do
+            curl -s http://localhost:18081/tools.descartes.teastore.webui/ && break
+            sleep 3
+          done
 
       - name: Check containers
         run: docker ps -a
@@ -27,27 +39,23 @@ jobs:
       # ==========================
       - name: Install Java & JMeter
         run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-11-jre-headless wget
+          sudo apt-get install -y openjdk-11-jre-headless
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
-          echo "$(pwd)/apache-jmeter-5.6.2/bin" >> $GITHUB_PATH
 
       - name: Run JMeter Simple
         run: |
-          jmeter -n \
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
-            -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=18081
+            -e -o jmeter-teastore/report-simples
 
       - name: Run JMeter Complex
         run: |
-          jmeter -n \
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
-            -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=18081
+            -e -o jmeter-teastore/report-complexos
 
       - uses: actions/upload-artifact@v4
         with:
@@ -59,8 +67,6 @@ jobs:
       # ==========================
       - name: Install K6
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gnupg software-properties-common
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
           echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
@@ -68,13 +74,11 @@ jobs:
 
       - name: Run K6 simple
         run: |
-          k6 run k6-teastore/teste-carga-simples.js \
-            --summary-export=k6-simple.json
+          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json
 
       - name: Run K6 complex
         run: |
-          k6 run k6-teastore/cenarios-complexos.js \
-            --summary-export=k6-complex.json
+          k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json
 
       - uses: actions/upload-artifact@v4
         with:
