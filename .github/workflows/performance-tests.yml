@@ -9,7 +9,7 @@ on:
 
 jobs:
   # ===============================================
-  # JOB DO K6
+  # JOB DO K6 (Não precisa de alteração)
   # ===============================================
   k6-tests:
     name: K6 - Carga Simples e Complexa
@@ -43,7 +43,7 @@ jobs:
           filename: k6-teastore/cenarios-complexos.js
 
   # ===============================================
-  # JOB DO LOCUST
+  # JOB DO LOCUST (CORRIGIDO)
   # ===============================================
   locust-tests:
     name: Locust - Carga Simples e Complexa
@@ -62,24 +62,28 @@ jobs:
           sleep 45
           curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
 
+      # CORREÇÃO: Constrói uma imagem Docker customizada para o Locust
+      # Isso garante que 'beautifulsoup4' e 'zope.event' estejam instalados.
       - name: 3. Construir Imagem Docker do Locust (com dependências)
         working-directory: ./locust-teastore
         run: docker build -t locust-teastore-custom .
 
       - name: 4. Teste de Carga Simples (Locust)
         run: |
+          # CORREÇÃO: Usa a nova imagem e --network=host para acessar localhost
           docker run --network=host --rm locust-teastore-custom \
             -f locustfile.py \
             --host http://localhost:8080 --users 5 --spawn-rate 2 --headless --run-time 30s
 
       - name: 5. Teste de Carga Complexo (Locust)
         run: |
+          # CORREÇÃO: Usa a nova imagem e --network=host para acessar localhost
           docker run --network=host --rm locust-teastore-custom \
             -f cenarios-complexos-locust.py \
             --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
 
   # ===============================================
-  # JOB DO JMETER
+  # JOB DO JMETER (Não precisa de alteração)
   # ===============================================
   jmeter-tests:
     name: JMeter - Carga Simples e Complexa
@@ -104,11 +108,13 @@ jobs:
 
       - name: 4. Teste de Carga Simples (JMeter)
         run: |
+          # CORREÇÃO: Usa --network=host para acessar localhost
           docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
             -n -t teste-carga-simples.jmx -l resultados_simples.jtl -e -o relatorio-simples -Jhostname=localhost -Jport=8080
       
       - name: 5. Teste de Carga Complexo (JMeter)
         run: |
+          # CORREÇÃO: Usa --network=host para acessar localhost
           docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
             -n -t cenarios-complexos.jmx -l resultados_complexos.jtl -e -o relatorio-complexos -Jhostname=localhost -Jport=8080
       
@@ -119,3 +125,4 @@ jobs:
           path: |
             jmeter-teastore/relatorio-simples
             jmeter-teastore/relatorio-complexos
+
