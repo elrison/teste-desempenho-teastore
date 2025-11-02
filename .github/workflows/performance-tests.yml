@@ -11,17 +11,13 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
       - name: Start TeaStore stack
         run: |
-          docker-compose up -d
+          docker compose up -d
           echo "⏳ Aguardando serviços..."
           sleep 40
-          curl --fail http://localhost:18081/tools.descartes.teastore.webui/ || (echo "Teastore não subiu!" && docker-compose logs && exit 1)
+          curl --fail http://localhost:18081/tools.descartes.teastore.webui/ \
+            || (echo "Teastore não subiu!" && docker compose logs && exit 1)
 
       - name: Check containers
         run: docker ps -a
@@ -31,14 +27,15 @@ jobs:
       # ==========================
       - name: Install Java & JMeter
         run: |
-          sudo apt-get install -y openjdk-11-jre-headless
+          sudo apt-get update
+          sudo apt-get install -y openjdk-11-jre-headless wget
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
-          export PATH=$PATH:$(pwd)/apache-jmeter-5.6.2/bin
+          echo "$(pwd)/apache-jmeter-5.6.2/bin" >> $GITHUB_PATH
 
       - name: Run JMeter Simple
         run: |
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
@@ -46,7 +43,7 @@ jobs:
 
       - name: Run JMeter Complex
         run: |
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
@@ -62,8 +59,12 @@ jobs:
       # ==========================
       - name: Install K6
         run: |
-          sudo apt-get install -y snapd
-          sudo snap install k6
+          sudo apt-get update
+          sudo apt-get install -y gnupg software-properties-common
+          curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
 
       - name: Run K6 simple
         run: |
@@ -113,4 +114,4 @@ jobs:
 
       - name: Stop containers
         if: always()
-        run: docker-compose down
+        run: docker compose down
