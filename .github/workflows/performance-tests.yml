@@ -9,19 +9,29 @@ on:
 
 jobs:
   # ===============================================
-  # JOB DO K6 (Não precisa de alteração)
+  # JOB DO JMETER - CORRIGIDO
   # ===============================================
-  k6-tests:
-    name: K6 - Carga Simples e Complexa
+  jmeter-tests:
+    name: JMeter - Carga Simples e Complexa
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Baixar os scripts de teste
+      - name: Remover arquivo .gitmodules (Correção Forçada)
+        run: |
+          if [ -f ".gitmodules" ]; then
+            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+            rm .gitmodules
+          fi
+          
+      - name: Checkout repository (sem submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
 
-      - name: 2. Baixar e iniciar a aplicação TeaStore
+      # CORREÇÃO: Inicia o TeaStore com docker-compose, igual aos outros jobs.
+      - name: Iniciar a aplicação TeaStore
         run: |
           echo "Baixando o arquivo de configuração do TeaStore..."
-          # Este 'curl' baixa o docker-compose.yml, evitando o erro de submódulo
           curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
           
           echo "Iniciando TeaStore..."
@@ -32,97 +42,159 @@ jobs:
           # Verifica se a aplicação está no ar antes de continuar
           curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
 
-      - name: 3. Executar Teste de Carga Simples (K6)
-        uses: grafana/k6-action@v0.2.0
-        with:
-          filename: k6-teastore/teste-carga-simples.js
-
-      - name: 4. Executar Teste de Carga Complexo (K6)
-        uses: grafana/k6-action@v0.2.0
-        with:
-          filename: k6-teastore/cenarios-complexos.js
-
-  # ===============================================
-  # JOB DO LOCUST (CORRIGIDO)
-  # ===============================================
-  locust-tests:
-    name: Locust - Carga Simples e Complexa
-    runs-on: ubuntu-latest
-    steps:
-      - name: 1. Baixar os scripts de teste
-        uses: actions/checkout@v4
-
-      - name: 2. Baixar e iniciar a aplicação TeaStore
+      - name: Instalar Java e JMeter
         run: |
-          echo "Baixando o arquivo de configuração do TeaStore..."
-          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
-          echo "Iniciando TeaStore..."
-          docker compose -f docker-compose.yml up -d
-          echo "Aguardando 45 segundos para os serviços estabilizarem..."
-          sleep 45
-          curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
+          sudo apt-get update
+          sudo apt-get install -y openjdk-11-jre-headless
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
+          tar -xzf apache-jmeter-5.6.2.tgz
+          export PATH=$PATH:$(pwd)/apache-jmeter-5.6.2/bin
 
-      # CORREÇÃO: Constrói uma imagem Docker customizada para o Locust
-      # Isso garante que 'beautifulsoup4' e 'zope.event' estejam instalados.
-      - name: 3. Construir Imagem Docker do Locust (com dependências)
-        working-directory: ./locust-teastore
-        run: docker build -t locust-teastore-custom .
-
-      - name: 4. Teste de Carga Simples (Locust)
+      - name: Teste de Carga Simples (JMeter)
         run: |
-          # CORREÇÃO: Usa a nova imagem e --network=host para acessar localhost
-          docker run --network=host --rm locust-teastore-custom \
-            -f locustfile.py \
-            --host http://localhost:8080 --users 5 --spawn-rate 2 --headless --run-time 30s
+          echo "Executando teste de carga simples..."
+          # CORREÇÃO: Aponta para localhost, pois o docker compose está publicando a porta
+          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/teste-carga-simples.jmx -l jmeter-teastore/results-simples.jtl -e -o jmeter-teastore/report-simples -Jhostname=localhost -Jport=8080
 
-      - name: 5. Teste de Carga Complexo (Locust)
+      - name: Teste de Carga Complexo (JMeter)
         run: |
-          # CORREÇÃO: Usa a nova imagem e --network=host para acessar localhost
-          docker run --network=host --rm locust-teastore-custom \
-            -f cenarios-complexos-locust.py \
-            --host http://localhost:8080 --users 10 --spawn-rate 5 --headless --run-time 1m
+          echo "Executando teste de carga complexo..."
+          # CORREÇÃO: Aponta para localhost
+          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/cenarios-complexos.jmx -l jmeter-teastore/results-complexos.jtl -e -o jmeter-teastore/report-complexos -Jhostname=localhost -Jport=8080
 
-  # ===============================================
-  # JOB DO JMETER (Não precisa de alteração)
-  # ===============================================
-  jmeter-tests:
-    name: JMeter - Carga Simples e Complexa
-    runs-on: ubuntu-latest
-    steps:
-      - name: 1. Baixar os scripts de teste
-        uses: actions/checkout@v4
-
-      - name: 2. Baixar e iniciar a aplicação TeaStore
-        run: |
-          echo "Baixando o arquivo de configuração do TeaStore..."
-          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
-          echo "Iniciando TeaStore..."
-          docker compose -f docker-compose.yml up -d
-          echo "Aguardando 45 segundos para os serviços estabilizarem..."
-          sleep 45
-          curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
-
-      - name: 3. Construir Imagem Docker do JMeter (com plugins)
-        working-directory: ./jmeter-teastore
-        run: docker build -t jmeter-teastore-custom .
-
-      - name: 4. Teste de Carga Simples (JMeter)
-        run: |
-          # CORREÇÃO: Usa --network=host para acessar localhost
-          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
-            -n -t teste-carga-simples.jmx -l resultados_simples.jtl -e -o relatorio-simples -Jhostname=localhost -Jport=8080
-      
-      - name: 5. Teste de Carga Complexo (JMeter)
-        run: |
-          # CORREÇÃO: Usa --network=host para acessar localhost
-          docker run --network=host --rm -v ${{ github.workspace }}/jmeter-teastore:/jmeter -w /jmeter jmeter-teastore-custom \
-            -n -t cenarios-complexos.jmx -l resultados_complexos.jtl -e -o relatorio-complexos -Jhostname=localhost -Jport=8080
-      
-      - name: 6. Upload Relatórios JMeter
+      - name: Upload Relatórios JMeter
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
           path: |
-            jmeter-teastore/relatorio-simples
-            jmeter-teastore/relatorio-complexos
+            jmeter-teastore/report-simples
+            jmeter-teastore/report-complexos
+
+  # ===============================================
+  # JOB DO K6
+  # ===============================================
+  k6-tests:
+    name: K6 - Carga Simples e Complexa
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remover arquivo .gitmodules (Correção Forçada)
+        run: |
+          if [ -f ".gitmodules" ]; then
+            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+            rm .gitmodules
+          fi
+          
+      - name: Checkout repository (sem submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+          
+      - name: Iniciar a aplicação TeaStore
+        run: |
+          echo "Baixando o arquivo de configuração do TeaStore..."
+          curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
+          
+          echo "Iniciando TeaStore..."
+          docker compose -f docker-compose.yml up -d
+          
+          echo "Aguardando 45 segundos para os serviços estabilizarem..."
+          sleep 45
+          curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
+
+      - name: Configurar Node.js (Pré-requisito para NPM)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar K6 via Snap (Recomendado)
+        run: |
+          echo "Instalando k6 via Snap para contornar problemas de APT/GPG."
+          sudo apt-get update
+          sudo apt-get install -y snapd
+          sudo snap install k6
+
+      - name: Teste de Carga Simples (K6)
+        run: |
+          echo "Executando teste simples no K6..."
+          # CORREÇÃO: Aponta para localhost
+          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-summary-simples.json
+
+      - name: Teste de Carga Complexo (K6)
+        run: |
+          echo "Executando teste complexo no K6..."
+          # CORREÇÃO: Aponta para localhost
+          k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-summary-complexos.json
+      
+      - name: Upload Relatórios K6
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-k6
+          path: |
+            k6-summary-simples.json
+            k6-summary-complexos.json
+
+  # ===============================================
+  # JOB DO LOCUST
+  # ===============================================
+  locust-tests:
+      name: Locust - Carga Simples e Complexa
+      runs-on: ubuntu-latest
+      steps:
+        - name: Remover arquivo .gitmodules (Correção Forçada)
+          run: |
+            if [ -f ".gitmodules" ]; then
+              echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+              rm .gitmodules
+            fi
+
+        - name: Checkout repository (sem submodules)
+          uses: actions/checkout@v4
+          with:
+            submodules: false
+            fetch-depth: 1
+            
+        - name: Iniciar a aplicação TeaStore
+          run: |
+            echo "Baixando o arquivo de configuração do TeaStore..."
+            curl -o docker-compose.yml https://raw.githubusercontent.com/DescartesResearch/TeaStore/master/examples/docker/docker-compose_default.yaml
+            
+            echo "Iniciando TeaStore..."
+            docker compose -f docker-compose.yml up -d
+            
+            echo "Aguardando 45 segundos para os serviços estabilizarem..."
+            sleep 45
+            curl --fail http://localhost:8080/tools.descartes.teastore.webui/ || (echo "TeaStore não iniciou" && exit 1)
+
+        # Forçar Python 3.11 (evita conflito com 3.12)
+        - name: Configurar Python 3.11
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.11'
+
+        - name: Instalar Locust e dependências compatíveis
+          run: |
+            python -m pip install --upgrade pip
+            pip install "gevent<24.10.0"
+            pip install "zope.event<6.0" "zope.interface<7.0"
+            pip install locust==2.24.1
+            pip install beautifulsoup4 # Dependência para o script complexo
+
+        - name: Teste de Carga Simples (Locust)
+          run: |
+            echo "Executando Locust - Carga Simples..."
+            locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 30s --host http://localhost:8080 --html locust-teastore/relatorio-simples.html
+            
+        - name: Teste de Carga Complexo (Locust)
+          run: |
+            echo "Executando Locust - Cenarios Complexos..."
+            locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 5 -t 1m --host http://localhost:8080 --html locust-teastore/relatorio-complexo.html
+            
+        - name: Upload Relatórios Locust
+          uses: actions/upload-artifact@v4
+          with:
+            name: relatorios-locust
+            path: |
+              locust-teastore/relatorio-simples.html
+              locust-teastore/relatorio-complexo.html
 
