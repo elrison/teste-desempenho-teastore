@@ -1,82 +1,74 @@
 import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 
-const BASE_URL = 'http://host.docker.internal:18081/tools.descartes.teastore.webui';
-const HOST_URL = 'http://host.docker.internal:18081';
+const HOST = 'http://localhost:18081/tools.descartes.teastore.webui';
 
-// Esta função especial roda UMA VEZ no início do teste e está FUNCIONANDO.
+// Setup executado 1x antes de tudo
 export function setup() {
-  console.log('--- Preparando ambiente de teste: Resetando a base de dados via API ---');
-  const res = http.post(`${BASE_URL}/services/rest/persistence/reset`);
+  const res = http.post(`${HOST}/services/rest/persistence/reset`);
   check(res, {
-    'base de dados foi resetada com sucesso via API (status 200)': (r) => r.status === 200,
+    'reset DB OK': (r) => r.status === 200,
   });
-  console.log('--- Ambiente de teste pronto ---');
 }
 
-// 1. OPÇÕES DO TESTE
 export const options = {
   vus: 10,
   duration: '30s',
 };
 
-// 2. CENÁRIO DE TESTE PRINCIPAL
 export default function () {
-  let loginSuccess = false;
-  group('Cenário de Login', function () {
-    http.get(`${BASE_URL}/login`);
-    sleep(1);
+  group('Login', () => {
+    http.get(`${HOST}/login`);
+    const payload = 'username=user1&password=password&action=login';
+    const params = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 
-    const loginPayload = 'username=user1&password=password&action=login';
-    const loginParams = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-    const res = http.post(`${BASE_URL}/loginAction`, loginPayload, loginParams);
+    const res = http.post(`${HOST}/loginAction`, payload, params);
 
-    loginSuccess = check(res, {
-      'login redirecionou para a página inicial': (r) => r.url.endsWith('/tools.descartes.teastore.webui/'),
-      'página pós-login contém "Logout"': (r) => r.body.includes('Logout'),
+    check(res, {
+      'login OK': (r) => r.status === 200,
+      'logout visível': (r) => r.body.includes('Logout'),
     });
-    sleep(1);
   });
 
-  if (loginSuccess) {
-    group('Cenário de Compra', function () {
-      let res = http.get(BASE_URL + '/');
-      const categoryLink = res.html().find('ul.nav-sidebar a.menulink').first().attr('href');
-      
-      if (categoryLink) {
-        res = http.get(`${HOST_URL}${categoryLink}`);
-        const productLink = res.html().find('div.thumbnail a').first().attr('href');
-        let productId = null;
-        if (productLink) {
-          productId = productLink.split('id=')[1];
-        }
-        
-        if (productId) {
-          // Visita a página do produto para pegar o nome
-          res = http.get(`${HOST_URL}${productLink}`);
-          check(res, { 'página do produto carregou': (r) => r.status === 200 });
+  group('Compra via REST', () => {
+    // 1. Pega categorias
+    let res = http.get(`${HOST}/services/rest/category/`);
+    let categories = res.json();
 
-          // Extrai o nome do produto para uma verificação mais robusta
-          const productName = res.html().find('h2.product-title').text().trim();
-          sleep(1);
-
-          // Adiciona o produto ao carrinho
-          const cartPayload = {
-            productid: productId,
-            action: 'add',
-          };
-          res = http.post(`${BASE_URL}/cartAction`, cartPayload);
-          check(res, { 'POST para adicionar ao carrinho foi aceito (status 200)': (r) => r.status === 200 });
-          sleep(1);
-
-          // CORREÇÃO FINAL: Visita a página do carrinho para verificar o conteúdo.
-          res = http.get(`${BASE_URL}/cart`);
-          check(res, {
-            'página do carrinho contém o nome do produto adicionado': (r) => r.body.includes(productName),
-          });
-        }
-      }
-      sleep(1);
+    check(res, {
+      'categorias carregadas': (r) => categories.length > 0,
     });
-  }
+
+    let category = categories[0];
+
+    // 2. Pega produtos dessa categoria
+    res = http.get(`${HOST}/services/rest/product?categoryid=${category}&page=1&number=12`);
+    let products = res.json();
+
+    check(res, {
+      'produtos carregados': (r) => products.length > 0,
+    });
+
+    let product = products[0];
+
+    // 3. Adiciona ao carrinho
+    const cartPayload = {
+      productid: product.id,
+      action: 'add',
+    };
+
+    res = http.post(`${HOST}/cartAction`, cartPayload);
+    check(res, {
+      'produto adicionado no carrinho': (r) => r.status === 200,
+    });
+
+    // 4. Verifica carrinho
+    res = http.get(`${HOST}/cart`);
+    check(res, {
+      'produto aparece no carrinho': (r) =>
+        r.body.includes(product.title || product.name),
+    });
+  });
+
+  sleep(1);
 }
