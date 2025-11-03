@@ -1,14 +1,13 @@
 import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 
-const HOST = 'http://localhost:18081/tools.descartes.teastore.webui';
-const ROOT = 'http://localhost:18081';
+const BASE_URL = 'http://localhost:18081/tools.descartes.teastore.webui';
+const HOST_URL = 'http://localhost:18081';
 
 export function setup() {
-  const res = http.post(`${HOST}/services/rest/persistence/reset`);
-  check(res, {
-    'reset DB OK': (r) => r.status === 200,
-  });
+  console.log('Resetando banco via API REST...');
+  const res = http.post(`${BASE_URL}/services/rest/persistence/resetDB`);
+  check(res, { 'reset OK (200)': (r) => r.status === 200 });
 }
 
 export const options = {
@@ -17,54 +16,43 @@ export const options = {
 };
 
 export default function () {
+
   group('Login', () => {
-    http.get(`${HOST}/login`);
-    const payload = 'username=user1&password=password&action=login';
+    http.get(`${BASE_URL}/login`);
+
+    const loginPayload = 'username=user1&password=password&action=login';
     const params = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 
-    const res = http.post(`${HOST}/loginAction`, payload, params);
+    const res = http.post(`${BASE_URL}/loginAction`, loginPayload, params);
 
     check(res, {
-      'login OK': (r) => r.status === 200,
-      'logout visível': (r) => r.body && r.body.includes('Logout'),
+      'status 200': (r) => r.status === 200,
+      'Logout aparece': (r) => r.body && r.body.includes('Logout'),
     });
   });
 
-  group('Compra via API', () => {
-    let res = http.get(`${HOST}/services/rest/category/`);
-    let categories = res.json();
+  group('Carrinho via API REST', () => {
 
-    check(res, {
-      'categorias carregadas': (r) => categories.length > 0,
-    });
+    const products = http
+      .get(`${BASE_URL}/services/rest/product/3`)
+      .json();
 
-    let category = categories[0];
+    check(products, { 'produtos OK': (p) => p.length > 0 });
 
-    res = http.get(`${HOST}/services/rest/product?categoryid=${category}&page=1&number=12`);
-    let products = res.json();
+    const product = products[0];
 
-    check(res, {
-      'produtos carregados': (r) => products.length > 0,
-    });
-
-    let product = products[0];
-
-    // Adiciona ao carrinho
-    const cartPayload = {
+    const cartRes = http.post(`${BASE_URL}/cartAction`, {
       productid: product.id,
       action: 'add',
-    };
-
-    res = http.post(`${HOST}/cartAction`, cartPayload);
-    check(res, {
-      'produto adicionado no carrinho': (r) => r.status === 200,
     });
 
-    // Verifica o carrinho
-    res = http.get(`${HOST}/cart`);
-    check(res, {
-      'produto aparece no carrinho': (r) =>
-        r.body && r.body.includes(product.title || product.name),
+    check(cartRes, {
+      'add cart OK': (r) => r.status === 200,
+    });
+
+    const cartPage = http.get(`${BASE_URL}/cart`);
+    check(cartPage, {
+      'produto no carrinho': (r) => r.body && r.body.includes(product.title),
     });
   });
 
