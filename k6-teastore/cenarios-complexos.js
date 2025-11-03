@@ -2,8 +2,8 @@ import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 
 const HOST = 'http://localhost:18081/tools.descartes.teastore.webui';
+const ROOT = 'http://localhost:18081';
 
-// Setup executado 1x antes de tudo
 export function setup() {
   const res = http.post(`${HOST}/services/rest/persistence/reset`);
   check(res, {
@@ -12,7 +12,7 @@ export function setup() {
 }
 
 export const options = {
-  vus: 10,
+  vus: 5,
   duration: '30s',
 };
 
@@ -26,12 +26,11 @@ export default function () {
 
     check(res, {
       'login OK': (r) => r.status === 200,
-      'logout visível': (r) => r.body.includes('Logout'),
+      'logout visível': (r) => r.body && r.body.includes('Logout'),
     });
   });
 
-  group('Compra via REST', () => {
-    // 1. Pega categorias
+  group('Compra via API', () => {
     let res = http.get(`${HOST}/services/rest/category/`);
     let categories = res.json();
 
@@ -41,7 +40,6 @@ export default function () {
 
     let category = categories[0];
 
-    // 2. Pega produtos dessa categoria
     res = http.get(`${HOST}/services/rest/product?categoryid=${category}&page=1&number=12`);
     let products = res.json();
 
@@ -51,7 +49,7 @@ export default function () {
 
     let product = products[0];
 
-    // 3. Adiciona ao carrinho
+    // Adiciona ao carrinho
     const cartPayload = {
       productid: product.id,
       action: 'add',
@@ -62,11 +60,11 @@ export default function () {
       'produto adicionado no carrinho': (r) => r.status === 200,
     });
 
-    // 4. Verifica carrinho
+    // Verifica o carrinho
     res = http.get(`${HOST}/cart`);
     check(res, {
       'produto aparece no carrinho': (r) =>
-        r.body.includes(product.title || product.name),
+        r.body && r.body.includes(product.title || product.name),
     });
   });
 
