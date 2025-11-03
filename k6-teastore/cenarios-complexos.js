@@ -16,7 +16,7 @@ export function setup() {
 
 // 1. OPÇÕES DO TESTE
 export const options = {
-  vus: 5,
+  vus: 10,
   duration: '30s',
 };
 
