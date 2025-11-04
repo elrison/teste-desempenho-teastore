@@ -127,6 +127,11 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      - name: Stop containers
-        if: always()
-        run: docker compose down
+     # NO LUGAR DO ANTIGO "Stop containers"
+      - name: Show Docker logs (sempre) e Parar containers
+        if: always() # Garante que rode mesmo se os testes falharem
+        run: |
+          echo "--- 📜 Exibindo logs de TODOS os containers ---"
+          docker logs $(docker ps -aq)
+          echo "--- 🛑 Parando os containers ---"
+          docker compose down
