@@ -4,7 +4,6 @@ import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 import { parseHTML } from 'k6/html';
 
-// CORREÇÃO 1: Usar localhost:18081 para todas as URLs base
 const BASE_URL = "http://localhost:18081/tools.descartes.teastore.webui";
 const DOMAIN_URL = 'http://localhost:18081';
 
@@ -17,7 +16,7 @@ export function setup() {
 }
 
 export const options = {
-  vus: 10, // Versão com 10 VUs
+  vus: 10, 
   duration: '30s',
   thresholds: {
     'checks{cenario:login}': ['rate>0.9'], 
@@ -30,8 +29,19 @@ export default function () {
   let csrfToken = null;
 
   group('Cenário de Login', function () {
-    // 1. GET na página de login para extrair o CSRF
+    // 1. GET na página de login
     let res = http.get(`${BASE_URL}/login`);
+    
+    // ======================================================
+    // === DEBUG: IMPRIMIR O HTML DA PÁGINA DE LOGIN =======
+    // ======================================================
+    if (__VU === 1 && __ITER === 0) { // Imprime apenas uma vez
+        console.log('--- DEBUG: Resposta do /login ---');
+        console.log(res.body);
+        console.log('--- FIM DEBUG ---');
+    }
+    // ======================================================
+
     let doc = parseHTML(res.body);
     let tokenElement = doc.find("input[name='_csrf']");
 
@@ -61,23 +71,29 @@ export default function () {
   });
 
   if (loginSuccess) {
+    // O resto do script (compra) continua o mesmo...
     group('Compra Produto', function () {
-      // 1. Acessa a Home
       let res = http.get(`${BASE_URL}/`);
-      const doc = parseHTML(res.body);
+      let doc = parseHTML(res.body);
       const categoryLink = doc.find('ul.nav-sidebar a.menulink').first().attr('href');
 
       if (categoryLink) {
-        // 2. Acessa a Categoria
         res = http.get(`${DOMAIN_URL}${categoryLink}`); 
         const docCat = parseHTML(res.body);
         const productLink = docCat.find('div.thumbnail a').first().attr('href');
 
         if (productLink) {
-          // 3. Acessa o Produto
           res = http.get(`${DOMAIN_URL}${productLink}`);
           const docProd = parseHTML(res.body);
-          const productName = docProd.find('h2.product-title').text().trim();
+          
+          if (!docProd) {
+            check(res, { 'Falha ao carregar página do produto': () => false }, { cenario: 'compra' });
+            return;
+          }
+          
+          const productNameElement = docProd.find('h2.product-title');
+          const productName = productNameElement ? productNameElement.text().trim() : '';
+          
           const productId = productLink.split('id=')[1];
           
           let tokenElement = docProd.find("input[name='_csrf']");
@@ -89,7 +105,6 @@ export default function () {
           }
           sleep(1);
           
-          // 4. Adiciona ao Carrinho
           const cartPayload = {
             productid: productId,
             addToCart: 'Add to Cart', 
@@ -104,10 +119,9 @@ export default function () {
 
           sleep(1);
 
-          // 5. Verifica o Carrinho
           res = http.get(`${BASE_URL}/cart`);
           check(res, {
-            'Carrinho contém produto': (r) => r.body && r.body.includes(productName),
+            'Carrinho contém produto': (r) => r.body && productName && r.body.includes(productName),
           }, { cenario: 'compra' });
         }
       }
