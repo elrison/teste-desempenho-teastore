@@ -1,4 +1,5 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
+#by elrison silva
 
 name: Performance Tests - TeaStore
 
@@ -129,4 +130,3 @@ jobs:
       - name: Stop containers
         if: always()
         run: docker compose down
-        
