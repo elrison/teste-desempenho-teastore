@@ -1,7 +1,7 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
 #by elrison silva
 
-name: Performance Tests - TeaStore
+name: Performance Tests - TeaStore Atualizado
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: Run JMeter Simple
+      - name: Run JMeter Simples
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
@@ -60,7 +60,7 @@ jobs:
             -e -o jmeter-teastore/report-simples \
             -Jhostname=localhost -Jport=18081
 
-      - name: Run JMeter Complex
+      - name: Run JMeter Complexos
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
@@ -83,11 +83,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: Run K6 simple
+      - name: Run K6 simples
         run: |
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json
 
-      - name: Run K6 complex
+      - name: Run K6 complexos
         run: |
           k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json
 
@@ -108,14 +108,14 @@ jobs:
         run: |
           pip install locust beautifulsoup4
 
-      - name: Run Locust Simple
+      - name: Run Locust Simples
         run: |
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 20s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html
 
-      - name: Run Locust Complex
+      - name: Run Locust Complexos
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 5 -t 40s \
