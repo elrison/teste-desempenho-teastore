@@ -1,6 +1,6 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
 
-name: Pipeline de Performance (v4 - Wait for CSRF)
+name: Pipeline de Performance (v5 - Debug HTML do Login)
 
 on:
   workflow_dispatch:
@@ -25,19 +25,25 @@ jobs:
       # ========================================================
       # STEP DE WAIT ATUALIZADO (A SOLUÇÃO)
       # ========================================================
-      - name: Wait full TeaStore readiness (Wait for CSRF)
+      - name: Wait full TeaStore readiness (DEBUG HTML)
         run: |
           echo "⏳ Aguardando WebUI e Backends (verificando /login por _csrf)..."
           for i in {1..60}; do
-            # 1. Curl a página de login. -L segue redirects, -s é silencioso.
+            # 1. Curl a página de login.
             RESPONSE=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login)
             
             # 2. Verifica se o corpo da resposta contém o token
             if echo "$RESPONSE" | grep -q "_csrf"; then
               echo "✅ Aplicação 100% pronta! (Token _csrf encontrado)"
+              
+              # --- DEBUG: IMPRIME O HTML DA PÁGINA DE LOGIN ---
+              echo "===================== INÍCIO HTML /login ====================="
+              echo "$RESPONSE"
+              echo "===================== FIM HTML /login ========================"
+              # --- FIM DEBUG ---
+
               exit 0 # Sucesso
             else
-              # Imprime um log útil (mas não o HTML inteiro)
               echo "Ainda aguardando... (Token _csrf encontrado? $(echo "$RESPONSE" | grep -c "_csrf"))"
             fi
             sleep 3
@@ -83,7 +89,6 @@ jobs:
       # ==========================
       # K6
       # ==========================
-      # (Não precisamos mais do script de debug do K6, mas pode mantê-lo)
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
