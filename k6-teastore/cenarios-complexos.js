@@ -4,14 +4,12 @@ import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 import { parseHTML } from 'k6/html';
 
+// CORREÇÃO 1: Usar localhost:18081 para todas as URLs base
 const BASE_URL = "http://localhost:18081/tools.descartes.teastore.webui";
-// CORREÇÃO: Esta variável deve apontar para o localhost, pois os links
-// extraídos (categoryLink, productLink) são relativos ao domínio.
-const DOMAIN_URL = 'http://localhost:18081'; 
+const DOMAIN_URL = 'http://localhost:18081';
 
 export function setup() {
   console.log('--- Resetando base via API ---');
-  // O reset usa a BASE_URL completa, o que está correto
   const res = http.post(`${BASE_URL}/services/rest/persistence/reset`);
   check(res, {
     'Reset via API status 200': (r) => r.status === 200,
@@ -21,66 +19,99 @@ export function setup() {
 export const options = {
   vus: 10,
   duration: '30s',
+  thresholds: {
+    'checks{cenario:login}': ['rate>0.9'], // Pelo menos 90% dos logins devem funcionar
+    'checks{cenario:compra}': ['rate>0.9'], // Pelo menos 90% das compras devem funcionar
+  },
 };
 
 export default function () {
   let loginSuccess = false;
+  let csrfToken = null;
 
   group('Cenário de Login', function () {
-    http.get(`${BASE_URL}/login`);
-    sleep(1);
+    // 1. GET na página de login para extrair o CSRF
+    let res = http.get(`${BASE_URL}/login`);
+    let doc = parseHTML(res.body);
+    let tokenElement = doc.find("input[name='_csrf']");
 
-    const loginPayload = 'username=user1&password=password&action=login';
-    const loginParams = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-    const res = http.post(`${BASE_URL}/loginAction`, loginPayload, loginParams);
+    if (tokenElement && tokenElement.attr('value')) {
+      csrfToken = tokenElement.attr('value');
+    } else {
+      check(res, { 'Falha ao extrair CSRF do login': () => false }, { cenario: 'login' });
+      return; // Aborta este VU se não achar o token
+    }
+
+    // 2. POST de Login com CSRF
+    const loginPayload = {
+      username: 'user1',
+      password: 'password',
+      action: 'login',
+      _csrf: csrfToken, // <-- CORREÇÃO 2: Adicionar CSRF
+    };
+
+    res = http.post(`${BASE_URL}/loginAction`, loginPayload);
 
     loginSuccess = check(res, {
-      'Login funcionou': (r) => r.status === 200,
-      'Página contém Logout': (r) => !!r.body && r.body.includes('Logout'),
-    });
+      'Login status 200': (r) => r.status === 200,
+      'Página contém Logout': (r) => r.body && r.body.includes('Logout'),
+    }, { cenario: 'login' });
+    
     sleep(1);
   });
 
   if (loginSuccess) {
     group('Compra Produto', function () {
+      // 1. Acessa a Home
       let res = http.get(`${BASE_URL}/`);
       const doc = parseHTML(res.body);
-
       const categoryLink = doc.find('ul.nav-sidebar a.menulink').first().attr('href');
 
       if (categoryLink) {
-        // CORREÇÃO: Usar DOMAIN_URL + link relativo extraído
-        res = http.get(`${DOMAIN_URL}${categoryLink}`);
+        // 2. Acessa a Categoria
+        res = http.get(`${DOMAIN_URL}${categoryLink}`); // CORREÇÃO 1: Usar DOMAIN_URL
         const docCat = parseHTML(res.body);
-
         const productLink = docCat.find('div.thumbnail a').first().attr('href');
 
         if (productLink) {
-          // CORREÇÃO: Usar DOMAIN_URL + link relativo extraído
-          res = http.get(`${DOMAIN_URL}${productLink}`);
+          // 3. Acessa o Produto
+          res = http.get(`${DOMAIN_URL}${productLink}`); // CORREÇÃO 1: Usar DOMAIN_URL
           const docProd = parseHTML(res.body);
-
           const productName = docProd.find('h2.product-title').text().trim();
+          
+          // Extrai o ID do produto do link
+          const productId = productLink.split('id=')[1];
+          
+          // CORREÇÃO 2: Extrai o CSRF da página do produto
+          let tokenElement = docProd.find("input[name='_csrf']");
+          if (tokenElement && tokenElement.attr('value')) {
+            csrfToken = tokenElement.attr('value'); // Atualiza o token
+          } else {
+            check(res, { 'Falha ao extrair CSRF do produto': () => false }, { cenario: 'compra' });
+            return; // Aborta
+          }
           sleep(1);
-
-          // O productLink é algo como /tools.descartes.teastore.webui/product?id=7
-          // Precisamos apenas do ID.
-          const productId = productLink.split('id=')[1]; 
-
-          const cartPayload = { productid: productId, action: 'add' };
-          // O cartAction usa a BASE_URL, o que está correto
+          
+          // 4. Adiciona ao Carrinho
+          const cartPayload = {
+            productid: productId,
+            addToCart: 'Add to Cart', // <-- CORREÇÃO 3: Payload correto do form
+            _csrf: csrfToken, // <-- CORREÇÃO 2: Adicionar CSRF
+          };
+          
           res = http.post(`${BASE_URL}/cartAction`, cartPayload);
 
           check(res, {
-            'Produto adicionado ao carrinho': (r) => r.status === 200,
-          });
+            'Produto adicionado ao carrinho (POST)': (r) => r.status === 200,
+          }, { cenario: 'compra' });
 
           sleep(1);
 
+          // 5. Verifica o Carrinho
           res = http.get(`${BASE_URL}/cart`);
           check(res, {
-            'Carrinho contém produto': (r) => r.body.includes(productName),
-          });
+            'Carrinho contém produto': (r) => r.body && r.body.includes(productName),
+          }, { cenario: 'compra' });
         }
       }
       sleep(1);
