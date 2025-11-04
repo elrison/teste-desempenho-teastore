@@ -65,21 +65,6 @@ jobs:
       # ==========================
       # K6
       # ==========================
-      - name: Enable Docker
-        uses: docker/setup-buildx-action@v3
-
-      - name: Start TeaStore
-        run: |
-          docker compose -f docker-compose.yml up -d
-          echo "Aguardando TeaStore subir..."
-          for i in {1..60}; do
-            if curl -s http://localhost:18081/tools.descartes.teastore.webui/ > /dev/null; then
-              echo "✅ TeaStore está pronto!"
-              break
-            fi
-            sleep 2
-          done
-
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -99,7 +84,6 @@ jobs:
         with:
           name: relatorios-k6
           path: "*.json"
-
 
       # ==========================
       # LOCUST
