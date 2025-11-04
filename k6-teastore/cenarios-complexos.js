@@ -2,8 +2,8 @@ import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 import { parseHTML } from 'k6/html';
 
-const BASE_URL = 'http://localhost:18081/tools.descartes.teastore.webui';
-const HOST_URL = 'http://localhost:18081';
+const BASE_URL = 'http://teastore-webui:8080/tools.descartes.teastore.webui';
+const HOST_URL = 'http://teastore-webui:8080';
 
 export function setup() {
   console.log('--- Resetando base via API ---');
@@ -31,7 +31,7 @@ export default function () {
 
     loginSuccess = check(res, {
       'Login funcionou': (r) => r.status === 200,
-      'Página contém Logout': (r) => r?.body?.includes('Logout'),
+      'Página contém Logout': (r) => !!r.body && r.body.includes('Logout'),
     });
     sleep(1);
   });
