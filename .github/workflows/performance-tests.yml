@@ -1,8 +1,7 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
-# (Substitua o conteúdo inteiro do seu workflow por este)
 
+# by elrison silva
 name: Pipeline de Performance (v3 - Correção JMeter e Docker Logs)
-
 on:
   workflow_dispatch:
 
@@ -27,16 +26,30 @@ jobs:
         run: |
           echo "⏳ Aguardando WebUI responder..."
           for i in {1..60}; do
+
+
+            # CORREÇÃO: "|| true" captura erros como o 56 e impede a falha imediata
+
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18081/tools.descartes.teastore.webui/ || true)
             echo "HTTP STATUS = $STATUS"
             if [ "$STATUS" -eq 200 ]; then
               echo "✅ WebUI pronta!"
+
               exit 0 # Sucesso
             fi
             sleep 3
           done
           
           echo "❌ Timeout ou falha ao aguardar WebUI (Status: $STATUS)"
+
+              exit 0 # Sucesso, sai do script
+            fi
+            sleep 3
+          done
+
+          echo "❌ Timeout ou falha ao aguardar WebUI (Status: $STATUS)"
+          # Se o loop terminar e não for 200, falhamos o build
+
           if [ "$STATUS" -ne 200 ]; then
              echo "Falha na verificação de prontidão."
              exit 1
@@ -111,9 +124,11 @@ jobs:
           pip install locust beautifulsoup4
 
       - name: Run Locust Simple
+
         # CORREÇÃO: Corrigido o erro de digitação de 'locuit-simples.py' para 'locustfile.py'
+
         run: |
-          locust -f locust-teastore/locustfile.py \
+          locust -f locust-teastore/locuit-simples.py \
             --headless -u 5 -r 2 -t 20s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html
