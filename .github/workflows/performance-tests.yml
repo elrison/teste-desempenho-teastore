@@ -1,7 +1,6 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
-#by elrison silva
 
-name: Performance Tests - TeaStore Atualizado
+name: Pipeline de Performance (v2 - Correção de Logs)
 
 on:
   workflow_dispatch:
@@ -14,7 +13,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # necessário para docker-compose funcionar no CI
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -24,21 +22,26 @@ jobs:
         run: |
           docker compose up -d
 
-      - name: Wait full TeaStore readiness
+      - name: Wait full TeaStore readiness (COM CORREÇÃO)
         run: |
           echo "⏳ Aguardando WebUI responder..."
           for i in {1..60}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18081/tools.descartes.teastore.webui/)
+            # CORREÇÃO: "|| true" captura erros como o 56 e impede a falha imediata
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18081/tools.descartes.teastore.webui/ || true)
             echo "HTTP STATUS = $STATUS"
             if [ "$STATUS" -eq 200 ]; then
               echo "✅ WebUI pronta!"
-              exit 0
+              exit 0 # Sucesso, sai do script
             fi
             sleep 3
           done
-          echo "❌ Timeout ao aguardar WebUI"
-          docker logs $(docker ps -aq)
-          exit 1
+
+          echo "❌ Timeout ou falha ao aguardar WebUI (Status: $STATUS)"
+          # Se o loop terminar e não for 200, falhamos o build
+          if [ "$STATUS" -ne 200 ]; then
+             echo "Falha na verificação de prontidão."
+             exit 1
+          fi
 
       - name: Check containers
         run: docker ps -a
@@ -52,7 +55,7 @@ jobs:
           wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: Run JMeter Simples
+      - name: Run JMeter Simple
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
@@ -60,7 +63,7 @@ jobs:
             -e -o jmeter-teastore/report-simples \
             -Jhostname=localhost -Jport=18081
 
-      - name: Run JMeter Complexos
+      - name: Run JMeter Complex
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
@@ -83,18 +86,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: Run K6 simples
+      - name: Run K6 simple
         run: |
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json
 
-      - name: Run K6 complexos
+      - name: Run K6 complex
         run: |
           k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json
 
       - uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
-          path: "k6-*.json" # Mais específico que "*.json"
+          path: "k6-*.json"
 
       # ==========================
       # LOCUST
@@ -108,14 +111,14 @@ jobs:
         run: |
           pip install locust beautifulsoup4
 
-      - name: Run Locust Simples
+      - name: Run Locust Simple
         run: |
-          locust -f locust-teastore/locustfile.py \
+          locust -f locust-teastore/locuit-simples.py \
             --headless -u 5 -r 2 -t 20s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html
 
-      - name: Run Locust Complexos
+      - name: Run Locust Complex
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 5 -t 40s \
@@ -127,9 +130,11 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-     # NO LUGAR DO ANTIGO "Stop containers"
+      # ==========================
+      # PASSO DE DEBUG (CORRIGIDO)
+      # ==========================
       - name: Show Docker logs (sempre) e Parar containers
-        if: always() # Garante que rode mesmo se os testes falharem
+        if: always() # Garante que rode mesmo se o step "Wait" falhar
         run: |
           echo "--- 📜 Exibindo logs de TODOS os containers ---"
           docker logs $(docker ps -aq)
