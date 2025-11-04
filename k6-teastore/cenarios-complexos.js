@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { sleep, check, group } from 'k6';
 import { parseHTML } from 'k6/html';
 
-const BASE_URL = 'http://teastore-webui:8080/tools.descartes.teastore.webui';
+const BASE_URL = "http://localhost:18081/tools.descartes.teastore.webui";
 const HOST_URL = 'http://teastore-webui:8080';
 
 export function setup() {

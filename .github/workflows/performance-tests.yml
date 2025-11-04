@@ -15,21 +15,27 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose netcat-openbsd
+          sudo apt-get install -y docker-compose netcat-openbsd curl
 
       - name: Start TeaStore stack
         run: |
           docker compose up -d
-          echo "⏳ Aguardando MySQL responder..."
-          for i in {1..50}; do
-            nc -z localhost 3306 && break
+
+      - name: Wait full TeaStore readiness
+        run: |
+          echo "⏳ Aguardando WebUI responder..."
+          for i in {1..60}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18081/tools.descartes.teastore.webui/)
+            echo "HTTP STATUS = $STATUS"
+            if [ "$STATUS" -eq 200 ]; then
+              echo "✅ WebUI pronta!"
+              exit 0
+            fi
             sleep 3
           done
-          echo "⏳ Aguardando WebUI..."
-          for i in {1..50}; do
-            curl -s http://localhost:18081/tools.descartes.teastore.webui/ && break
-            sleep 3
-          done
+          echo "❌ Timeout ao aguardar WebUI"
+          docker logs $(docker ps -aq)
+          exit 1
 
       - name: Check containers
         run: docker ps -a
