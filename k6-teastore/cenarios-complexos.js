@@ -17,11 +17,11 @@ export function setup() {
 }
 
 export const options = {
-  vus: 10,
+  vus: 10, // Versão com 10 VUs
   duration: '30s',
   thresholds: {
-    'checks{cenario:login}': ['rate>0.9'], // Pelo menos 90% dos logins devem funcionar
-    'checks{cenario:compra}': ['rate>0.9'], // Pelo menos 90% das compras devem funcionar
+    'checks{cenario:login}': ['rate>0.9'], 
+    'checks{cenario:compra}': ['rate>0.9'], 
   },
 };
 
@@ -39,7 +39,7 @@ export default function () {
       csrfToken = tokenElement.attr('value');
     } else {
       check(res, { 'Falha ao extrair CSRF do login': () => false }, { cenario: 'login' });
-      return; // Aborta este VU se não achar o token
+      return; 
     }
 
     // 2. POST de Login com CSRF
@@ -47,7 +47,7 @@ export default function () {
       username: 'user1',
       password: 'password',
       action: 'login',
-      _csrf: csrfToken, // <-- CORREÇÃO 2: Adicionar CSRF
+      _csrf: csrfToken, 
     };
 
     res = http.post(`${BASE_URL}/loginAction`, loginPayload);
@@ -69,34 +69,31 @@ export default function () {
 
       if (categoryLink) {
         // 2. Acessa a Categoria
-        res = http.get(`${DOMAIN_URL}${categoryLink}`); // CORREÇÃO 1: Usar DOMAIN_URL
+        res = http.get(`${DOMAIN_URL}${categoryLink}`); 
         const docCat = parseHTML(res.body);
         const productLink = docCat.find('div.thumbnail a').first().attr('href');
 
         if (productLink) {
           // 3. Acessa o Produto
-          res = http.get(`${DOMAIN_URL}${productLink}`); // CORREÇÃO 1: Usar DOMAIN_URL
+          res = http.get(`${DOMAIN_URL}${productLink}`);
           const docProd = parseHTML(res.body);
           const productName = docProd.find('h2.product-title').text().trim();
-          
-          // Extrai o ID do produto do link
           const productId = productLink.split('id=')[1];
           
-          // CORREÇÃO 2: Extrai o CSRF da página do produto
           let tokenElement = docProd.find("input[name='_csrf']");
           if (tokenElement && tokenElement.attr('value')) {
-            csrfToken = tokenElement.attr('value'); // Atualiza o token
+            csrfToken = tokenElement.attr('value'); 
           } else {
             check(res, { 'Falha ao extrair CSRF do produto': () => false }, { cenario: 'compra' });
-            return; // Aborta
+            return; 
           }
           sleep(1);
           
           // 4. Adiciona ao Carrinho
           const cartPayload = {
             productid: productId,
-            addToCart: 'Add to Cart', // <-- CORREÇÃO 3: Payload correto do form
-            _csrf: csrfToken, // <-- CORREÇÃO 2: Adicionar CSRF
+            addToCart: 'Add to Cart', 
+            _csrf: csrfToken, 
           };
           
           res = http.post(`${BASE_URL}/cartAction`, cartPayload);
