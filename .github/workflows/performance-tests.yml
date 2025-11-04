@@ -1,7 +1,7 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
 
-# by elrison silva
-name: Pipeline de Performance (v3 - Correção JMeter e Docker Logs)
+name: Pipeline de Performance (v4 - Wait for CSRF)
+
 on:
   workflow_dispatch:
 
@@ -22,38 +22,30 @@ jobs:
         run: |
           docker compose up -d
 
-      - name: Wait full TeaStore readiness (COM CORREÇÃO)
+      # ========================================================
+      # STEP DE WAIT ATUALIZADO (A SOLUÇÃO)
+      # ========================================================
+      - name: Wait full TeaStore readiness (Wait for CSRF)
         run: |
-          echo "⏳ Aguardando WebUI responder..."
+          echo "⏳ Aguardando WebUI e Backends (verificando /login por _csrf)..."
           for i in {1..60}; do
-
-
-            # CORREÇÃO: "|| true" captura erros como o 56 e impede a falha imediata
-
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18081/tools.descartes.teastore.webui/ || true)
-            echo "HTTP STATUS = $STATUS"
-            if [ "$STATUS" -eq 200 ]; then
-              echo "✅ WebUI pronta!"
-
+            # 1. Curl a página de login. -L segue redirects, -s é silencioso.
+            RESPONSE=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login)
+            
+            # 2. Verifica se o corpo da resposta contém o token
+            if echo "$RESPONSE" | grep -q "_csrf"; then
+              echo "✅ Aplicação 100% pronta! (Token _csrf encontrado)"
               exit 0 # Sucesso
+            else
+              # Imprime um log útil (mas não o HTML inteiro)
+              echo "Ainda aguardando... (Token _csrf encontrado? $(echo "$RESPONSE" | grep -c "_csrf"))"
             fi
             sleep 3
           done
           
-          echo "❌ Timeout ou falha ao aguardar WebUI (Status: $STATUS)"
-
-              exit 0 # Sucesso, sai do script
-            fi
-            sleep 3
-          done
-
-          echo "❌ Timeout ou falha ao aguardar WebUI (Status: $STATUS)"
-          # Se o loop terminar e não for 200, falhamos o build
-
-          if [ "$STATUS" -ne 200 ]; then
-             echo "Falha na verificação de prontidão."
-             exit 1
-          fi
+          echo "❌ Timeout ao aguardar o token _csrf na página /login"
+          exit 1
+      # ========================================================
 
       - name: Check containers
         run: docker ps -a
@@ -91,6 +83,7 @@ jobs:
       # ==========================
       # K6
       # ==========================
+      # (Não precisamos mais do script de debug do K6, mas pode mantê-lo)
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -124,11 +117,8 @@ jobs:
           pip install locust beautifulsoup4
 
       - name: Run Locust Simple
-
-        # CORREÇÃO: Corrigido o erro de digitação de 'locuit-simples.py' para 'locustfile.py'
-
         run: |
-          locust -f locust-teastore/locuit-simples.py \
+          locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 20s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html
@@ -146,13 +136,12 @@ jobs:
           path: locust-teastore/*.html
 
       # ==========================
-      # PASSO DE DEBUG (CORRIGIDO)
+      # PASSO DE DEBUG
       # ==========================
       - name: Show Docker logs (sempre) e Parar containers
-        if: always() # Garante que rode mesmo se o step "Wait" falhar
+        if: always()
         run: |
           echo "--- 📜 Exibindo logs de TODOS os containers ---"
-          # CORREÇÃO: Usando 'docker compose logs' que é mais robusto
           docker compose logs --no-color
           echo "--- 🛑 Parando os containers ---"
           docker compose down
