@@ -89,3 +89,4 @@ services:
 networks:
   teastore-network:
     driver: bridge
+

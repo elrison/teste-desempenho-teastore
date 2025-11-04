@@ -1,3 +1,5 @@
+# NOME DO ARQUIVO: .github/workflows/performance-tests.yml
+
 name: Performance Tests - TeaStore
 
 on:
@@ -54,14 +56,16 @@ jobs:
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
-            -e -o jmeter-teastore/report-simples
+            -e -o jmeter-teastore/report-simples \
+            -Jhostname=localhost -Jport=18081
 
       - name: Run JMeter Complex
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
-            -e -o jmeter-teastore/report-complexos
+            -e -o jmeter-teastore/report-complexos \
+            -Jhostname=localhost -Jport=18081
 
       - uses: actions/upload-artifact@v4
         with:
@@ -89,7 +93,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
-          path: "*.json"
+          path: "k6-*.json" # Mais específico que "*.json"
 
       # ==========================
       # LOCUST
@@ -125,3 +129,4 @@ jobs:
       - name: Stop containers
         if: always()
         run: docker compose down
+        
