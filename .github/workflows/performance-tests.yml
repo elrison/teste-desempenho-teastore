@@ -1,6 +1,6 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
 
-name: Pipeline de Performance (v6 - Correção Erro 52)
+name: Pipeline de Performance (v8 - Inicialização com Sleep)
 
 on:
   workflow_dispatch:
@@ -18,47 +18,50 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-compose netcat-openbsd curl
 
-      - name: Start TeaStore stack
+      # ========================================================
+      # === CORREÇÃO v8: Orquestração manual com Sleep ===
+      # ========================================================
+      - name: Start TeaStore stack (em Fases)
         run: |
+          echo "Subindo DB e Registry..."
+          docker compose up -d teastore-db teastore-registry
+          
+          echo "Aguardando 30s para o Registry (Java) inicializar..."
+          sleep 30
+          
+          echo "Subindo o restante dos serviços (persistence, webui, etc.)..."
           docker compose up -d
+      # ========================================================
 
-      # ========================================================
-      # STEP DE WAIT ATUALIZADO (A SOLUÇÃO v6)
-      # ========================================================
       - name: Wait full TeaStore readiness (Robusto)
         run: |
           echo "⏳ Aguardando WebUI e Backends (verificando /login por _csrf)..."
           for i in {1..60}; do
-            # 1. Curl a página de login.
-            # CORREÇÃO: "|| true" captura erros 52 e 56
             RESPONSE=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
             
-            # 2. Verifica se a resposta NÃO está vazia E contém o token
             if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -q "_csrf"; then
               echo "✅ Aplicação 100% pronta! (Token _csrf encontrado)"
               
-              # --- DEBUG: IMPRIME O HTML DA PÁGINA DE LOGIN ---
-              echo "===================== INÍCIO HTML /login ====================="
-              echo "$RESPONSE"
-              echo "===================== FIM HTML /login ========================"
-              # --- FIM DEBUG ---
+              # Não precisamos mais do debug de HTML, vamos remover
+              # echo "===================== INÍCIO HTML /login ====================="
+              # echo "$RESPONSE"
+              # echo "===================== FIM HTML /login ========================"
 
               exit 0 # Sucesso
             else
               echo "Ainda aguardando... (Resposta vazia ou sem token)"
             fi
-            sleep 3
+            sleep 3 # O loop de wait continua de 3 em 3 segundos
           done
           
           echo "❌ Timeout ao aguardar o token _csrf na página /login"
           exit 1
-      # ========================================================
 
       - name: Check containers
         run: docker ps -a
 
       # ==========================
-      # JMETER
+      # JMETER (Sem alterações)
       # ==========================
       - name: Install Java & JMeter
         run: |
@@ -88,7 +91,7 @@ jobs:
           path: jmeter-teastore/report*
 
       # ==========================
-      # K6
+      # K6 (Sem alterações)
       # ==========================
       - name: Install K6
         run: |
@@ -111,7 +114,7 @@ jobs:
           path: "k6-*.json"
 
       # ==========================
-      # LOCUST
+      # LOCUST (Sem alterações)
       # ==========================
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -142,7 +145,7 @@ jobs:
           path: locust-teastore/*.html
 
       # ==========================
-      # PASSO DE DEBUG
+      # PASSO DE DEBUG (Sem alterações)
       # ==========================
       - name: Show Docker logs (sempre) e Parar containers
         if: always()
