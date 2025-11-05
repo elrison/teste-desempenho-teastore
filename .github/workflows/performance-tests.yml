@@ -1,6 +1,6 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
 
-name: Pipeline de Performance (v5 - Debug HTML do Login)
+name: Pipeline de Performance (v6 - Correção Erro 52)
 
 on:
   workflow_dispatch:
@@ -23,17 +23,18 @@ jobs:
           docker compose up -d
 
       # ========================================================
-      # STEP DE WAIT ATUALIZADO (A SOLUÇÃO)
+      # STEP DE WAIT ATUALIZADO (A SOLUÇÃO v6)
       # ========================================================
-      - name: Wait full TeaStore readiness (DEBUG HTML)
+      - name: Wait full TeaStore readiness (Robusto)
         run: |
           echo "⏳ Aguardando WebUI e Backends (verificando /login por _csrf)..."
           for i in {1..60}; do
             # 1. Curl a página de login.
-            RESPONSE=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login)
+            # CORREÇÃO: "|| true" captura erros 52 e 56
+            RESPONSE=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
             
-            # 2. Verifica se o corpo da resposta contém o token
-            if echo "$RESPONSE" | grep -q "_csrf"; then
+            # 2. Verifica se a resposta NÃO está vazia E contém o token
+            if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -q "_csrf"; then
               echo "✅ Aplicação 100% pronta! (Token _csrf encontrado)"
               
               # --- DEBUG: IMPRIME O HTML DA PÁGINA DE LOGIN ---
@@ -44,7 +45,7 @@ jobs:
 
               exit 0 # Sucesso
             else
-              echo "Ainda aguardando... (Token _csrf encontrado? $(echo "$RESPONSE" | grep -c "_csrf"))"
+              echo "Ainda aguardando... (Resposta vazia ou sem token)"
             fi
             sleep 3
           done
