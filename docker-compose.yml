@@ -1,105 +1,144 @@
-# NOME DO ARQUIVO: docker-compose.yml
+# NOME DO ARQUIVO: .github/workflows/performance-tests.yml
 
-version: "3.9"
+name: Pipeline de Performance (v7 - Healthcheck /actuator)
 
-services:
-  teastore-db:
-    image: mysql:5.7
-    restart: always
-    environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      MYSQL_DATABASE: "teastore"
-    networks:
-      - teastore-network
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
-      start_period: 10s
+on:
+  workflow_dispatch:
 
-  teastore-registry:
-    image: descartesresearch/teastore-registry:latest
-    depends_on:
-      teastore-db:
-        condition: service_healthy
-    environment:
-      DB_HOST: teastore-db
-      DB_PORT: 3306
-    networks:
-      - teastore-network
-    # ========================================================
-    # === CORREÇÃO v7: Health Check Robusto do Spring Boot ===
-    # ========================================================
-    healthcheck:
-      # Esta rota só retorna 200 (OK) quando a aplicação está 100% pronta
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 10s
-    # ========================================================
+jobs:
+  performance:
+    runs-on: ubuntu-latest
 
-  teastore-persistence:
-    image: descartesresearch/teastore-persistence:latest
-    restart: always
-    depends_on:
-      teastore-registry:
-        # Agora esta condição é 100% confiável
-        condition: service_healthy
-    environment:
-      REGISTRY_HOST: teastore-registry
-      MYSQL_HOST: teastore-db
-      MYSQL_PORT: 3306
-      MYSQL_DB: teastore
-      MYSQL_USER: root
-      MYSQL_PASS: ""
-    networks:
-      - teastore-network
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-  teastore-recommender:
-    image: descartesresearch/teastore-recommender:latest
-    depends_on:
-      teastore-persistence:
-        condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
-    networks:
-      - teastore-network
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose netcat-openbsd curl
 
-  teastore-auth:
-    image: descartesresearch/teastore-auth:latest
-    depends_on:
-      teastore-persistence:
-        condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
-    networks:
-      - teastore-network
+      - name: Start TeaStore stack (com healthcheck /actuator)
+        run: |
+          docker compose up -d
 
-  teastore-image:
-    image: descartesresearch/teastore-image:latest
-    depends_on:
-      teastore-persistence:
-        condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
-    networks:
-      - teastore-network
+      - name: Wait full TeaStore readiness (Robusto)
+        run: |
+          echo "⏳ Aguardando WebUI e Backends (verificando /login por _csrf)..."
+          for i in {1..60}; do
+            RESPONSE=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
+            
+            if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -q "_csrf"; then
+              echo "✅ Aplicação 100% pronta! (Token _csrf encontrado)"
+              
+              echo "===================== INÍCIO HTML /login ====================="
+              echo "$RESPONSE"
+              echo "===================== FIM HTML /login ========================"
 
-  teastore-webui:
-    image: descartesresearch/teastore-webui:latest
-    depends_on:
-      - teastore-recommender
-      - teastore-auth
-      - teastore-image
-    ports:
-      - "18081:8080"
-    environment:
-      REGISTRY_HOST: teastore-registry
-    networks:
-      - teastore-network
+              exit 0 # Sucesso
+            else
+              echo "Ainda aguardando... (Resposta vazia ou sem token)"
+            fi
+            sleep 3
+          done
+          
+          echo "❌ Timeout ao aguardar o token _csrf na página /login"
+          exit 1
 
-networks:
-  teastore-network:
-    driver: bridge
+      - name: Check containers
+        run: docker ps -a
+
+      # ==========================
+      # JMETER
+      # ==========================
+      - name: Install Java & JMeter
+        run: |
+          sudo apt-get install -y openjdk-11-jre-headless
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
+          tar -xzf apache-jmeter-5.6.2.tgz
+
+      - name: Run JMeter Simple
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl \
+            -e -o jmeter-teastore/report-simples \
+            -Jhostname=localhost -Jport=18081
+
+      - name: Run JMeter Complex
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl \
+            -e -o jmeter-teastore/report-complexos \
+            -Jhostname=localhost -Jport=18081
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-jmeter
+          path: jmeter-teastore/report*
+
+      # ==========================
+      # K6
+      # ==========================
+      - name: Install K6
+        run: |
+          curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run K6 simple
+        run: |
+          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json
+
+      - name: Run K6 complex
+        run: |
+          k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-k6
+          path: "k6-*.json"
+
+      # ==========================
+      # LOCUST
+      # ==========================
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Locust
+        run: |
+          pip install locust beautifulsoup4
+
+      - name: Run Locust Simple
+        run: |
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 5 -r 2 -t 20s \
+            --host http://localhost:18081 \
+            --html locust-teastore/simple.html
+
+      - name: Run Locust Complex
+        run: |
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 5 -t 40s \
+            --host http://localhost:18081 \
+            --html locust-teastore/complex.html
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-locust
+          path: locust-teastore/*.html
+
+      # ==========================
+      # PASSO DE DEBUG
+      # ==========================
+      - name: Show Docker logs (sempre) e Parar containers
+        if: always()
+        run: |
+          echo "--- 📜 Exibindo logs de TODOS os containers ---"
+          docker compose logs --no-color
+          echo "--- 🛑 Parando os containers ---"
+          docker compose down
