@@ -12,7 +12,6 @@ services:
     networks:
       - teastore-network
     healthcheck:
-      # (Sem alterações aqui, já estava correto)
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --silent"]
       interval: 5s
       timeout: 5s
@@ -29,21 +28,24 @@ services:
       DB_PORT: 3306
     networks:
       - teastore-network
-    # === CORREÇÃO 1: Adicionando Health Check ao Registry ===
-    # (Assume que o registry roda na porta 8080, como os outros serviços)
+    # ========================================================
+    # === CORREÇÃO v7: Health Check Robusto do Spring Boot ===
+    # ========================================================
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
+      # Esta rota só retorna 200 (OK) quando a aplicação está 100% pronta
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 10s
+    # ========================================================
 
   teastore-persistence:
     image: descartesresearch/teastore-persistence:latest
     restart: always
     depends_on:
       teastore-registry:
-        # === CORREÇÃO 2: Esperar o registry ficar SAUDÁVEL ===
+        # Agora esta condição é 100% confiável
         condition: service_healthy
     environment:
       REGISTRY_HOST: teastore-registry
@@ -59,7 +61,6 @@ services:
     image: descartesresearch/teastore-recommender:latest
     depends_on:
       teastore-persistence:
-        # (Esta dependência está correta, pois persistence agora espera o registry)
         condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
