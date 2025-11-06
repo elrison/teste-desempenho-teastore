@@ -1,6 +1,6 @@
 # NOME DO ARQUIVO: .github/workflows/performance-tests.yml
 
-name: Pipeline de Performance (v10 - Orquestração Manual)
+name: Pipeline de Performance (v15 - Orquestração Manual)
 
 on:
   workflow_dispatch:

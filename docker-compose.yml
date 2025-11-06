@@ -7,17 +7,18 @@ services:
     image: mysql:5.7
     restart: always
     environment:
-      # ========================================================
-      # === CORREÇÃO v14: Criando o usuário e senha corretos ===
-      # ========================================================
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes" # Mantém o root sem senha (para o healthcheck)
-      MYSQL_DATABASE: "teadb"           # O nome do banco (Corrigido na v12)
-      MYSQL_USER: "teauser"             # CRIAR este usuário
-      MYSQL_PASSWORD: "teapass"         # DAR esta senha a ele
+      # (da v14)
+      MYSQL_DATABASE: "teadb"
+      MYSQL_USER: "teauser"
+      MYSQL_PASSWORD: "teapass"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes" # Para o healthcheck do root
+    # ========================================================
+    # === CORREÇÃO v15: RE-ADICIONANDO A CORREÇÃO DO SSL (v13) ===
+    # ========================================================
+    command: [--skip-ssl]
     networks:
       - teastore-network
     healthcheck:
-      # O healthcheck do DB (usando root) está correto
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --silent"]
       interval: 5s
       timeout: 5s
@@ -32,9 +33,7 @@ services:
     environment:
       DB_HOST: teastore-db
       DB_PORT: 3306
-      # ========================================================
-      # === CORREÇÃO v14: Dando ao Registry o usuário/senha ===
-      # ========================================================
+      # (da v14)
       DB_USER: "teauser"
       DB_PASS: "teapass"
       DB_NAME: "teadb"
@@ -49,9 +48,7 @@ services:
       DB_HOST: teastore-db
       DB_PORT: 3306
       DB_NAME: teadb
-      # ========================================================
-      # === CORREÇÃO v14: Dando ao Persistence o usuário/senha ===
-      # ========================================================
+      # (da v14)
       DB_USER: "teauser"
       DB_PASS: "teapass"
     networks:
