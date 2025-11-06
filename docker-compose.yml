@@ -8,10 +8,11 @@ services:
     restart: always
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      # ========================================================
-      # === CORREÇÃO v12: O nome do banco deve ser 'teadb' ===
-      # ========================================================
       MYSQL_DATABASE: "teadb" 
+    # ========================================================
+    # === CORREÇÃO v13: Desabilitar SSL no MySQL Server ===
+    # ========================================================
+    command: [--skip-ssl]
     networks:
       - teastore-network
     healthcheck:
@@ -39,9 +40,6 @@ services:
       REGISTRY_HOST: teastore-registry
       DB_HOST: teastore-db
       DB_PORT: 3306
-      # ========================================================
-      # === CORREÇÃO v12: Alinhando o nome para 'teadb' ===
-      # ========================================================
       DB_NAME: teadb
       DB_USER: root
       DB_PASS: ""
