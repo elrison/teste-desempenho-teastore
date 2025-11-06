@@ -12,6 +12,7 @@ services:
     networks:
       - teastore-network
     healthcheck:
+      # (Este healthcheck do DB está correto e é crucial)
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --silent"]
       interval: 5s
       timeout: 5s
@@ -22,22 +23,25 @@ services:
     image: descartesresearch/teastore-registry:latest
     depends_on:
       teastore-db:
-        # DB ainda precisa estar saudável
         condition: service_healthy 
     environment:
       DB_HOST: teastore-db
       DB_PORT: 3306
     networks:
       - teastore-network
-    # === CORREÇÃO v8: REMOVIDO o healthcheck que estava falhando ===
 
   teastore-persistence:
     image: descartesresearch/teastore-persistence:latest
     restart: always
     depends_on:
       teastore-registry:
-        # === CORREÇÃO v8: Voltamos para service_started ===
         condition: service_started 
+      # ========================================================
+      # === CORREÇÃO v9: Forçar o 'persistence' a esperar o DB ===
+      # ========================================================
+      teastore-db:
+        condition: service_healthy
+      # ========================================================
     environment:
       REGISTRY_HOST: teastore-registry
       MYSQL_HOST: teastore-db
