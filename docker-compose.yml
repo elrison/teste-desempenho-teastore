@@ -1,5 +1,4 @@
 # NOME DO ARQUIVO: docker-compose.yml
-# (Esta é a versão v15 - a correta)
 
 version: "3.9"
 
@@ -12,10 +11,7 @@ services:
       MYSQL_USER: "teauser"
       MYSQL_PASSWORD: "teapass"
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes" 
-    # ========================================================
-    # === A CORREÇÃO V13 (SSL) ESTÁ AQUI ===
-    # ========================================================
-    command: [--skip-ssl]
+    command: [--skip-ssl] # <--- CORREÇÃO DO SSL
     networks:
       - teastore-network
     healthcheck:
@@ -33,9 +29,6 @@ services:
     environment:
       DB_HOST: teastore-db
       DB_PORT: 3306
-      # ========================================================
-      # === A CORREÇÃO V14 (USUÁRIO) ESTÁ AQUI ===
-      # ========================================================
       DB_USER: "teauser"
       DB_PASS: "teapass"
       DB_NAME: "teadb"
@@ -49,16 +42,11 @@ services:
       REGISTRY_HOST: teastore-registry
       DB_HOST: teastore-db
       DB_PORT: 3306
-      DB_NAME: teadb
-      # ========================================================
-      # === A CORREÇÃO V14 (USUÁRIO) ESTÁ AQUI ===
-      # ========================================================
+      DB_NAME: "teadb"
       DB_USER: "teauser"
       DB_PASS: "teapass"
     networks:
       - teastore-network
-
-  # (O restante do arquivo não muda)
 
   teastore-recommender:
     image: descartesresearch/teastore-recommender:latest
