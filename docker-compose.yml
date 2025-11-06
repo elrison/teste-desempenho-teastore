@@ -8,11 +8,11 @@ services:
     restart: always
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      MYSQL_DATABASE: "teastore"
+      # O nome do banco de dados é "teastore"
+      MYSQL_DATABASE: "teastore" 
     networks:
       - teastore-network
     healthcheck:
-      # O healthcheck do DB é a única coisa que precisamos
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --silent"]
       interval: 5s
       timeout: 5s
@@ -22,7 +22,6 @@ services:
   teastore-registry:
     image: descartesresearch/teastore-registry:latest
     depends_on:
-      # (v10) - Só depende do DB
       teastore-db:
         condition: service_healthy 
     environment:
@@ -34,20 +33,23 @@ services:
   teastore-persistence:
     image: descartesresearch/teastore-persistence:latest
     restart: always
-    # (v10) - Removendo 'depends_on' - o workflow vai controlar
+    # ========================================================
+    # === CORREÇÃO v11: Usando os nomes de variáveis CORRETOS ===
+    # ========================================================
     environment:
       REGISTRY_HOST: teastore-registry
-      MYSQL_HOST: teastore-db
-      MYSQL_PORT: 3306
-      MYSQL_DB: teastore
-      MYSQL_USER: root
-      MYSQL_PASS: ""
+      DB_HOST: teastore-db       # Correto (era MYSQL_HOST)
+      DB_PORT: 3306              # Correto (era MYSQL_PORT)
+      DB_NAME: teastore          # Correto (era MYSQL_DB)
+      DB_USER: root              # Correto (era MYSQL_USER)
+      DB_PASS: ""                # Correto (era MYSQL_PASS)
     networks:
       - teastore-network
 
+  # (O restante do arquivo é idêntico ao v10, sem 'depends_on')
+
   teastore-recommender:
     image: descartesresearch/teastore-recommender:latest
-    # (v10) - Removendo 'depends_on'
     environment:
       REGISTRY_HOST: teastore-registry
     networks:
@@ -55,7 +57,6 @@ services:
 
   teastore-auth:
     image: descartesresearch/teastore-auth:latest
-    # (v10) - Removendo 'depends_on'
     environment:
       REGISTRY_HOST: teastore-registry
     networks:
@@ -63,7 +64,6 @@ services:
 
   teastore-image:
     image: descartesresearch/teastore-image:latest
-    # (v10) - Removendo 'depends_on'
     environment:
       REGISTRY_HOST: teastore-registry
     networks:
@@ -71,7 +71,6 @@ services:
 
   teastore-webui:
     image: descartesresearch/teastore-webui:latest
-    # (v10) - Removendo 'depends_on'
     ports:
       - "18081:8080"
     environment:
