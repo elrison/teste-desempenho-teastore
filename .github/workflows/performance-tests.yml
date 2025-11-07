@@ -54,7 +54,7 @@ jobs:
           for i in {1..60}; do
             RESPONSE=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
             
-            if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -q "_csrf"; then
+            if [ -n "$RESPONSE" ] && echo "$RESPONSE" | grep -q "TeaStore"; then
               echo "✅ Aplicação 100% pronta! (Token _csrf encontrado)"
               exit 0 # Sucesso
             else

@@ -1,21 +1,17 @@
-# NOME DO ARQUIVO: docker-compose.yml
-
-version: "3.9"
-
 services:
   teastore-db:
     image: mysql:5.7
     restart: always
     environment:
+      MYSQL_ROOT_PASSWORD: "rootpass"
       MYSQL_DATABASE: "teadb"
       MYSQL_USER: "teauser"
       MYSQL_PASSWORD: "teapass"
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes" 
-    command: [--skip-ssl] # <--- CORREÇÃO DO SSL
+    command: [--skip-ssl]
     networks:
       - teastore-network
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass --silent"]
       interval: 5s
       timeout: 5s
       retries: 15
@@ -25,31 +21,36 @@ services:
     image: descartesresearch/teastore-registry:latest
     depends_on:
       teastore-db:
-        condition: service_healthy 
+        condition: service_healthy
     environment:
       DB_HOST: teastore-db
       DB_PORT: 3306
-      DB_USER: "teauser"
-      DB_PASS: "teapass"
-      DB_NAME: "teadb"
+      DB_USER: teauser
+      DB_PASS: teapass
+      DB_NAME: teadb
     networks:
       - teastore-network
 
   teastore-persistence:
     image: descartesresearch/teastore-persistence:latest
-    restart: always
+    depends_on:
+      teastore-registry:
+        condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
       DB_HOST: teastore-db
       DB_PORT: 3306
-      DB_NAME: "teadb"
-      DB_USER: "teauser"
-      DB_PASS: "teapass"
+      DB_NAME: teadb
+      DB_USER: teauser
+      DB_PASS: teapass
     networks:
       - teastore-network
 
   teastore-recommender:
     image: descartesresearch/teastore-recommender:latest
+    depends_on:
+      teastore-registry:
+        condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
     networks:
@@ -57,6 +58,9 @@ services:
 
   teastore-auth:
     image: descartesresearch/teastore-auth:latest
+    depends_on:
+      teastore-registry:
+        condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
     networks:
@@ -64,6 +68,9 @@ services:
 
   teastore-image:
     image: descartesresearch/teastore-image:latest
+    depends_on:
+      teastore-registry:
+        condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
     networks:
@@ -73,8 +80,12 @@ services:
     image: descartesresearch/teastore-webui:latest
     ports:
       - "18081:8080"
+    depends_on:
+      teastore-registry:
+        condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
+      SERVICE_PORT: 8080
     networks:
       - teastore-network
 
