@@ -65,7 +65,7 @@ export default function () {
       "Página contém Logout": (r) => r.body.includes("Logout"),
     }, { cenario: "login" });
 
-    sleep(1);
+    sleep(2);
   });
 
   group("Compra Produto", () => {
@@ -143,6 +143,6 @@ export default function () {
         productName && r.body.includes(productName),
     }, { cenario: "compra" });
 
-    sleep(1);
+    sleep(2);
   });
 }
