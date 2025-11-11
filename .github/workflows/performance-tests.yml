@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v13 - FULL FIX)
+name: Pipeline de Performance (v12 - Estável)
 
 on:
   workflow_dispatch:
@@ -6,43 +6,65 @@ on:
 jobs:
   performance:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install system packages
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
+          sudo apt-get install -y docker-compose \
+            netcat-openbsd curl wget python3-bs4 python3-venv
 
-      - name: Start TeaStore stack
+      # ==========================
+      # INICIALIZAÇÃO GRADUAL
+      # ==========================
+      - name: Start TeaStore stack (em fases)
         run: |
+          echo "FASE 1: DB"
           docker compose up -d teastore-db
-          sleep 15
+          sleep 8
+
+          echo "FASE 2: Registry"
           docker compose up -d teastore-registry
           sleep 20
-          docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
+
+          echo "FASE 3: Backends"
+          docker compose up -d teastore-persistence teastore-auth \
+            teastore-image teastore-recommender
           sleep 20
+
+          echo "FASE 4: WebUI"
           docker compose up -d teastore-webui
           sleep 10
 
-      - name: Wait WebUI
+      # ==========================
+      # READINESS ROBUSTO
+      # ==========================
+      - name: Wait full readiness
         run: |
+          echo "⏳ Aguardando WebUI (HTTP 200)..."
           for i in {1..80}; do
-            RESP=$(curl -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
-            if echo "$RESP" | grep -q "_csrf"; then exit 0; fi
+            CODE=$(curl -o /dev/null -s -w "%{http_code}" \
+              http://localhost:18081/tools.descartes.teastore.webui/login)
+            if [ "$CODE" = "200" ]; then
+              echo "✅ WebUI pronta!"
+              exit 0
+            fi
+            echo "Ainda aguardando..."
             sleep 3
           done
+          echo "❌ Timeout aguardando WebUI"
           exit 1
 
       - name: Check containers
         run: docker ps -a
 
-      # -----------------------
+      # ==========================
       # JMETER
-      # -----------------------
+      # ==========================
       - name: Install Java & JMeter
         run: |
           sudo apt-get install -y openjdk-11-jre-headless
@@ -55,7 +77,7 @@ jobs:
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=localhost -Jport=18081
 
       - name: Run JMeter Complex
         run: |
@@ -63,17 +85,18 @@ jobs:
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=localhost -Jport=18081
 
       - name: Upload JMeter reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
           path: jmeter-teastore/report*
 
-      # -----------------------
+      # ==========================
       # K6
-      # -----------------------
+      # ==========================
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -81,60 +104,75 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: Run K6 Simple
+      - name: Run K6 simple
         run: |
-          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
+          k6 run k6-teastore/teste-carga-simples.js \
+            --summary-export=k6-simple.json || true
 
-      - name: Run K6 Complex
+      - name: Run K6 complex
         run: |
-          k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json || true
+          k6 run k6-teastore/cenarios-complexos.js \
+            --summary-export=k6-complex.json || true
 
       - name: Upload K6 summaries
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
-          path: k6-*.json
+          path: "k6-*.json"
 
-      # -----------------------
+      # ==========================
       # LOCUST
-      # -----------------------
+      # ==========================
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Locust & deps
         run: |
-          pip install locust beautifulsoup4 requests pandas matplotlib lxml reportlab
+          pip install locust beautifulsoup4 requests matplotlib pandas
 
       - name: Run Locust Simple
         run: |
-          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s --host http://localhost:18081 --html locust-teastore/simple.html || true
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 5 -r 2 -t 15s \
+            --host http://localhost:18081 \
+            --html locust-teastore/simple.html || true
 
       - name: Run Locust Complex
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s --host http://localhost:18081 --html locust-teastore/complex.html || true
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 3 -t 30s \
+            --host http://localhost:18081 \
+            --html locust-teastore/complex.html || true
 
-      - name: Upload Locust HTML
+      - name: Upload Locust reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      - name: Generate consolidated dashboard & PDF
+      # ==========================
+      # DASHBOARD
+      # ==========================
+      - name: Generate Dashboard Consolidado
         run: |
           python3 generate_dashboard.py
 
-      - name: Upload consolidated
+      - name: Upload Dashboard
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: relatorio-consolidado
-          path: |
-            dashboard.html
-            report.pdf
-            charts/**
+          name: dashboard-consolidado
+          path: dashboard*.html
 
+      # ==========================
+      # SHUTDOWN
+      # ==========================
       - name: Logs & Stop containers
+        if: always()
         run: |
           docker compose logs --no-color
           docker compose down
