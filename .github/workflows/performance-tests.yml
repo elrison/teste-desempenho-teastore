@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v12 - Estável Real)
+name: Pipeline de Performance (v11 - Estável)
 
 on:
   workflow_dispatch:
@@ -6,21 +6,26 @@ on:
 jobs:
   performance:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-bs4 jq
+          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
-      # ======================================================
-      # START GRADUAL DO TEASTORE
-      # ======================================================
-      - name: Start TeaStore stack (em Fases)
+      - name: Install python packages for dashboard
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install beautifulsoup4 pandas matplotlib reportlab lxml
+
+      # ==========================
+      # START STACK IN PHASES
+      # ==========================
+      - name: Start TeaStore stack (in phases)
         run: |
           echo "FASE 1: DB"
           docker compose up -d teastore-db
@@ -39,22 +44,19 @@ jobs:
 
           echo "FASE 3: Backends"
           docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
-          sleep 20
+          sleep 15
 
           echo "FASE 4: WebUI"
           docker compose up -d teastore-webui
-          sleep 8
+          sleep 7
 
-      # ======================================================
-      # READINESS 1: Página login
-      # ======================================================
-      - name: Wait login responding
+      - name: Wait full TeaStore readiness
         run: |
-          echo "⏳ Esperando /login responder..."
+          echo "⏳ Aguardando WebUI responder com marca 'TeaStore'..."
           for i in {1..60}; do
             RESP=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
             if echo "$RESP" | grep -q "TeaStore"; then
-              echo "✅ Login OK!"
+              echo "✅ Aplicação pronta!"
               exit 0
             fi
             echo "Ainda aguardando..."
@@ -63,30 +65,12 @@ jobs:
           echo "❌ Timeout aguardando login"
           exit 1
 
-      # ======================================================
-      # READINESS 2: Garanta catálogo populado
-      # ======================================================
-      - name: Wait product catalog loaded
-        run: |
-          echo "⏳ Aguardando catálogo..."
-          for i in {1..60}; do
-            COUNT=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/services/rest/product | wc -c || true)
-            if [ "$COUNT" -gt 300 ]; then
-              echo "✅ Catálogo carregado (${COUNT} bytes)!"
-              exit 0
-            fi
-            echo "Ainda aguardando catálogo..."
-            sleep 3
-          done
-          echo "❌ Timeout aguardando catálogo"
-          exit 1
-
       - name: Check containers
         run: docker ps -a
 
-      # ======================================================
+      # ==========================
       # JMETER
-      # ======================================================
+      # ==========================
       - name: Install Java & JMeter
         run: |
           sudo apt-get install -y openjdk-11-jre-headless
@@ -116,9 +100,9 @@ jobs:
           name: relatorios-jmeter
           path: jmeter-teastore/report*
 
-      # ======================================================
+      # ==========================
       # K6
-      # ======================================================
+      # ==========================
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -141,9 +125,9 @@ jobs:
           name: relatorios-k6
           path: "k6-*.json"
 
-      # ======================================================
+      # ==========================
       # LOCUST
-      # ======================================================
+      # ==========================
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -151,7 +135,7 @@ jobs:
 
       - name: Install Locust
         run: |
-          pip install locust beautifulsoup4
+          pip install locust beautifulsoup4 requests
 
       - name: Run Locust Simple
         run: |
@@ -174,9 +158,25 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      # ======================================================
+      # ==========================
+      # Generate consolidated dashboard + PDF
+      # ==========================
+      - name: Generate consolidated dashboard & PDF
+        run: |
+          python3 tools/generate_dashboard.py
+      - name: Upload consolidated artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-consolidado
+          path: |
+            dashboard.html
+            report.pdf
+            charts/**
+
+      # ==========================
       # DEBUG & SHUTDOWN
-      # ======================================================
+      # ==========================
       - name: Logs & Stop containers
         if: always()
         run: |
