@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v12 - Estável)
+name: Pipeline de Performance (v13 - FULL FIX)
 
 on:
   workflow_dispatch:
@@ -18,34 +18,21 @@ jobs:
           sudo apt-get install -y docker-compose \
             netcat-openbsd curl wget python3-bs4 python3-venv
 
-      # ==========================
-      # INICIALIZAÇÃO GRADUAL
-      # ==========================
-      - name: Start TeaStore stack (em fases)
+      - name: Start TeaStore stack in phases
         run: |
-          echo "FASE 1: DB"
           docker compose up -d teastore-db
           sleep 8
-
-          echo "FASE 2: Registry"
           docker compose up -d teastore-registry
           sleep 20
-
-          echo "FASE 3: Backends"
           docker compose up -d teastore-persistence teastore-auth \
             teastore-image teastore-recommender
           sleep 20
-
-          echo "FASE 4: WebUI"
           docker compose up -d teastore-webui
           sleep 10
 
-      # ==========================
-      # READINESS ROBUSTO
-      # ==========================
-      - name: Wait full readiness
+      - name: Wait for WebUI (HTTP 200)
         run: |
-          echo "⏳ Aguardando WebUI (HTTP 200)..."
+          echo "⏳ Aguardando WebUI..."
           for i in {1..80}; do
             CODE=$(curl -o /dev/null -s -w "%{http_code}" \
               http://localhost:18081/tools.descartes.teastore.webui/login)
@@ -53,18 +40,11 @@ jobs:
               echo "✅ WebUI pronta!"
               exit 0
             fi
-            echo "Ainda aguardando..."
             sleep 3
           done
           echo "❌ Timeout aguardando WebUI"
           exit 1
 
-      - name: Check containers
-        run: docker ps -a
-
-      # ==========================
-      # JMETER
-      # ==========================
       - name: Install Java & JMeter
         run: |
           sudo apt-get install -y openjdk-11-jre-headless
@@ -94,9 +74,6 @@ jobs:
           name: relatorios-jmeter
           path: jmeter-teastore/report*
 
-      # ==========================
-      # K6
-      # ==========================
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -121,17 +98,14 @@ jobs:
           name: relatorios-k6
           path: "k6-*.json"
 
-      # ==========================
-      # LOCUST
-      # ==========================
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Locust & deps
+      - name: Install Locust & deps + PDF libs
         run: |
-          pip install locust beautifulsoup4 requests matplotlib pandas
+          pip install locust beautifulsoup4 requests matplotlib pandas reportlab PyPDF2
 
       - name: Run Locust Simple
         run: |
@@ -154,9 +128,6 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      # ==========================
-      # DASHBOARD
-      # ==========================
       - name: Generate Dashboard Consolidado
         run: |
           python3 generate_dashboard.py
@@ -168,9 +139,6 @@ jobs:
           name: dashboard-consolidado
           path: dashboard*.html
 
-      # ==========================
-      # SHUTDOWN
-      # ==========================
       - name: Logs & Stop containers
         if: always()
         run: |
