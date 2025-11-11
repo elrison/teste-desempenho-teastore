@@ -2,159 +2,158 @@
 
 from locust import HttpUser, task, between, events
 import logging
-import requests
 from bs4 import BeautifulSoup
+
+# Prefixo padrão do TeaStore
+BASE = "/tools.descartes.teastore.webui"
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
-    logging.info("--- Preparando ambiente de teste: Resetando a base de dados via API ---")
+    logging.info("--- Resetando banco via API (Locust) ---")
+
     host = environment.host
-    try:
-        response = requests.post(f"{host}/tools.descartes.teastore.webui/services/rest/persistence/reset")
-        if response.status_code == 200:
-            logging.info("--- Base de dados resetada com sucesso ---")
-        else:
-            logging.error(f"--- FALHA AO RESETAR A BASE DE DADOS, status: {response.status_code} ---")
-            environment.runner.quit()
-    except requests.exceptions.RequestException as e:
-        logging.error(f"--- FALHA CRÍTICA NO SETUP: {e} ---")
+    res = environment.runner.client.post(
+        f"{host}{BASE}/services/rest/persistence/reset"
+    )
+
+    if res.status_code != 200:
+        logging.error(f"Falha reset DB: HTTP {res.status_code}")
         environment.runner.quit()
+    else:
+        logging.info("--- Base resetada com sucesso ---")
+
 
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
-    _csrf_token = None # Armazena o token CSRF
+    _csrf_token = None
+
+    # -------------------------------
+    # Helper para extrair CSRF
+    # -------------------------------
+    def extract_csrf(self, html_txt, msg):
+        soup = BeautifulSoup(html_txt, "html.parser")
+
+        for sel in [
+            "input[name='_csrf']",
+            "input[name=csrf]",
+            "input[name=token]"
+        ]:
+            el = soup.select_one(sel)
+            if el and el.get("value"):
+                self._csrf_token = el["value"]
+                return True
+
+        logging.warning(msg)
+        return False
 
     def on_start(self):
         self.login()
 
-    def _extract_csrf(self, response_text, failure_message):
-        """Função helper para extrair o CSRF e atualizar o token da instância."""
-        soup = BeautifulSoup(response_text, "html.parser")
-        token_element = soup.select_one("input[name='_csrf']")
-        
-        if not token_element or not token_element.has_attr("value"):
-            logging.warning(failure_message)
-            return False
-        
-        self._csrf_token = token_element["value"]
-        return True
-
+    # -------------------------------
+    # LOGIN
+    # -------------------------------
     def login(self):
-        # 1. GET na página de login para pegar o cookie e o CSRF token
-        with self.client.get("/tools.descartes.teastore.webui/login", name="/login_page", catch_response=True) as response:
-            if response.status_code != 200:
-                response.failure("Não foi possível carregar a página de login.")
-                self.environment.runner.quit()
+        # GET login
+        with self.client.get(f"{BASE}/login", name="/login", catch_response=True) as res:
+            if res.status_code != 200:
+                res.failure("Falha ao carregar /login")
                 return
 
-            # CORREÇÃO 1: Extrair o token CSRF
-            if not self._extract_csrf(response.text, "Não foi possível encontrar o _csrf token na página de login."):
-                response.failure("Falha ao extrair _csrf token do login.")
-                self.environment.runner.quit() # Crítico, não continuar
+            if not self.extract_csrf(res.text, "CSRF não encontrado no login"):
+                res.failure("Falha no token CSRF do login")
                 return
-            response.success()
 
-        # 2. POST para autenticar
-        payload = {
+        # POST login
+        data = {
             "username": "user1",
             "password": "password",
             "action": "login",
-            "_csrf": self._csrf_token  # <-- CORREÇÃO 2: Adicionar CSRF
+            "_csrf": self._csrf_token,
         }
-        
+
         with self.client.post(
-            "/tools.descartes.teastore.webui/loginAction",
-            data=payload,
-            name="/login_action",
+            f"{BASE}/loginAction",
+            data=data,
+            name="/loginAction",
             catch_response=True
-        ) as login_response:
-            if login_response.status_code != 200 or "Logout" not in login_response.text:
-                logging.error(f"Falha no login. Token usado: {self._csrf_token}. Resposta: {login_response.text[:200]}...")
-                login_response.failure("Texto 'Logout' não encontrado após o login.")
-                self.environment.runner.quit() # Parar o teste se o login falhar
-            else:
-                login_response.success()
-                # Atualiza o token da página pós-login (home)
-                self._extract_csrf(login_response.text, "Não foi possível extrair _csrf token da home pós-login.")
+        ) as res:
 
+            if "Logout" not in res.text:
+                res.failure("Login falhou (Logout não encontrado)")
+                return
 
+            self.extract_csrf(res.text, "CSRF pós login não encontrado")
+            res.success()
+
+    # -------------------------------
+    # Cenário completo
+    # -------------------------------
     @task
-    def browse_and_add_to_cart(self):
-        # 1. Página inicial
-        with self.client.get("/tools.descartes.teastore.webui/", name="/", catch_response=True) as response:
-            if response.status_code != 200:
-                response.failure("Não foi possível acessar a home.")
-                return
-            
-            # Atualiza o token
-            self._extract_csrf(response.text, "Não foi possível extrair _csrf token da home.")
-            
-            soup = BeautifulSoup(response.text, "html.parser")
-            category_link_element = soup.select_one("ul.nav-sidebar a.menulink")
-            if not category_link_element or not category_link_element.has_attr("href"):
-                response.failure("Não foi possível encontrar o link de categoria.")
-                return
-            category_link = category_link_element["href"]
+    def browse_and_add(self):
 
-        # 2. Página de categoria
-        with self.client.get(category_link, name="/category", catch_response=True) as response:
-            if response.status_code != 200:
-                response.failure("Não foi possível acessar a categoria.")
-                return
-            
-            # Atualiza o token
-            self._extract_csrf(response.text, "Não foi possível extrair _csrf token da categoria.")
+        # HOME
+        with self.client.get(f"{BASE}/", name="/", catch_response=True) as res:
+            self.extract_csrf(res.text, "CSRF home faltando")
 
-            soup_cat = BeautifulSoup(response.text, "html.parser")
-            product_link_element = soup_cat.select_one("div.thumbnail a")
-            if not product_link_element or not product_link_element.has_attr("href"):
-                response.failure("Não foi possível encontrar o link do produto.")
-                return
-            product_link = product_link_element["href"]
+            soup = BeautifulSoup(res.text, "html.parser")
+            cat = soup.select_one("ul.nav-sidebar a.menulink")
 
-        # 3. Página do produto
-        with self.client.get(product_link, name="/product", catch_response=True) as response:
-            if response.status_code != 200:
-                response.failure("Não foi possível acessar a página do produto.")
+            if not cat or not cat.get("href"):
+                res.failure("Categoria não encontrada!")
                 return
-            
-            # Atualiza o token (IMPORTANTE para o cartAction)
-            self._extract_csrf(response.text, "Não foi possível extrair _csrf token da página do produto.")
 
-            soup_prod = BeautifulSoup(response.text, "html.parser")
-            product_name_element = soup_prod.select_one("h2.product-title") or soup_prod.select_one("h2.minipage-title")
-            if not product_name_element:
-                response.failure("Não foi possível encontrar o nome do produto.")
-                return
-            product_name = product_name_element.text.strip()
-            
-            product_id_element = soup_prod.select_one("input[name='productid']")
-            if not product_id_element or not product_id_element.has_attr("value"):
-                response.failure("Não foi possível extrair o ID do produto.")
-                return
-            product_id = product_id_element["value"]
+            # LINKS relativos → corrigidos
+            category = BASE + cat["href"]
+            res.success()
 
-        # 4. Adiciona ao carrinho (payload igual ao HTML do form)
-        cart_payload = {
+        # CATEGORIA
+        with self.client.get(category, name="/category", catch_response=True) as res:
+            self.extract_csrf(res.text, "CSRF categoria faltando")
+
+            soup = BeautifulSoup(res.text, "html.parser")
+            prod = soup.select_one("div.thumbnail a")
+
+            if not prod or not prod.get("href"):
+                res.failure("Produto não encontrado!")
+                return
+
+            product = BASE + prod["href"]
+            res.success()
+
+        # PRODUTO
+        with self.client.get(product, name="/product", catch_response=True) as res:
+            self.extract_csrf(res.text, "CSRF produto faltando")
+
+            soup = BeautifulSoup(res.text, "html.parser")
+            name_el = soup.select_one("h2.product-title") or soup.select_one("h2.minipage-title")
+            id_el = soup.select_one("input[name='productid']")
+
+            if not name_el or not id_el:
+                res.failure("Informações do produto ausentes!")
+                return
+
+            name = name_el.text.strip()
+            product_id = id_el.get("value").strip()
+            res.success()
+
+        # ADD CART
+        payload = {
             "productid": product_id,
             "addToCart": "Add to Cart",
-            "_csrf": self._csrf_token # <-- CORREÇÃO 3: Adicionar CSRF
+            "_csrf": self._csrf_token
         }
-        with self.client.post(
-            "/tools.descartes.teastore.webui/cartAction",
-            data=cart_payload,
-            name="/add_to_cart",
-            catch_response=True
-        ) as add_response:
-            if add_response.status_code != 200:
-                add_response.failure("Falha ao adicionar produto ao carrinho.")
-                return
-            # Atualiza o token da página do carrinho (para onde fomos redirecionados)
-            self._extract_csrf(add_response.text, "Não foi possível extrair _csrf token do 'cartAction' (redirect).")
 
-        # 5. Verifica se o produto está no carrinho
-        with self.client.get("/tools.descartes.teastore.webui/cart", name="/cart_page", catch_response=True) as response:
-            if product_name.lower().replace(" ", "") not in response.text.lower().replace(" ", ""):
-                response.failure(f"Produto '{product_name}' não encontrado no carrinho.")
+        with self.client.post(f"{BASE}/cartAction", data=payload, name="/add", catch_response=True) as res:
+            if res.status_code != 200:
+                res.failure("Falha ao adicionar ao carrinho")
+                return
+
+            self.extract_csrf(res.text, "CSRF cartAction faltando")
+            res.success()
+
+        # CART PAGE
+        with self.client.get(f"{BASE}/cart", name="/cart", catch_response=True) as res:
+            if name.lower().replace(" ", "") not in res.text.lower().replace(" ", ""):
+                res.failure(f"Produto {name} não está no carrinho!")
             else:
-                response.success()
+                res.success()
