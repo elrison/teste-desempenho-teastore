@@ -5,127 +5,130 @@ import { sleep, check, group } from 'k6';
 import { parseHTML } from 'k6/html';
 
 const BASE_URL = "http://localhost:18081/tools.descartes.teastore.webui";
-const DOMAIN_URL = 'http://localhost:18081';
-
-export function setup() {
-  console.log('--- Resetando base via API ---');
-  const res = http.post(`${BASE_URL}/services/rest/persistence/reset`);
-  check(res, {
-    'Reset via API status 200': (r) => r.status === 200,
-  });
-}
+const DOMAIN_URL = "http://localhost:18081";
 
 export const options = {
-  vus: 10, 
+  vus: 10,
   duration: '30s',
   thresholds: {
-    'checks{cenario:login}': ['rate>0.9'], 
-    'checks{cenario:compra}': ['rate>0.9'], 
+    'checks{cenario:login}': ['rate>0.9'],
+    'checks{cenario:compra}': ['rate>0.9'],
   },
 };
 
+export function setup() {
+  let res = http.post(`${BASE_URL}/services/rest/persistence/reset`);
+  check(res, {
+    "Reset OK": (r) => r.status === 200,
+  });
+}
+
 export default function () {
-  let loginSuccess = false;
   let csrfToken = null;
+  let cookies = {};
 
   group('Cenário de Login', function () {
-    // 1. GET na página de login
+
+    // 1. GET /login
     let res = http.get(`${BASE_URL}/login`);
-    
-    // ======================================================
-    // === DEBUG: IMPRIMIR O HTML DA PÁGINA DE LOGIN =======
-    // ======================================================
-    if (__VU === 1 && __ITER === 0) { // Imprime apenas uma vez
-        console.log('--- DEBUG: Resposta do /login ---');
-        console.log(res.body);
-        console.log('--- FIM DEBUG ---');
-    }
-    // ======================================================
-
     let doc = parseHTML(res.body);
-    let tokenElement = doc.find("input[name='_csrf']");
 
-    if (tokenElement && tokenElement.attr('value')) {
-      csrfToken = tokenElement.attr('value');
-    } else {
-      check(res, { 'Falha ao extrair CSRF do login': () => false }, { cenario: 'login' });
-      return; 
-    }
+    // extrai CSRF
+    let token = doc.find("input[name='_csrf']");
+    csrfToken = token.attr('value');
 
-    // 2. POST de Login com CSRF
-    const loginPayload = {
-      username: 'user1',
-      password: 'password',
-      action: 'login',
-      _csrf: csrfToken, 
-    };
+    // captura cookies
+    cookies = res.cookies;
 
-    res = http.post(`${BASE_URL}/loginAction`, loginPayload);
+    check(res, {
+      "Página login carregada": (r) => r.status === 200,
+      "CSRF encontrado": () => csrfToken !== null,
+    }, {cenario:"login"});
 
-    loginSuccess = check(res, {
-      'Login status 200': (r) => r.status === 200,
-      'Página contém Logout': (r) => r.body && r.body.includes('Logout'),
-    }, { cenario: 'login' });
-    
+    // 2. POST login
+    res = http.post(`${BASE_URL}/loginAction`,
+      {
+        username: "user1",
+        password: "password",
+        action: "login",
+        _csrf: csrfToken
+      },
+      {
+        cookies: cookies,
+        redirects: 0, // NÃO seguir redirect automaticamente
+        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      });
+
+    check(res, {
+      "Login retornou redirect 302": (r) => r.status === 302,
+    }, {cenario:"login"});
+
+    // depois do redirect, segue manualmente
+    res = http.get(`${BASE_URL}/`,
+      { cookies: cookies });
+
+    check(res, {
+      "Página contém Logout": (r) => r.body.includes("Logout"),
+    }, {cenario:"login"});
+
     sleep(1);
   });
 
-  if (loginSuccess) {
-    // O resto do script (compra) continua o mesmo...
-    group('Compra Produto', function () {
-      let res = http.get(`${BASE_URL}/`);
-      let doc = parseHTML(res.body);
-      const categoryLink = doc.find('ul.nav-sidebar a.menulink').first().attr('href');
 
-      if (categoryLink) {
-        res = http.get(`${DOMAIN_URL}${categoryLink}`); 
-        const docCat = parseHTML(res.body);
-        const productLink = docCat.find('div.thumbnail a').first().attr('href');
+  group("Compra Produto", function () {
 
-        if (productLink) {
-          res = http.get(`${DOMAIN_URL}${productLink}`);
-          const docProd = parseHTML(res.body);
-          
-          if (!docProd) {
-            check(res, { 'Falha ao carregar página do produto': () => false }, { cenario: 'compra' });
-            return;
-          }
-          
-          const productNameElement = docProd.find('h2.product-title');
-          const productName = productNameElement ? productNameElement.text().trim() : '';
-          
-          const productId = productLink.split('id=')[1];
-          
-          let tokenElement = docProd.find("input[name='_csrf']");
-          if (tokenElement && tokenElement.attr('value')) {
-            csrfToken = tokenElement.attr('value'); 
-          } else {
-            check(res, { 'Falha ao extrair CSRF do produto': () => false }, { cenario: 'compra' });
-            return; 
-          }
-          sleep(1);
-          
-          const cartPayload = {
-            productid: productId,
-            addToCart: 'Add to Cart', 
-            _csrf: csrfToken, 
-          };
-          
-          res = http.post(`${BASE_URL}/cartAction`, cartPayload);
+    // Home
+    let res = http.get(`${BASE_URL}/`, { cookies: cookies });
+    let doc = parseHTML(res.body);
 
-          check(res, {
-            'Produto adicionado ao carrinho (POST)': (r) => r.status === 200,
-          }, { cenario: 'compra' });
+    const categoryLink = doc.find("ul.nav-sidebar a.menulink").first().attr("href");
+    res = http.get(`${DOMAIN_URL}${categoryLink}`, { cookies: cookies });
 
-          sleep(1);
+    const docCat = parseHTML(res.body);
+    const productLink = docCat.find("div.thumbnail a").first().attr("href");
 
-          res = http.get(`${BASE_URL}/cart`);
-          check(res, {
-            'Carrinho contém produto': (r) => r.body && productName && r.body.includes(productName),
-          }, { cenario: 'compra' });
-        }
-      }
-      sleep(1);
-    });
-  }
+    res = http.get(`${DOMAIN_URL}${productLink}`, { cookies: cookies });
+    const docProd = parseHTML(res.body);
+
+    const productName = docProd.find("h2.product-title").text().trim();
+    const productId = productLink.split("id=")[1];
+
+    // novo CSRF
+    csrfToken = docProd.find("input[name='_csrf']").attr('value');
+
+    check(res, {
+      "Produto carregado": (r) => productName !== "",
+      "CSRF do produto capturado": () => csrfToken !== null,
+    }, {cenario:"compra"});
+
+    sleep(1);
+
+    // POST Add To Cart
+    res = http.post(`${BASE_URL}/cartAction`,
+      {
+        productid: productId,
+        addToCart: "Add to Cart",
+        _csrf: csrfToken
+      },
+      {
+        cookies: cookies,
+        redirects: 0,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      });
+
+    check(res, {
+      "AddToCart retornou redirect 302": (r) => r.status === 302,
+    }, {cenario:"compra"});
+
+    sleep(1);
+
+    // Ver carrinho
+    res = http.get(`${BASE_URL}/cart`, { cookies: cookies });
+
+    check(res, {
+      "Carrinho contém produto": (r) => r.body.includes(productName),
+    }, {cenario:"compra"});
+
+    sleep(1);
+  });
 }
