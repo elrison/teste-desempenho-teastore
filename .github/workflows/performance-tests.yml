@@ -1,4 +1,4 @@
-name: Teste de Desempenho — TeaStore v12
+name: Teste de Desempenho — TeaStore v13
 
 on:
   push:
@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v4
 
       # =====================
-      # DEPENDÊNCIAS BÁSICAS
+      # DEPENDÊNCIAS
       # =====================
-      - name: Instalar dependências (Python, ReportLab, K6, JMeter, Locust)
+      - name: Instalar dependências
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip default-jdk unzip wget
@@ -40,11 +40,11 @@ jobs:
       - name: Executar teste simples (K6)
         run: |
           mkdir -p k6-reports
-          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-reports/simple.json
+          k6 run ./k6-teastore/teste-carga-simples.js --summary-export=k6-reports/simple.json
 
       - name: Executar teste complexo (K6)
         run: |
-          k6 run k6-teastore/teste-carga-complexo.js --summary-export=k6-reports/complex.json
+          k6 run ./k6-teastore/teste-carga-complexo.js --summary-export=k6-reports/complex.json
 
       # =====================
       # TESTES JMETER
@@ -52,16 +52,16 @@ jobs:
       - name: Executar teste simples (JMeter)
         run: |
           mkdir -p jmeter-teastore/report-simples
-          jmeter -n -t jmeter-teastore/teste-simples.jmx \
-            -l jmeter-teastore/results-simples.jtl \
-            -e -o jmeter-teastore/report-simples
+          /opt/jmeter/bin/jmeter -n -t ./jmeter-teastore/teste-simples.jmx \
+            -l ./jmeter-teastore/results-simples.jtl \
+            -e -o ./jmeter-teastore/report-simples
 
       - name: Executar teste complexo (JMeter)
         run: |
           mkdir -p jmeter-teastore/report-complexos
-          jmeter -n -t jmeter-teastore/teste-complexos.jmx \
-            -l jmeter-teastore/results-complexos.jtl \
-            -e -o jmeter-teastore/report-complexos
+          /opt/jmeter/bin/jmeter -n -t ./jmeter-teastore/teste-complexos.jmx \
+            -l ./jmeter-teastore/results-complexos.jtl \
+            -e -o ./jmeter-teastore/report-complexos
 
       # =====================
       # TESTES LOCUST
@@ -69,35 +69,36 @@ jobs:
       - name: Executar teste simples (Locust)
         run: |
           mkdir -p locust-reports
-          locust -f locust-teastore/cenarios-simples-locust.py --headless -u 10 -r 2 -t 30s \
+          locust -f ./locust-teastore/cenarios-simples-locust.py --headless -u 10 -r 2 -t 30s \
             --html locust-reports/simples.html --csv locust-reports/simples
 
       - name: Executar teste complexo (Locust)
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 2 -t 30s \
+          locust -f ./locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 2 -t 30s \
             --html locust-reports/complex.html --csv locust-reports/complex
 
       # =====================
-      # DASHBOARD E RELATÓRIOS
+      # DASHBOARD E PDF
       # =====================
       - name: Gerar dashboard consolidado e PDF
         run: |
-          python3 tools/generate_dashboard.py \
-            --k6 k6-reports/complex.json \
-            --jmeter jmeter-teastore/report-complexos/index.html \
-            --locust locust-reports/complex.html \
-            --out dashboard.html \
-            --pdf relatorio.pdf
+          python3 ./tools/generate_dashboard.py \
+            --k6 ./k6-reports/complex.json \
+            --jmeter ./jmeter-teastore/report-complexos/index.html \
+            --locust ./locust-reports/complex.html \
+            --out ./dashboard.html \
+            --pdf ./relatorio.pdf
 
       # =====================
-      # ARTEFATOS
+      # PUBLICAR RESULTADOS
       # =====================
-      - uses: actions/upload-artifact@v4
+      - name: Publicar artefatos
+        uses: actions/upload-artifact@v4
         with:
-          name: relatorios-teastore
+          name: relatorios-teastore-v13
           path: |
-            k6-reports/*.json
-            jmeter-teastore/report-*/**
-            locust-reports/*.html
-            dashboard.html
-            relatorio.pdf
+            ./k6-reports/*.json
+            ./jmeter-teastore/report-*/**
+            ./locust-reports/*.html
+            ./dashboard.html
+            ./relatorio.pdf
