@@ -3,137 +3,138 @@ import { sleep, check, group } from 'k6';
 import { parseHTML } from 'k6/html';
 import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
 
-const BASE_UI = "http://localhost:18081/tools.descartes.teastore.webui";
-const BASE_HOST = "http://localhost:18081";
-
-export function setup() {
-  console.log('--- Resetando base via API ---');
-  const res = http.post(`${BASE_UI}/services/rest/persistence/reset`);
-  check(res, { 'Reset via API status 200': (r) => r.status === 200 });
-}
-
 export const options = {
   vus: 10,
   duration: '30s',
   thresholds: {
-    'checks{cenario:login}': ['rate>0.2'], // pipeline-friendly
-    'checks{cenario:compra}': ['rate>0.2'],
+    'checks{cenario:login}': ['rate>0.9'],
+    'checks{cenario:compra}': ['rate>0.9'],
   },
 };
 
+const BASE = 'http://localhost:18081/tools.descartes.teastore.webui';
+
+// ============================================
+// Função para extrair o token CSRF
+// ============================================
 function extractCsrf(body) {
   const doc = parseHTML(body);
-
-  // 1) input
-  let el = doc.find("input[name='_csrf']");
-  if (el && el.attr('value')) return el.attr('value');
-
-  // 2) meta
-  el = doc.find("meta[name='_csrf']");
-  if (el && el.attr('content')) return el.attr('content');
-
-  // 3) inline JS
-  let match = body.match(/_csrf['"]?\s*[:=]\s*['"]([^'"]+)/);
-  if (match && match[1]) return match[1];
-
+  const input = doc.find("input[name='_csrf']").first();
+  if (input && input.attr('value')) return input.attr('value');
   return null;
 }
 
+// ============================================
+// Cenário completo de navegação
+// ============================================
 export default function () {
   let csrf = null;
-  let loginSuccess = false;
+  let cookies = null;
+  let productName = null;
 
-  group('Cenário de Login', function () {
-    let res = http.get(`${BASE_UI}/login`, { redirects: 3 });
-
-    check(res, { 'Página login carregada': (r) => r.status === 200 }, { cenario: 'login' });
+  group('Cenário de Login', () => {
+    // GET /login
+    let res = http.get(`${BASE}/login`);
+    check(res, { 'Login page carregada': (r) => r.status === 200 }, { cenario: 'login' });
 
     csrf = extractCsrf(res.body);
+    check(res, { 'Token CSRF encontrado': () => !!csrf }, { cenario: 'login' });
 
-    check(res, { 'CSRF encontrado': () => !!csrf }, { cenario: 'login' });
-    if (!csrf) return;
+    if (!csrf) {
+      console.error('❌ Falha ao capturar CSRF no login');
+      return;
+    }
 
+    cookies = res.cookies;
+
+    // POST /loginAction
     const payload = {
       username: 'user1',
       password: 'password',
       action: 'login',
       _csrf: csrf,
     };
-
-    const postRes = http.post(`${BASE_UI}/loginAction`, payload, { redirects: 3 });
-    loginSuccess = check(postRes, {
-      'Login status 200/302': (r) => [200, 302].includes(r.status)
+    const loginRes = http.post(`${BASE}/loginAction`, payload, {
+      cookies,
+      redirects: 3,
+      tags: { cenario: 'login' },
+    });
+    check(loginRes, {
+      'Login efetuado': (r) => r.status === 200 || r.status === 302,
     }, { cenario: 'login' });
 
-    if (!loginSuccess) return;
-
-    const home = http.get(`${BASE_UI}/`, { redirects: 3 });
-    csrf = extractCsrf(home.body) || csrf;
-    check(home, { 'Home após login ok': (r) => r.status === 200 }, { cenario: 'login' });
-
-    sleep(0.5);
+    sleep(1);
   });
 
-  if (!loginSuccess) return;
+  // ============================================
+  // NAVEGAÇÃO PÓS-LOGIN
+  // ============================================
+  group('Cenário de Compra', () => {
+    // HOME
+    let home = http.get(`${BASE}/`);
+    check(home, { 'Home carregada': (r) => r.status === 200 }, { cenario: 'compra' });
+    csrf = extractCsrf(home.body) || csrf;
+    const docHome = parseHTML(home.body);
 
-  group('Compra Produto', function () {
-    let res = http.get(`${BASE_UI}/`);
-    check(res, { 'Página inicial ok': (r) => r.status === 200 }, { cenario: 'compra' });
-
-    const doc = parseHTML(res.body);
-    let link = doc.find('ul.nav-sidebar a.menulink').first() || doc.find('a.menulink').first();
-    if (!link || !link.attr('href')) {
-      check(res, { 'Categoria encontrada': () => false }, { cenario: 'compra' });
+    // Categoria
+    let categoryLink = docHome.find('ul.nav-sidebar a.menulink').first();
+    if (!categoryLink || !categoryLink.attr('href')) {
+      console.error('❌ Categoria não encontrada');
       return;
     }
 
-    const catUrl = new URL(link.attr('href'), BASE_HOST).toString();
-    res = http.get(catUrl);
-    check(res, { 'Categoria carregada': (r) => r.status === 200 }, { cenario: 'compra' });
+    const categoryUrl = new URL(categoryLink.attr('href'), BASE).toString();
+    let catRes = http.get(categoryUrl);
+    check(catRes, { 'Categoria carregada': (r) => r.status === 200 }, { cenario: 'compra' });
+    csrf = extractCsrf(catRes.body) || csrf;
 
-    const docCat = parseHTML(res.body);
-    let prodLinkEl = docCat.find('div.thumbnail a').first() || docCat.find("a[href*='product']").first();
-    if (!prodLinkEl || !prodLinkEl.attr('href')) {
-      check(res, { 'Produto encontrado': () => false }, { cenario: 'compra' });
+    // Produto
+    const docCat = parseHTML(catRes.body);
+    const prodLink = docCat.find('div.thumbnail a').first();
+    if (!prodLink || !prodLink.attr('href')) {
+      console.error('❌ Produto não encontrado');
       return;
     }
+    const prodUrl = new URL(prodLink.attr('href'), BASE).toString();
 
-    const productHref = new URL(prodLinkEl.attr('href'), BASE_HOST).toString();
-    res = http.get(productHref);
-    check(res, { 'Produto carregado': (r) => r.status === 200 }, { cenario: 'compra' });
+    const prodRes = http.get(prodUrl);
+    check(prodRes, { 'Página do produto carregada': (r) => r.status === 200 }, { cenario: 'compra' });
+    csrf = extractCsrf(prodRes.body) || csrf;
 
-    const docProd = parseHTML(res.body);
-    const productName = (docProd.find("h2.product-title").first() || docProd.find("h2.minipage-title").first())?.text().trim();
+    const docProd = parseHTML(prodRes.body);
+    const prodNameEl = docProd.find('h2.product-title').first() || docProd.find('h2.minipage-title').first();
+    productName = prodNameEl ? prodNameEl.text().trim() : null;
 
-    const csrfProd = extractCsrf(res.body) || csrf;
-    if (!csrfProd) {
-      check(res, { 'CSRF produto encontrado': () => false }, { cenario: 'compra' });
-      return;
-    }
+    const idEl = docProd.find("input[name='productid']").first();
+    const productId = idEl ? idEl.attr('value') : null;
 
-    let productId = docProd.find("input[name='productid']").attr('value');
+    check(prodRes, { 'ID do produto encontrado': () => !!productId }, { cenario: 'compra' });
+
     if (!productId) {
-      const u = new URL(productHref);
-      productId = u.searchParams.get("id");
-    }
-    if (!productId) {
-      check(res, { 'id do produto encontrado': () => false }, { cenario: 'compra' });
+      console.error('❌ Produto sem ID');
       return;
     }
 
-    const addRes = http.post(`${BASE_UI}/cartAction`, {
+    // Adiciona ao carrinho
+    const cartPayload = {
       productid: productId,
-      addToCart: "Add to Cart",
-      _csrf: csrfProd,
-    }, { redirects: 3 });
-
-    check(addRes, { 'AddToCart 200/302': (r) => [200, 302].includes(r.status) }, { cenario: 'compra' });
-
-    const cartRes = http.get(`${BASE_UI}/cart`);
-    check(cartRes, {
-      'Carrinho contém produto': (r) => productName && r.body.includes(productName)
+      addToCart: 'Add to Cart',
+      _csrf: csrf,
+    };
+    const addRes = http.post(`${BASE}/cartAction`, cartPayload, {
+      redirects: 3,
+      tags: { cenario: 'compra' },
+    });
+    check(addRes, {
+      'Produto adicionado ao carrinho': (r) => r.status === 200 || r.status === 302,
     }, { cenario: 'compra' });
 
-    sleep(0.5);
+    // Verifica carrinho
+    const cartRes = http.get(`${BASE}/cart`);
+    check(cartRes, {
+      'Produto está no carrinho': (r) => productName && r.body.includes(productName),
+    }, { cenario: 'compra' });
+
+    sleep(1);
   });
 }

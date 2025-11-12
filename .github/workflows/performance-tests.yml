@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v12 - Integrado e Corrigido)
+name: Pipeline de Performance (v11 - Estável)
 
 on:
   workflow_dispatch:
@@ -6,44 +6,66 @@ on:
 jobs:
   performance:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-
-    services:
-      teastore:
-        image: descartesresearch/teastore-all:latest
-        ports:
-          - 18081:8080
-        options: >-
-          --health-cmd="curl -f http://localhost:8080/tools.descartes.teastore.webui/login || exit 1"
-          --health-interval=10s
-          --health-retries=10
-          --health-timeout=5s
-          --health-start-period=20s
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Wait for TeaStore readiness
+      - name: Install system dependencies
         run: |
-          echo "⏳ Aguardando TeaStore ficar pronto..."
-          for i in {1..60}; do
-            if curl -s http://localhost:18081/tools.descartes.teastore.webui/login | grep -q "TeaStore"; then
-              echo "✅ TeaStore pronto!"
-              exit 0
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3 python3-pip
+
+      - name: Start TeaStore stack (em Fases)
+        run: |
+          echo "FASE 1: DB"
+          docker compose up -d teastore-db
+          for i in {1..15}; do
+            if docker compose ps | grep "teastore-db" | grep "(healthy)"; then
+              echo "✅ DB saudável!"
+              break
             fi
+            echo "Aguardando DB..."
             sleep 5
           done
-          echo "❌ Timeout aguardando TeaStore"
+
+          echo "FASE 2: Registry"
+          docker compose up -d teastore-registry
+          sleep 20
+
+          echo "FASE 3: Backends"
+          docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
+          sleep 15
+
+          echo "FASE 4: WebUI"
+          docker compose up -d teastore-webui
+          sleep 7
+
+      - name: Wait full TeaStore readiness
+        run: |
+          echo "⏳ Aguardando WebUI responder com _csrf ou marca 'TeaStore'..."
+          for i in {1..80}; do
+            RESP=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
+            if echo "$RESP" | grep -q "_csrf" || echo "$RESP" | grep -q "TeaStore"; then
+              echo "✅ Aplicação pronta!"
+              exit 0
+            fi
+            echo "Ainda aguardando ($i/80)..."
+            sleep 3
+          done
+          echo "❌ Timeout aguardando login"
           exit 1
+
+      - name: Check containers
+        run: docker ps -a
 
       # ==========================
       # JMETER
       # ==========================
       - name: Install Java & JMeter
         run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-11-jre-headless wget
+          sudo apt-get install -y openjdk-11-jre-headless
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
@@ -77,13 +99,14 @@ jobs:
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
           echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update && sudo apt-get install -y k6
+          sudo apt-get update
+          sudo apt-get install -y k6
 
-      - name: Run K6 Simple
+      - name: Run K6 simple
         run: |
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
 
-      - name: Run K6 Complex
+      - name: Run K6 complex
         run: |
           k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json || true
 
@@ -102,21 +125,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Locust + Libs
+      - name: Install Locust + Python deps
         run: |
-          pip install locust beautifulsoup4 requests
+          python3 -m pip install --upgrade pip
+          pip install locust beautifulsoup4 requests lxml jinja2 pandas matplotlib reportlab
 
       - name: Run Locust Simple
         run: |
           locust -f locust-teastore/locustfile.py \
-            --headless -u 5 -r 2 -t 20s \
+            --headless -u 5 -r 2 -t 15s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html || true
 
       - name: Run Locust Complex
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless -u 10 -r 3 -t 40s \
+            --headless -u 10 -r 3 -t 30s \
             --host http://localhost:18081 \
             --html locust-teastore/complex.html || true
 
@@ -128,26 +152,27 @@ jobs:
           path: locust-teastore/*.html
 
       # ==========================
-      # DASHBOARD + PDF
+      # Generate consolidated dashboard + PDF
       # ==========================
-      - name: Install dashboard dependencies
+      - name: Run dashboard generator
         run: |
-          pip install matplotlib reportlab pandas beautifulsoup4
+          python3 generate_dashboard.py
 
-      - name: Generate consolidated dashboard & PDF
-        run: |
-          python3 generate_dashboard.py \
-            --k6 k6-complex.json \
-            --jmeter jmeter-teastore/report-complexos/index.html \
-            --locust locust-teastore/complex.html \
-            --out dashboard.html \
-            --pdf relatorio.pdf || true
-
-      - name: Upload Dashboard & PDF
+      - name: Upload consolidated dashboard and PDF
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dashboard-e-relatorio
+          name: dashboard-and-pdf
           path: |
             dashboard.html
-            relatorio.pdf
+            charts/**
+            relatorio_completo.pdf
+
+      # ==========================
+      # DEBUG & SHUTDOWN
+      # ==========================
+      - name: Logs & Stop containers
+        if: always()
+        run: |
+          docker compose logs --no-color
+          docker compose down -v
