@@ -1,4 +1,4 @@
-name: Pipeline de Performance v11 (Completo)
+name: Pipeline de Performance (v11 - Estável)
 
 on:
   workflow_dispatch:
@@ -6,110 +6,173 @@ on:
 jobs:
   performance:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install base deps
+      - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose python3-venv curl wget openjdk-11-jre-headless
+          sudo apt-get update -y
+          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3 python3-pip
 
-      - name: Start TeaStore
+      - name: Start TeaStore stack (em Fases)
         run: |
-          docker compose up -d
-          echo "⏳ Aguardando WebUI..."
-          for i in {1..40}; do
-            if curl -s http://localhost:18081/tools.descartes.teastore.webui/login | grep -q "_csrf"; then
-              echo "✅ WebUI OK!"
-              exit 0
+          echo "FASE 1: DB"
+          docker compose up -d teastore-db
+          for i in {1..15}; do
+            if docker compose ps | grep "teastore-db" | grep "(healthy)"; then
+              echo "✅ DB saudável!"
+              break
             fi
-            echo "Aguardando..."
+            echo "Aguardando DB..."
             sleep 5
           done
+
+          echo "FASE 2: Registry"
+          docker compose up -d teastore-registry
+          sleep 20
+
+          echo "FASE 3: Backends"
+          docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
+          sleep 15
+
+          echo "FASE 4: WebUI"
+          docker compose up -d teastore-webui
+          sleep 7
+
+      - name: Wait full TeaStore readiness
+        run: |
+          echo "⏳ Aguardando WebUI responder com _csrf ou marca 'TeaStore'..."
+          for i in {1..80}; do
+            RESP=$(curl -L -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
+            if echo "$RESP" | grep -q "_csrf" || echo "$RESP" | grep -q "TeaStore"; then
+              echo "✅ Aplicação pronta!"
+              exit 0
+            fi
+            echo "Ainda aguardando ($i/80)..."
+            sleep 3
+          done
+          echo "❌ Timeout aguardando login"
           exit 1
 
-      - name: Install JMeter
+      - name: Check containers
+        run: docker ps -a
+
+      # ==========================
+      # JMETER
+      # ==========================
+      - name: Install Java & JMeter
         run: |
+          sudo apt-get install -y openjdk-11-jre-headless
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: Run JMeter Simples
+      - name: Run JMeter Simple
         run: |
-          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/simples.jmx \
-          -l jmeter-teastore/simples.jtl -e -o jmeter-teastore/simples-report
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl \
+            -e -o jmeter-teastore/report-simples \
+            -Jhostname=localhost -Jport=18081
 
-      - name: Run JMeter Complexos
+      - name: Run JMeter Complex
         run: |
-          ./apache-jmeter-5.6.2/bin/jmeter -n -t jmeter-teastore/complexos.jmx \
-          -l jmeter-teastore/complexos.jtl -e -o jmeter-teastore/complexos-report
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl \
+            -e -o jmeter-teastore/report-complexos \
+            -Jhostname=localhost -Jport=18081
 
-      - name: Upload JMeter Reports
+      - name: Upload JMeter reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jmeter-reports
-          path: jmeter-teastore/*report
+          name: relatorios-jmeter
+          path: jmeter-teastore/report*
 
+      # ==========================
+      # K6
+      # ==========================
       - name: Install K6
         run: |
-          sudo apt-get install -y gnupg
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
           echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update && sudo apt-get install -y k6
+          sudo apt-get update
+          sudo apt-get install -y k6
 
-      - name: Run K6 Simples
-        run: k6 run k6-teastore/simples.js --summary-export=k6-simples.json
+      - name: Run K6 simple
+        run: |
+          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
 
-      - name: Run K6 Complexos
-        run: k6 run k6-teastore/complexos.js --summary-export=k6-complexos.json || true
+      - name: Run K6 complex
+        run: |
+          k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json || true
 
-      - name: Upload K6 Reports
+      - name: Upload K6 summaries
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-reports
+          name: relatorios-k6
           path: "k6-*.json"
 
-      - name: Setup Python for Locust & Reports
+      # ==========================
+      # LOCUST
+      # ==========================
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Install Python libs
+      - name: Install Locust + Python deps
         run: |
-          python3 -m venv .venv
-          . .venv/bin/activate
-          pip install --upgrade pip
-          pip install locust requests beautifulsoup4 pandas jinja2 reportlab matplotlib
+          python3 -m pip install --upgrade pip
+          pip install locust beautifulsoup4 requests lxml jinja2 pandas matplotlib reportlab
 
-      - name: Run Locust Simples
+      - name: Run Locust Simple
         run: |
-          . .venv/bin/activate
-          locust -f locust-teastore/simples.py --headless -u 5 -r 1 -t 20s --host http://localhost:18081 \
-          --html locust-teastore/simples.html
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 5 -r 2 -t 15s \
+            --host http://localhost:18081 \
+            --html locust-teastore/simple.html || true
 
-      - name: Run Locust Complexos
+      - name: Run Locust Complex
         run: |
-          . .venv/bin/activate
-          locust -f locust-teastore/complexos-locust.py --headless -u 10 -r 2 -t 30s --host http://localhost:18081 \
-          --html locust-teastore/complexos.html
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 3 -t 30s \
+            --host http://localhost:18081 \
+            --html locust-teastore/complex.html || true
 
-      - name: Upload Locust Reports
+      - name: Upload Locust reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: locust-reports
+          name: relatorios-locust
           path: locust-teastore/*.html
 
-      - name: Generate Dashboard and PDF
+      # ==========================
+      # Generate consolidated dashboard + PDF
+      # ==========================
+      - name: Run dashboard generator
         run: |
-          . .venv/bin/activate
-          python3 tools/generate_dashboard.py --k6 k6-complexos.json --jmeter jmeter-teastore/complexos-report/index.html \
-          --locust locust-teastore/complexos.html --out dashboard.html --pdf report.pdf
+          python3 generate_dashboard.py
 
-      - name: Upload Dashboard
+      - name: Upload consolidated dashboard and PDF
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dashboard-final
+          name: dashboard-and-pdf
           path: |
             dashboard.html
-            report.pdf
+            charts/**
+            relatorio_completo.pdf
+
+      # ==========================
+      # DEBUG & SHUTDOWN
+      # ==========================
+      - name: Logs & Stop containers
+        if: always()
+        run: |
+          docker compose logs --no-color
+          docker compose down -v
