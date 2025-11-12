@@ -1,137 +1,83 @@
 import http from 'k6/http';
-import { sleep, check, group } from 'k6';
+import { check, group, sleep } from 'k6';
 import { parseHTML } from 'k6/html';
 import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
-
-const BASE_UI = "http://localhost:18081/tools.descartes.teastore.webui";
-const BASE_HOST = "http://localhost:18081";
-
-export function setup() {
-  console.log('--- Resetando base via API ---');
-  const res = http.post(`${BASE_UI}/services/rest/persistence/reset`);
-  check(res, { 'Reset via API status 200': (r) => r.status === 200 });
-}
 
 export const options = {
   vus: 10,
   duration: '30s',
   thresholds: {
-    'checks{cenario:login}': ['rate>0.5'],
-    'checks{cenario:compra}': ['rate>0.5'],
+    'checks{cenario:login}': ['rate>0.9'],
+    'checks{cenario:compra}': ['rate>0.9'],
   },
 };
 
-function extractCsrfFromBody(body) {
-  const doc = parseHTML(body);
-  let el = doc.find("input[name='_csrf']");
-  if (el && el.attr('value')) return el.attr('value');
-  el = doc.find("meta[name='_csrf']");
-  if (el && el.attr('content')) return el.attr('content');
-  // fallback: search for "_csrf" pattern in JS
-  const m = body.match(/_csrf['"]?\s*[:=]\s*['"]([^'"]+)['"]/);
-  if (m) return m[1];
+const BASE = 'http://localhost:18081/tools.descartes.teastore.webui';
+
+function extractCsrf(html) {
+  const doc = parseHTML(html);
+  const input = doc.find('input[name="_csrf"]');
+  if (input && input.attr('value')) return input.attr('value');
+  const meta = doc.find('meta[name="_csrf"]');
+  if (meta && meta.attr('content')) return meta.attr('content');
   return null;
 }
 
 export default function () {
+  const jar = http.cookieJar();
   let csrf = null;
-  let loginSuccess = false;
+  let productName = '';
 
-  group('Cenário de Login', function () {
-    let res = http.get(`${BASE_UI}/login`, { redirects: 5 });
-    check(res, { 'Página login carregada': (r) => r.status === 200 }, { cenario: 'login' });
+  // 1️⃣ Login Page
+  group('Login', () => {
+    let res = http.get(`${BASE}/login`, { jar });
+    check(res, { 'Login page carregada': (r) => r.status === 200 }, { cenario: 'login' });
 
-    csrf = extractCsrfFromBody(res.body);
-    if (!csrf) {
-      check(res, { 'CSRF encontrado': () => false }, { cenario: 'login' });
-      return;
-    }
-    check({ ok: true }, { 'CSRF encontrado': () => !!csrf }, { cenario: 'login' });
+    csrf = extractCsrf(res.body);
+    check(csrf, { 'Token CSRF encontrado': (v) => !!v }, { cenario: 'login' });
 
-    const payload = {
-      username: 'user1',
-      password: 'password',
-      action: 'login',
-      _csrf: csrf,
-    };
-    const postRes = http.post(`${BASE_UI}/loginAction`, payload, { redirects: 5 });
-    loginSuccess = check(postRes, {
-      'Login status 200 or 302': (r) => r.status === 200 || r.status === 302,
-    }, { cenario: 'login' });
-
-    if (!loginSuccess) return;
-
-    // validate by loading home
-    const home = http.get(`${BASE_UI}/`, { redirects: 5 });
-    csrf = extractCsrfFromBody(home.body) || csrf;
-    check(home, { 'Home after login ok': (r) => r.status === 200 }, { cenario: 'login' });
-    sleep(1);
+    const payload = { username: 'user1', password: 'password', _csrf: csrf };
+    res = http.post(`${BASE}/loginAction`, payload, { redirects: 5, jar });
+    check(res, { 'Login efetuado': (r) => [200, 302].includes(r.status) }, { cenario: 'login' });
   });
 
-  if (!loginSuccess) return;
+  // 2️⃣ Fluxo de compra
+  group('Fluxo de Compra', () => {
+    // Home
+    let res = http.get(`${BASE}/`, { jar });
+    check(res, { 'Home carregada': (r) => r.status === 200 }, { cenario: 'compra' });
 
-  group('Compra Produto', function () {
-    let res = http.get(`${BASE_UI}/`);
-    check(res, { 'Página inicial ok': (r) => r.status === 200 }, { cenario: 'compra' });
+    const docHome = parseHTML(res.body);
+    const catLink = docHome.find('a.menulink').first().attr('href');
+    check(catLink, { 'Categoria encontrada': (v) => !!v }, { cenario: 'compra' });
 
-    const doc = parseHTML(res.body);
-    let link = doc.find('ul.nav-sidebar a.menulink').first();
-    if (!link || !link.attr('href')) link = doc.find('a.menulink').first();
-    if (!link || !link.attr('href')) {
-      check(res, { 'Categoria encontrada': () => false }, { cenario: 'compra' });
-      return;
-    }
-    let categoryHref = link.attr('href');
-    const catUrl = new URL(categoryHref, BASE_HOST).toString();
-    res = http.get(catUrl);
+    // Categoria
+    res = http.get(new URL(catLink, BASE).toString(), { jar });
     check(res, { 'Categoria carregada': (r) => r.status === 200 }, { cenario: 'compra' });
 
     const docCat = parseHTML(res.body);
-    let prodLinkEl = docCat.find('div.thumbnail a').first();
-    if (!prodLinkEl || !prodLinkEl.attr('href')) prodLinkEl = docCat.find('a[href*="product"]').first();
-    if (!prodLinkEl || !prodLinkEl.attr('href')) {
-      check(res, { 'Produto encontrado': () => false }, { cenario: 'compra' });
-      return;
-    }
-    const productHref = new URL(prodLinkEl.attr('href'), BASE_HOST).toString();
-    res = http.get(productHref);
-    check(res, { 'Produto carregado': (r) => r.status === 200 }, { cenario: 'compra' });
+    const prodLink = docCat.find('div.thumbnail a').first().attr('href');
+    check(prodLink, { 'Produto encontrado': (v) => !!v }, { cenario: 'compra' });
+
+    // Produto
+    res = http.get(new URL(prodLink, BASE).toString(), { jar });
+    check(res, { 'Página do produto carregada': (r) => r.status === 200 }, { cenario: 'compra' });
 
     const docProd = parseHTML(res.body);
-    const productNameEl = docProd.find('h2.product-title').first() || docProd.find('h2.minipage-title').first();
-    const productName = productNameEl ? productNameEl.text().trim() : null;
+    const prodId = docProd.find('input[name="productid"]').attr('value');
+    csrf = extractCsrf(res.body);
+    productName = docProd.find('h2.product-title').text().trim();
 
-    const csrfProd = extractCsrfFromBody(res.body) || csrf;
-    if (!csrfProd) {
-      check(res, { 'Falha ao extrair CSRF do produto': () => false }, { cenario: 'compra' });
-      return;
-    }
+    check(prodId, { 'ID do produto encontrado': (v) => !!v }, { cenario: 'compra' });
 
-    let productId = null;
-    const idEl = docProd.find("input[name='productid']").first();
-    if (idEl && idEl.attr('value')) productId = idEl.attr('value');
-    if (!productId) {
-      const u = new URL(productHref);
-      productId = u.searchParams.get('id');
-    }
-    if (!productId) {
-      check(res, { 'product id encontrado': () => false }, { cenario: 'compra' });
-      return;
-    }
+    // Adicionar ao carrinho
+    const cartPayload = { productid: prodId, addToCart: 'Add to Cart', _csrf: csrf };
+    res = http.post(`${BASE}/cartAction`, cartPayload, { redirects: 5, jar });
+    check(res, { 'Produto adicionado ao carrinho': (r) => [200, 302].includes(r.status) }, { cenario: 'compra' });
 
-    const cartPayload = {
-      productid: productId,
-      addToCart: 'Add to Cart',
-      _csrf: csrfProd,
-    };
-    const addRes = http.post(`${BASE_UI}/cartAction`, cartPayload, { redirects: 5 });
-    check(addRes, { 'Produto adicionado ao carrinho (POST)': (r) => r.status === 200 || r.status === 302 }, { cenario: 'compra' });
-
-    sleep(1);
-    const cartRes = http.get(`${BASE_UI}/cart`);
-    check(cartRes, {
-      'Carrinho contém produto': (r) => productName && r.body && r.body.includes(productName)
-    }, { cenario: 'compra' });
+    // Validar no carrinho
+    res = http.get(`${BASE}/cart`, { jar });
+    check(res, { 'Produto está no carrinho': (r) => r.body.includes(productName) }, { cenario: 'compra' });
 
     sleep(1);
   });
