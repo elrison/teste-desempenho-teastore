@@ -1,104 +1,137 @@
-name: Teste de Desempenho — TeaStore v13
+name: Teste de Desempenho - TeaStore v13
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
-  performance-test:
+  performance:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repositório
+      # ======================================================
+      # 1. Checkout do repositório
+      # ======================================================
+      - name: Checkout do repositório
         uses: actions/checkout@v4
 
-      # =====================
-      # DEPENDÊNCIAS
-      # =====================
+      # ======================================================
+      # 2. Diagnóstico de estrutura
+      # ======================================================
+      - name: Verificar estrutura de diretórios
+        run: |
+          echo "📂 Estrutura de diretórios atual:"
+          ls -R
+
+      # ======================================================
+      # 3. Instalar dependências (K6, JMeter, Locust, Python)
+      # ======================================================
       - name: Instalar dependências
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip default-jdk unzip wget
-          pip install reportlab beautifulsoup4 requests locust
+          sudo apt update -y
+          sudo apt install -y default-jdk python3 python3-pip unzip
+          pip install matplotlib pandas reportlab
+          
+          # Instalar k6
+          wget https://dl.k6.io/releases/latest/k6-v0.49.0-linux-amd64.tar.gz
+          tar -xvzf k6-v0.49.0-linux-amd64.tar.gz
+          sudo mv k6-v0.49.0-linux-amd64/k6 /usr/local/bin/
 
-          # Instalação do K6
-          curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
-          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update && sudo apt-get install -y k6
+          # Instalar JMeter
+          wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.zip
+          unzip -q apache-jmeter-5.6.3.zip
+          sudo mv apache-jmeter-5.6.3 /opt/jmeter
 
-          # Instalação do Apache JMeter
-          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
-          tar -xzf apache-jmeter-5.6.2.tgz
-          sudo mv apache-jmeter-5.6.2 /opt/jmeter
-          echo "export PATH=$PATH:/opt/jmeter/bin" >> ~/.bashrc
-          source ~/.bashrc
+          # Instalar Locust
+          pip install locust
 
-      # =====================
-      # TESTES K6
-      # =====================
+      # ======================================================
+      # 4. Executar Teste Simples (K6)
+      # ======================================================
       - name: Executar teste simples (K6)
         run: |
           mkdir -p k6-reports
-          k6 run ./k6-teastore/teste-carga-simples.js --summary-export=k6-reports/simple.json
+          SCRIPT="./k6-teastore/teste-carga-simples.js"
 
+          if [ ! -f "$SCRIPT" ]; then
+            echo "❌ Arquivo não encontrado em $SCRIPT"
+            echo "Listando diretórios:"
+            ls -R
+            exit 1
+          fi
+
+          echo "✅ Executando $SCRIPT ..."
+          k6 run "$SCRIPT" --summary-export=k6-reports/simple.json
+
+      # ======================================================
+      # 5. Executar Teste Complexo (K6)
+      # ======================================================
       - name: Executar teste complexo (K6)
         run: |
-          k6 run ./k6-teastore/teste-carga-complexo.js --summary-export=k6-reports/complex.json
+          mkdir -p k6-reports
+          SCRIPT="./k6-teastore/teste-carga-complexo.js"
 
-      # =====================
-      # TESTES JMETER
-      # =====================
-      - name: Executar teste simples (JMeter)
+          if [ ! -f "$SCRIPT" ]; then
+            echo "❌ Arquivo não encontrado em $SCRIPT"
+            echo "Listando diretórios:"
+            ls -R
+            exit 1
+          fi
+
+          echo "✅ Executando $SCRIPT ..."
+          k6 run "$SCRIPT" --summary-export=k6-reports/complex.json
+
+      # ======================================================
+      # 6. Executar JMeter (simples e complexo)
+      # ======================================================
+      - name: Executar testes JMeter
         run: |
-          mkdir -p jmeter-teastore/report-simples
-          /opt/jmeter/bin/jmeter -n -t ./jmeter-teastore/teste-simples.jmx \
-            -l ./jmeter-teastore/results-simples.jtl \
-            -e -o ./jmeter-teastore/report-simples
+          mkdir -p jmeter-reports
 
-      - name: Executar teste complexo (JMeter)
-        run: |
-          mkdir -p jmeter-teastore/report-complexos
-          /opt/jmeter/bin/jmeter -n -t ./jmeter-teastore/teste-complexos.jmx \
-            -l ./jmeter-teastore/results-complexos.jtl \
-            -e -o ./jmeter-teastore/report-complexos
+          SIMPLE="./jmeter-teastore/teste-simples.jmx"
+          COMPLEX="./jmeter-teastore/teste-complexo.jmx"
 
-      # =====================
-      # TESTES LOCUST
-      # =====================
-      - name: Executar teste simples (Locust)
+          echo "🧪 Executando JMeter Simples..."
+          /opt/jmeter/bin/jmeter -n -t "$SIMPLE" -l jmeter-reports/simple.jtl
+
+          echo "🧪 Executando JMeter Complexo..."
+          /opt/jmeter/bin/jmeter -n -t "$COMPLEX" -l jmeter-reports/complex.jtl -e -o jmeter-reports/dashboard
+
+      # ======================================================
+      # 7. Executar Locust
+      # ======================================================
+      - name: Executar testes Locust
         run: |
           mkdir -p locust-reports
-          locust -f ./locust-teastore/cenarios-simples-locust.py --headless -u 10 -r 2 -t 30s \
-            --html locust-reports/simples.html --csv locust-reports/simples
+          FILE="./locust-teastore/locustfile.py"
 
-      - name: Executar teste complexo (Locust)
+          echo "✅ Executando Locust com $FILE ..."
+          locust -f "$FILE" --headless -u 10 -r 2 -t 30s --csv=locust-reports/locust
+
+      # ======================================================
+      # 8. Gerar Dashboard Consolidado
+      # ======================================================
+      - name: Gerar dashboard consolidado
         run: |
-          locust -f ./locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 2 -t 30s \
-            --html locust-reports/complex.html --csv locust-reports/complex
+          mkdir -p reports
+          python3 generate_dashboard.py \
+            --k6 k6-reports/complex.json \
+            --jmeter jmeter-reports/complex.jtl \
+            --locust locust-reports/locust_stats.csv \
+            --out reports/dashboard.html \
+            --pdf reports/dashboard.pdf
 
-      # =====================
-      # DASHBOARD E PDF
-      # =====================
-      - name: Gerar dashboard consolidado e PDF
-        run: |
-          python3 ./tools/generate_dashboard.py \
-            --k6 ./k6-reports/complex.json \
-            --jmeter ./jmeter-teastore/report-complexos/index.html \
-            --locust ./locust-reports/complex.html \
-            --out ./dashboard.html \
-            --pdf ./relatorio.pdf
-
-      # =====================
-      # PUBLICAR RESULTADOS
-      # =====================
-      - name: Publicar artefatos
+      # ======================================================
+      # 9. Upload dos relatórios
+      # ======================================================
+      - name: Upload dos relatórios
         uses: actions/upload-artifact@v4
         with:
-          name: relatorios-teastore-v13
+          name: resultados-desempenho
           path: |
-            ./k6-reports/*.json
-            ./jmeter-teastore/report-*/**
-            ./locust-reports/*.html
-            ./dashboard.html
-            ./relatorio.pdf
+            k6-reports/
+            jmeter-reports/
+            locust-reports/
+            reports/
