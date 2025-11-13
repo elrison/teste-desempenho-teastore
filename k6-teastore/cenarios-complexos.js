@@ -49,6 +49,7 @@ export default function () {
     return;
   }
 
+
   // 2️⃣ LOGIN ACTION
   const loginRes = http.post(`${BASE_URL}/loginAction`, {
     username: 'user1',
@@ -101,5 +102,6 @@ export default function () {
   const cartPage = http.get(`${BASE_URL}/cart`);
   check(cartPage, { 'Produto está no carrinho': (r) => r.status === 200 && r.body.includes('Cart') }, { cenario: 'compra' });
 
+  
   sleep(1);
 }
