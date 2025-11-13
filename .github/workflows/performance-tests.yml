@@ -23,16 +23,17 @@ jobs:
       - name: Instalar dependências
         run: |
           sudo apt update -y
-          sudo apt install -y default-jdk python3 python3-pip unzip wget
+          sudo apt install -y default-jdk python3 python3-pip unzip wget curl
           pip install matplotlib pandas reportlab
 
-          # ✅ Instalar k6 (dinâmico — evita erro 404)
+          # ✅ Instalar última versão do k6 (corrigido sem 404)
           K6_VERSION=$(curl -s https://api.github.com/repos/grafana/k6/releases/latest | grep tag_name | cut -d '"' -f 4)
-          wget https://github.com/grafana/k6/releases/download/${K6_VERSION}/k6-${K6_VERSION#v}-linux-amd64.tar.gz
-          tar -xvzf k6-${K6_VERSION#v}-linux-amd64.tar.gz
-          sudo mv k6-${K6_VERSION#v}-linux-amd64/k6 /usr/local/bin/
+          echo "🔹 Baixando K6 versão: $K6_VERSION"
+          wget https://github.com/grafana/k6/releases/download/${K6_VERSION}/k6-${K6_VERSION}-linux-amd64.tar.gz
+          tar -xvzf k6-${K6_VERSION}-linux-amd64.tar.gz
+          sudo mv k6-${K6_VERSION}-linux-amd64/k6 /usr/local/bin/
 
-          # ✅ Instalar JMeter com suporte a gráficos completos
+          # ✅ Instalar JMeter (com suporte a dashboards)
           wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.zip
           unzip -q apache-jmeter-5.6.3.zip
           sudo mv apache-jmeter-5.6.3 /opt/jmeter
@@ -46,21 +47,21 @@ jobs:
       - name: Executar teste simples (K6) com Web Dashboard
         run: |
           mkdir -p k6-reports
-          echo "🌐 Iniciando K6 Web Dashboard..."
+          echo "🌐 Iniciando K6 Web Dashboard (teste simples)..."
           nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-simples.js --summary-export=k6-reports/simple.json > k6-reports/simple.log 2>&1 &
-          sleep 15
-          echo "✅ K6 Dashboard (simples) gerado no modo headless CI."
+          sleep 10
+          echo "✅ K6 Web Dashboard ativo (modo headless)."
+          sleep 10
 
       - name: Executar teste complexo (K6) com Web Dashboard
         run: |
           mkdir -p k6-reports
           echo "🌐 Executando teste complexo com K6 Web Dashboard..."
           nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-complexo.js --summary-export=k6-reports/complex.json > k6-reports/complex.log 2>&1 &
-          sleep 20
-          echo "✅ K6 Dashboard (complexo) concluído."
+          sleep 15
 
       # ======================================================
-      # 4. Executar JMeter (Simples + Complexo com gráficos)
+      # 4. Executar JMeter (Simples + Complexo com dashboards HTML)
       # ======================================================
       - name: Executar testes JMeter (com dashboards)
         run: |
@@ -69,30 +70,30 @@ jobs:
           SIMPLE="./jmeter-teastore/teste-simples.jmx"
           COMPLEX="./jmeter-teastore/teste-complexo.jmx"
 
-          echo "🧪 Executando JMeter Simples..."
+          echo "🧪 Executando JMeter - Teste Simples..."
           /opt/jmeter/bin/jmeter -n -t "$SIMPLE" -l jmeter-reports/simple.jtl -e -o jmeter-reports/dashboard-simple
 
-          echo "🧪 Executando JMeter Complexo..."
+          echo "🧪 Executando JMeter - Teste Complexo..."
           /opt/jmeter/bin/jmeter -n -t "$COMPLEX" -l jmeter-reports/complex.jtl -e -o jmeter-reports/dashboard-complex
 
-          echo "✅ Relatórios HTML gerados em:"
-          echo "   - jmeter-reports/dashboard-simple"
-          echo "   - jmeter-reports/dashboard-complex"
+          echo "✅ Dashboards HTML gerados com sucesso!"
 
       # ======================================================
-      # 5. Executar Locust (mantido)
+      # 5. Executar Locust
       # ======================================================
       - name: Executar testes Locust
         run: |
           mkdir -p locust-reports
+          echo "🚀 Executando Locust (modo headless)..."
           locust -f ./locust-teastore/locustfile.py --headless -u 10 -r 2 -t 30s --csv=locust-reports/locust
 
       # ======================================================
-      # 6. Gerar Dashboard Consolidado (PDF + HTML)
+      # 6. Gerar Dashboard Consolidado (HTML + PDF)
       # ======================================================
       - name: Gerar Dashboard Consolidado
         run: |
           mkdir -p reports
+          echo "📊 Gerando dashboard consolidado..."
           python3 generate_dashboard.py \
             --k6 k6-reports/complex.json \
             --jmeter jmeter-reports/complex.jtl \
