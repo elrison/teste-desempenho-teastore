@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v20 - Fix Pathing)
+name: Pipeline de Performance (v21 - Root Directory Fix)
 
 on:
   workflow_dispatch:
@@ -8,26 +8,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    # Define o diretório padrão para ONDE ESTÁ O SEU CÓDIGO
-    defaults:
-      run:
-        working-directory: ./teste-desempenho-teastore
-
+    # NÃO HÁ 'DEFAULTS' DE DIRETÓRIO AQUI - TUDO RODA NA RAIZ
+    
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          path: teste-desempenho-teastore
+        # O 'path:' foi removido. O código fica na raiz.
 
       - name: Install system packages
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
-        # Instalação global pode rodar em qualquer lugar, deixamos o default
+        # Não precisa de 'working-directory'
 
       - name: Start TeaStore stack
         run: |
           echo "🚀 Iniciando Banco de Dados..."
+          # Encontra o docker-compose.yml na raiz
           docker compose up -d teastore-db
           
           echo "⏳ Aguardando 40s para o MySQL inicializar..."
@@ -42,7 +39,7 @@ jobs:
           sleep 20
           docker compose up -d teastore-webui
           sleep 15
-        # Usa o default (encontra o docker-compose.yml)
+        # Não precisa de 'working-directory'
 
       - name: Wait WebUI (Login Page)
         run: |
@@ -64,15 +61,12 @@ jobs:
           done
           echo "❌ Timeout: WebUI não carregou."
           exit 1
-        # Usa o default
+        # Não precisa de 'working-directory'
 
-      # -----------------------------------------------------------------
-      # CORREÇÃO: Removido 'working-directory: .' para achar o docker-compose.yml
-      # -----------------------------------------------------------------
       - name: Fix Connection & Populate
         run: |
           echo "🔧 Reiniciando container de Persistência para forçar reconexão com DB..."
-          # Agora este comando vai funcionar porque está no diretório correto
+          # Encontra o docker-compose.yml na raiz
           docker compose restart teastore-persistence
           
           echo "⏳ Aguardando 15s para Persistência subir novamente..."
@@ -119,13 +113,14 @@ jobs:
 
           echo "❌ Erro Fatal: Banco de dados vazio."
           echo "--- Debug: Logs Atuais da Persistência ---"
-          docker logs teste-desempenho-teastore-teastore-persistence-1 --tail 50 || true
+          # O nome do container agora será baseado no nome do diretório raiz
+          docker compose logs teastore-persistence || true
           exit 1
-        # REMOVIDO working-directory: . (Esta era a causa do erro)
+        # Não precisa de 'working-directory'
 
       - name: Check containers
         run: docker ps -a
-        # Usa o default
+        # Não precisa de 'working-directory'
 
       # -----------------------
       # JMETER
@@ -156,7 +151,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
-          path: teste-desempenho-teastore/jmeter-teastore/report*
+          # CORREÇÃO: Removido prefixo do path
+          path: jmeter-teastore/report*
 
       # -----------------------
       # K6
@@ -167,7 +163,6 @@ jobs:
           echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
           sudo apt-get install -y k6
-        # Instalação global
 
       - name: Run K6 Simples
         run: |
@@ -181,9 +176,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
+          # CORREÇÃO: Removido prefixo do path
           path: |
-            teste-desempenho-teastore/k6-*.json
-            teste-desempenho-teastore/k6-*.html
+            k6-*.json
+            k6-*.html
 
       # -----------------------
       # LOCUST
@@ -215,7 +211,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-locust
-          path: teste-desempenho-teastore/locust-teastore/*.html
+          # CORREÇÃO: Removido prefixo do path
+          path: locust-teastore/*.html
 
       # -----------------------
       # CONSOLIDATED
@@ -233,10 +230,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorio-consolidado
+          # CORREÇÃO: Removido prefixo do path
           path: |
-            teste-desempenho-teastore/dashboard.html
-            teste-desempenho-teastore/report.pdf
-            teste-desempenho-teastore/charts/
+            dashboard.html
+            report.pdf
+            charts/
         if: always()
 
       - name: Logs & Stop containers
