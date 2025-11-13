@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v24 - Generate-and-Check Loop)
+name: Pipeline de Performance (v25 - Paranoid Startup)
 
 on:
   workflow_dispatch:
@@ -17,101 +17,96 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
+      # -----------------------------------------------------------------
+      # CORREÇÃO CRÍTICA: Inicialização manual em 4 FASES
+      # -----------------------------------------------------------------
       - name: Start TeaStore stack (Manually Ordered)
         run: |
-          echo "🚀 Iniciando SOMENTE o Banco de Dados (teastore-db)..."
+          # FASE 1: O BANCO DE DADOS
+          echo "🚀 FASE 1: Iniciando SOMENTE o Banco de Dados (teastore-db)..."
           docker compose up -d teastore-db
           
           echo "⏳ Aguardando o Banco de Dados ficar 'healthy' (max 2 min)..."
-          MAX_WAIT=120 # 120 segundos
+          MAX_WAIT=120
           COUNT=0
           while [ $COUNT -lt $MAX_WAIT ]; do
             HEALTH=$(docker ps --filter "name=teastore-db-1" --format "{{.Status}}")
-            
             if echo "$HEALTH" | grep -q "(healthy)"; then
               echo "✅ DB está 'healthy'!"
               break
             fi
-            
             if echo "$HEALTH" | grep -q "unhealthy"; then
               echo "❌ DB está 'unhealthy'. Falha imediata."
               docker logs teastore-db-1
               exit 1
             fi
-
             echo "   (Aguardando $COUNT/$MAX_WAIT... Status: $HEALTH)"
             sleep 2
             COUNT=$((COUNT + 2))
           done
-          
           if [ $COUNT -ge $MAX_WAIT ]; then
             echo "❌ Timeout: O Banco de Dados não ficou 'healthy' a tempo."
             docker logs teastore-db-1
             exit 1
           fi
 
-          echo "🚀 Iniciando o restante da Stack (Registry, Persistence, WebUI, etc)..."
-          docker compose up -d teastore-registry teastore-persistence teastore-auth teastore-image teastore-recommender teastore-webui
+          # FASE 2: O REGISTRY (depende do DB)
+          echo "🚀 FASE 2: Iniciando o Registry..."
+          docker compose up -d teastore-registry
+          echo "⏳ Aguardando 15s para o Registry se conectar ao DB..."
+          sleep 15
+          
+          # FASE 3: O BACKEND (depende do Registry)
+          echo "🚀 FASE 3: Iniciando os serviços de Backend (Persistence, Auth, etc.)..."
+          docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
+          echo "⏳ Aguardando 45s para os .war do backend implantarem (Java é lento)..."
+          sleep 45
 
-          echo "⏳ Aguardando 20s para os serviços Java iniciarem..."
-          sleep 20
-
-      - name: Wait WebUI (Login Page)
-        run: |
-          MAX_ATTEMPTS=80
-          SLEEP_SECONDS=3
-          URL="http://localhost:18081/tools.descartes.teastore.webui/login"
-
-          echo "⏳ Aguardando WebUI (frontend) ficar online na URL: $URL..."
-
-          for attempt in $(seq 1 $MAX_ATTEMPTS); do
-            RESP=$(curl -L -s --max-time 5 "$URL" || true)
-            if [ -n "$RESP" ]; then
-              if echo "$RESP" | grep -qi "TeaStore"; then
-                echo "✅ Página TeaStore (WebUI) carregada na tentativa $attempt"
-                exit 0
-              fi
-            fi
-            sleep $SLEEP_SECONDS
-          done
-          echo "❌ Timeout: WebUI não carregou."
-          exit 1
+          # FASE 4: O FRONTEND (depende do Registry)
+          echo "🚀 FASE 4: Iniciando o Frontend (WebUI)..."
+          docker compose up -d teastore-webui
+          echo "⏳ Aguardando 30s para o .war do WebUI implantar..."
+          sleep 30
+          
+          echo "✅ Todos os serviços estão iniciados em ordem."
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Loop de Geração E Verificação
+      # Este passo agora é um 'healthcheck' final + Geração de Dados
       # -----------------------------------------------------------------
-      - name: Populate & Wait for Products (v24)
+      - name: Populate & Wait for Products (v25)
         run: |
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
           
-          echo "🚀 Iniciando loop de 'Gerar e Verificar' (max 2 minutos)..."
+          echo "🚀 Iniciando loop de 'Gerar e Verificar' (agora deve funcionar na 1ª tentativa)..."
 
           MAX_WAIT=120 # 2 minutos
           COUNT=0
           while [ $COUNT -lt $MAX_WAIT ]; do
             echo "--- Tentativa (Tempo $COUNT/$MAX_WAIT) ---"
             
-            # 1. TENTAR GERAR (ignora a resposta, pois não é confiável)
+            # 1. TENTAR GERAR
             echo "   1. Disparando API de Geração (POST)..."
-            curl -L -s -o /dev/null -X POST "$GEN_URL"
+            # -v (verbose) para ver o status code
+            curl -L -v -X POST "$GEN_URL"
             
             # 2. AGUARDAR PROPAGAÇÃO
-            sleep 5 # Espera 5 segundos para a geração (se funcionou)
+            # A geração de 500 produtos é assíncrona. Damos um tempo maior.
+            echo "   2. Aguardando 15s para a geração assíncrona..."
+            sleep 15 
             
             # 3. VERIFICAR RESULTADO
-            echo "   2. Verificando Home Page por categorias..."
+            echo "   3. Verificando Home Page por categorias..."
             HOME_HTML=$(curl -L -s "$HOME_URL")
             CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
 
             if [ -z "$CAT_LINK" ]; then
-               echo "   3. Home page ainda não tem categorias. Repetindo..."
+               echo "   3. Home page ainda não tem categorias. (WebUI não conectou ao Registry?). Repetindo..."
                sleep 5
-               COUNT=$((COUNT + 10)) # Adiciona o sleep de 5 + este
-               continue # Volta ao início do loop
+               COUNT=$((COUNT + 20)) # (15 + 5)
+               continue
             fi
             
-            # Se achamos uma categoria, verificamos se ela tem produtos
             echo "   3. Categoria encontrada ($CAT_LINK). Verificando se há produtos..."
             FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
             RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
@@ -121,9 +116,9 @@ jobs:
               exit 0
             fi
 
-            echo "   4. Categoria ainda está vazia. Repetindo..."
+            echo "   4. Categoria ainda está vazia. (Persistência ainda está gerando dados?). Repetindo..."
             sleep 5
-            COUNT=$((COUNT + 10)) # Adiciona o sleep de 5 + este
+            COUNT=$((COUNT + 20)) # (15 + 5)
           done
 
           echo "❌ Erro Fatal: O loop terminou e os produtos nunca apareceram."
@@ -135,7 +130,7 @@ jobs:
         run: docker ps -a
 
       # -----------------------
-      # JMETER
+      # JMETER (sem alterações)
       # -----------------------
       - name: Install Java & JMeter
         run: |
@@ -166,7 +161,7 @@ jobs:
           path: jmeter-teastore/report*
 
       # -----------------------
-      # K6
+      # K6 (sem alterações)
       # -----------------------
       - name: Install K6
         run: |
@@ -192,7 +187,7 @@ jobs:
             k6-*.html
 
       # -----------------------
-      # LOCUST
+      # LOCUST (sem alterações)
       # -----------------------
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -224,7 +219,7 @@ jobs:
           path: locust-teastore/*.html
 
       # -----------------------
-      # CONSOLIDATED
+      # CONSOLIDATED (sem alterações)
       # -----------------------
       - name: Generate consolidated dashboard & PDF
         run: |
