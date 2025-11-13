@@ -17,7 +17,7 @@ jobs:
       - name: Checkout do repositório
         uses: actions/checkout@v4
 
-      # ======================================================
+            # ======================================================
       # 2. Instalar dependências
       # ======================================================
       - name: Instalar dependências
@@ -26,17 +26,17 @@ jobs:
           sudo apt install -y default-jdk python3 python3-pip unzip wget
           pip install matplotlib pandas reportlab
 
-          # Instalar k6
-          wget https://dl.k6.io/releases/latest/k6-v0.49.0-linux-amd64.tar.gz
+          # ✅ Instalar k6 (URL corrigida - novo repositório oficial)
+          wget https://github.com/grafana/k6/releases/latest/download/k6-v0.49.0-linux-amd64.tar.gz
           tar -xvzf k6-v0.49.0-linux-amd64.tar.gz
           sudo mv k6-v0.49.0-linux-amd64/k6 /usr/local/bin/
 
-          # Instalar JMeter
+          # ✅ Instalar JMeter com suporte a gráficos completos
           wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.zip
           unzip -q apache-jmeter-5.6.3.zip
           sudo mv apache-jmeter-5.6.3 /opt/jmeter
 
-          # Instalar Locust
+          # ✅ Instalar Locust
           pip install locust
 
       # ======================================================
