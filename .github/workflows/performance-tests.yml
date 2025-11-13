@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v23 - Active API Wait)
+name: Pipeline de Performance (v24 - Generate-and-Check Loop)
 
 on:
   workflow_dispatch:
@@ -78,76 +78,55 @@ jobs:
           exit 1
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Esperar a API de PERSISTÊNCIA ficar pronta
+      # CORREÇÃO CRÍTICA: Loop de Geração E Verificação
       # -----------------------------------------------------------------
-      - name: Populate & Wait for Products (v23)
+      - name: Populate & Wait for Products (v24)
         run: |
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
+          HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
           
-          echo "🚀 Tentando popular o banco de dados (max 90s)..."
-          echo "Usando URL: $GEN_URL"
+          echo "🚀 Iniciando loop de 'Gerar e Verificar' (max 2 minutos)..."
 
-          MAX_ATTEMPTS=45
-          SLEEP_SECONDS=2
-          SUCCESS=false
+          MAX_WAIT=120 # 2 minutos
+          COUNT=0
+          while [ $COUNT -lt $MAX_WAIT ]; do
+            echo "--- Tentativa (Tempo $COUNT/$MAX_WAIT) ---"
+            
+            # 1. TENTAR GERAR (ignora a resposta, pois não é confiável)
+            echo "   1. Disparando API de Geração (POST)..."
+            curl -L -s -o /dev/null -X POST "$GEN_URL"
+            
+            # 2. AGUARDAR PROPAGAÇÃO
+            sleep 5 # Espera 5 segundos para a geração (se funcionou)
+            
+            # 3. VERIFICAR RESULTADO
+            echo "   2. Verificando Home Page por categorias..."
+            HOME_HTML=$(curl -L -s "$HOME_URL")
+            CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
 
-          # 1. LOOP DE POPULAÇÃO
-          # A WebUI está online, mas a Persistência (backend) pode não estar.
-          # Continuamos tentando até a API parar de dar 302 (Redirect) e
-          # finalmente retornar 200 (OK) ou 204 (No Content).
-          
-          for attempt in $(seq 1 $MAX_ATTEMPTS); do
-            # -L segue redirects
-            # -s silencia
-            # -o /dev/null descarta o body
-            # -w "%{http_code}" captura o status HTTP
-            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
-
-            if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
-              echo "✅ API de Geração respondeu com $HTTP_CODE! Dados sendo gerados."
-              SUCCESS=true
-              break
+            if [ -z "$CAT_LINK" ]; then
+               echo "   3. Home page ainda não tem categorias. Repetindo..."
+               sleep 5
+               COUNT=$((COUNT + 10)) # Adiciona o sleep de 5 + este
+               continue # Volta ao início do loop
             fi
             
-            echo "⏳ Tentativa $attempt/$MAX_ATTEMPTS: API de Persistência ainda não está pronta (HTTP $HTTP_CODE). Aguardando..."
-            sleep $SLEEP_SECONDS
-          done
-
-          if [ "$SUCCESS" == "false" ]; then
-            echo "❌ Erro Fatal: A API de geração de dados nunca respondeu com 200/204."
-            docker compose logs teastore-persistence
-            exit 1
-          fi
-
-          echo "⏳ Aguardando 10s para os dados serem gravados no DB..."
-          sleep 10
-
-          # 2. DESCOBRIR UMA CATEGORIA VÁLIDA
-          echo "🔍 Buscando uma categoria válida na Home Page..."
-          HOME_HTML=$(curl -L -s "http://localhost:18081/tools.descartes.teastore.webui/")
-          CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
-
-          if [ -z "$CAT_LINK" ]; then
-             echo "⚠️ Nenhuma categoria encontrada. Fallback para ID=2..."
-             CAT_LINK="category?id=2"
-          else
-             echo "✅ Categoria detectada: $CAT_LINK"
-          fi
-
-          # 3. VERIFICAR SE OS PRODUTOS APARECERAM
-          FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
-          echo "⏳ Verificando se os produtos existem em $FULL_URL..."
-
-          for attempt in $(seq 1 30); do
+            # Se achamos uma categoria, verificamos se ela tem produtos
+            echo "   3. Categoria encontrada ($CAT_LINK). Verificando se há produtos..."
+            FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
             RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
+
             if [ -n "$RESP" ] && echo "$RESP" | grep -q "product?id="; then
-              echo "✅ Produtos encontrados na tentativa $attempt! O pipeline pode continuar."
+              echo "✅ SUCESSO! Produtos encontrados em $FULL_URL."
               exit 0
             fi
-            sleep 2
+
+            echo "   4. Categoria ainda está vazia. Repetindo..."
+            sleep 5
+            COUNT=$((COUNT + 10)) # Adiciona o sleep de 5 + este
           done
 
-          echo "❌ Erro Fatal: Banco de dados vazio, mesmo após a API de geração ter respondido OK."
+          echo "❌ Erro Fatal: O loop terminou e os produtos nunca apareceram."
           echo "--- Debug: Logs Atuais da Persistência ---"
           docker compose logs teastore-persistence || true
           exit 1
