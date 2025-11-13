@@ -1,9 +1,10 @@
 import http from 'k6/http';
-import { sleep, check, group }'k6';
-import { parseHTML }'k6/html';
-import { URL }'https://jslib.k6.io/url/1.0.0/index.js';
-import { htmlReport }'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
-import { textSummary }'https://jslib.k6.io/k6-summary/0.1.0/index.js';
+import { sleep, check, group } from 'k6';
+import { parseHTML } from 'k6/html';
+import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
+import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
+
 
 const BASE_UI = "http://localhost:18081/tools.descartes.teastore.webui";
 const BASE_HOST = "http://localhost:18081";

@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v14 - ULTIMATE)
+name: Pipeline de Performance (v14 - Correção de Path e Relatórios)
 
 on:
   workflow_dispatch:
@@ -8,14 +8,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    # -----------------------------------------------------------------
+    # CORREÇÃO PRINCIPAL: Define o diretório de trabalho padrão
+    # para todos os comandos 'run'.
+    # Troque 'teste-desempenho-teastore' pelo nome exato do seu repositório
+    # se for diferente.
+    # -----------------------------------------------------------------
+    defaults:
+      run:
+        working-directory: ./teste-desempenho-teastore
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        # Faz o checkout para o subdiretório 'teste-desempenho-teastore'
+        with:
+          path: teste-desempenho-teastore
 
       - name: Install system packages
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
+        # Este step não precisa de working-directory
 
       - name: Start TeaStore stack
         run: |
@@ -27,6 +41,7 @@ jobs:
           sleep 20
           docker compose up -d teastore-webui
           sleep 10
+        # O WD é aplicado, vai encontrar o docker-compose.yml
 
       - name: Wait WebUI
         run: |
@@ -37,6 +52,7 @@ jobs:
           echo "⏳ Aguardando WebUI na URL: $URL (até $((MAX_ATTEMPTS * SLEEP_SECONDS))s)..."
 
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            # Usamos 'curl' do host, sem WD
             RESP=$(curl -L -s --max-time 5 "$URL" || true)
 
             if [ -n "$RESP" ]; then
@@ -57,12 +73,18 @@ jobs:
           done
 
           echo "❌ Timeout: não encontrou _csrf nem 'TeaStore' após $MAX_ATTEMPTS tentativas."
-          echo "Última resposta (parcial):"
           curl -L -s "$URL" | head -n 40 || true
           exit 1
+        # Este step é melhor SEM o working-directory, pois 'curl' é global
+        defaults:
+          run:
+            working-directory: . # Reseta o WD para este step
 
       - name: Check containers
         run: docker ps -a
+        defaults:
+          run:
+            working-directory: .
 
       # -----------------------
       # JMETER
@@ -72,6 +94,7 @@ jobs:
           sudo apt-get install -y openjdk-11-jre-headless
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
+        # O WD é aplicado, baixará o JMeter para dentro do dir do repo
 
       - name: Run JMeter Simples
         run: |
@@ -93,7 +116,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
-          path: jmeter-teastore/report*
+          # O path do upload é relativo ao GITHUB_WORKSPACE,
+          # então precisamos incluir o nome do repo
+          path: teste-desempenho-teastore/jmeter-teastore/report*
 
       # -----------------------
       # K6
@@ -104,15 +129,17 @@ jobs:
           echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
           sudo apt-get install -y k6
+          
+        defaults:
+          run:
+            working-directory: . # Instalação global, reseta o WD
 
       - name: Run K6 Simples
         run: |
-          # O script 'simples' também pode ser adaptado para gerar HTML
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
 
       - name: Run K6 Complexos
         run: |
-          # Removido --summary-export, pois o handleSummary no script cuidará dos relatórios
           k6 run k6-teastore/cenarios-complexos.js || true
 
       - name: Upload K6 summaries
@@ -120,8 +147,8 @@ jobs:
         with:
           name: relatorios-k6
           path: |
-            k6-*.json
-            k6-*.html
+            teste-desempenho-teastore/k6-*.json
+            teste-desempenho-teastore/k6-*.html
 
       # -----------------------
       # LOCUST
@@ -137,35 +164,52 @@ jobs:
 
       - name: Run Locust Simples
         run: |
-          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s --host http://localhost:18081 --html locust-teastore/simple.html || true
+          # CORREÇÃO: Adicionado --csv para o dashboard
+          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s \
+            --host http://localhost:18081 \
+            --html locust-teastore/simple.html \
+            --csv locust-teastore/simple || true
 
       - name: Run Locust Complexos
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s --host http://localhost:18081 --html locust-teastore/complex.html || true
+          # CORREÇÃO: Adicionado --csv para o dashboard
+          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s \
+            --host http://localhost:18081 \
+            --html locust-teastore/complex.html \
+            --csv locust-teastore/complex || true
 
       - name: Upload Locust HTML
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-locust
-          path: locust-teastore/*.html
+          path: teste-desempenho-teastore/locust-teastore/*.html
 
+      # -----------------------
+      # CONSOLIDATED
+      # -----------------------
       - name: Generate consolidated dashboard & PDF
         run: |
-          # Este passo presume que você tem o script 'generate_dashboard.py' no repositório
-          python3 generate_dashboard.py || true
+          # CORREÇÃO: Passando os argumentos que o script pedia
+          # (Ajuste os nomes dos arquivos se o seu script esperar diferente)
+          python3 generate_dashboard.py \
+            --k6 k6-complex.json \
+            --jmeter jmeter-teastore/results-complexos.jtl \
+            --locust locust-teastore/complex_stats.csv \
+            --pdf report.pdf \
+            --out dashboard.html || true
 
       - name: Upload consolidated
         uses: actions/upload-artifact@v4
         with:
           name: relatorio-consolidado
           path: |
-            dashboard.html
-            report.pdf
-            charts/**
-        if: always() # Garante upload mesmo se o python falhar
+            teste-desempenho-teastore/dashboard.html
+            teste-desempenho-teastore/report.pdf
+            teste-desempenho-teastore/charts/
+        # if: always() # Opcional: fazer upload mesmo se o python falhar
 
       - name: Logs & Stop containers
-        if: always() # Garante que os containers parem mesmo se um teste falhar
+        if: always()
         run: |
           docker compose logs --no-color
           docker compose down
