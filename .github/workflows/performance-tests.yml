@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v22 - Healthcheck Wait)
+name: Pipeline de Performance (v23 - Active API Wait)
 
 on:
   workflow_dispatch:
@@ -11,26 +11,21 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        # O código fica na raiz
 
       - name: Install system packages
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
-      # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Controlar manualmente a ordem de subida
-      # -----------------------------------------------------------------
       - name: Start TeaStore stack (Manually Ordered)
         run: |
           echo "🚀 Iniciando SOMENTE o Banco de Dados (teastore-db)..."
           docker compose up -d teastore-db
           
           echo "⏳ Aguardando o Banco de Dados ficar 'healthy' (max 2 min)..."
-          MAX_WAIT=120 # 2 minutos (120 segundos)
+          MAX_WAIT=120 # 120 segundos
           COUNT=0
           while [ $COUNT -lt $MAX_WAIT ]; do
-            # Procura pelo texto '(healthy)' no status do container do DB
             HEALTH=$(docker ps --filter "name=teastore-db-1" --format "{{.Status}}")
             
             if echo "$HEALTH" | grep -q "(healthy)"; then
@@ -67,13 +62,13 @@ jobs:
           SLEEP_SECONDS=3
           URL="http://localhost:18081/tools.descartes.teastore.webui/login"
 
-          echo "⏳ Aguardando WebUI na URL: $URL (até $((MAX_ATTEMPTS * SLEEP_SECONDS))s)..."
+          echo "⏳ Aguardando WebUI (frontend) ficar online na URL: $URL..."
 
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             RESP=$(curl -L -s --max-time 5 "$URL" || true)
             if [ -n "$RESP" ]; then
               if echo "$RESP" | grep -qi "TeaStore"; then
-                echo "✅ Página TeaStore carregada na tentativa $attempt"
+                echo "✅ Página TeaStore (WebUI) carregada na tentativa $attempt"
                 exit 0
               fi
             fi
@@ -83,23 +78,53 @@ jobs:
           exit 1
 
       # -----------------------------------------------------------------
-      # O 'restart' foi removido, pois agora a persistência só sobe
-      # depois que o DB está 100% saudável.
+      # CORREÇÃO CRÍTICA: Esperar a API de PERSISTÊNCIA ficar pronta
       # -----------------------------------------------------------------
-      - name: Populate & Wait for Products
+      - name: Populate & Wait for Products (v23)
         run: |
-          # 1. FORÇAR GERAÇÃO DE DADOS
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           
-          echo "🚀 Forçando geração de dados via: $GEN_URL"
-          curl -v -X POST "$GEN_URL" || true
+          echo "🚀 Tentando popular o banco de dados (max 90s)..."
+          echo "Usando URL: $GEN_URL"
+
+          MAX_ATTEMPTS=45
+          SLEEP_SECONDS=2
+          SUCCESS=false
+
+          # 1. LOOP DE POPULAÇÃO
+          # A WebUI está online, mas a Persistência (backend) pode não estar.
+          # Continuamos tentando até a API parar de dar 302 (Redirect) e
+          # finalmente retornar 200 (OK) ou 204 (No Content).
           
-          echo "⏳ Aguardando 15s para gravação dos dados..."
-          sleep 15
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            # -L segue redirects
+            # -s silencia
+            # -o /dev/null descarta o body
+            # -w "%{http_code}" captura o status HTTP
+            HTTP_CODE=$(curl -L -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
+
+            if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
+              echo "✅ API de Geração respondeu com $HTTP_CODE! Dados sendo gerados."
+              SUCCESS=true
+              break
+            fi
+            
+            echo "⏳ Tentativa $attempt/$MAX_ATTEMPTS: API de Persistência ainda não está pronta (HTTP $HTTP_CODE). Aguardando..."
+            sleep $SLEEP_SECONDS
+          done
+
+          if [ "$SUCCESS" == "false" ]; then
+            echo "❌ Erro Fatal: A API de geração de dados nunca respondeu com 200/204."
+            docker compose logs teastore-persistence
+            exit 1
+          fi
+
+          echo "⏳ Aguardando 10s para os dados serem gravados no DB..."
+          sleep 10
 
           # 2. DESCOBRIR UMA CATEGORIA VÁLIDA
           echo "🔍 Buscando uma categoria válida na Home Page..."
-          HOME_HTML=$(curl -s "http://localhost:18081/tools.descartes.teastore.webui/")
+          HOME_HTML=$(curl -L -s "http://localhost:18081/tools.descartes.teastore.webui/")
           CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
 
           if [ -z "$CAT_LINK" ]; then
@@ -110,24 +135,19 @@ jobs:
           fi
 
           # 3. VERIFICAR SE OS PRODUTOS APARECERAM
-          MAX_ATTEMPTS=60
-          SLEEP_SECONDS=2
           FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
-          
-          echo "⏳ Verificando produtos em $FULL_URL..."
+          echo "⏳ Verificando se os produtos existem em $FULL_URL..."
 
-          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+          for attempt in $(seq 1 30); do
             RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
-            if [ -n "$RESP" ]; then
-              if echo "$RESP" | grep -q "product?id="; then
-                echo "✅ Produtos encontrados na tentativa $attempt! Sucesso."
-                exit 0
-              fi
+            if [ -n "$RESP" ] && echo "$RESP" | grep -q "product?id="; then
+              echo "✅ Produtos encontrados na tentativa $attempt! O pipeline pode continuar."
+              exit 0
             fi
-            sleep $SLEEP_SECONDS
+            sleep 2
           done
 
-          echo "❌ Erro Fatal: Banco de dados vazio."
+          echo "❌ Erro Fatal: Banco de dados vazio, mesmo após a API de geração ter respondido OK."
           echo "--- Debug: Logs Atuais da Persistência ---"
           docker compose logs teastore-persistence || true
           exit 1
@@ -206,7 +226,7 @@ jobs:
 
       - name: Run Locust Simples
         run: |
-          locust -f locust-teastore/loctestfile.py --headless -u 5 -r 2 -t 15s \
+          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html \
             --csv locust-teastore/simple || true
