@@ -26,7 +26,7 @@ jobs:
           sudo apt install -y default-jdk python3 python3-pip unzip wget curl
           pip install matplotlib pandas reportlab
 
-          # ✅ Instalar última versão do k6 (corrigido sem 404)
+          # ✅ Instalar última versão do k6 (sem erro 404)
           K6_VERSION=$(curl -s https://api.github.com/repos/grafana/k6/releases/latest | grep tag_name | cut -d '"' -f 4)
           echo "🔹 Baixando K6 versão: $K6_VERSION"
           wget https://github.com/grafana/k6/releases/download/${K6_VERSION}/k6-${K6_VERSION}-linux-amd64.tar.gz
@@ -57,7 +57,7 @@ jobs:
         run: |
           mkdir -p k6-reports
           echo "🌐 Executando teste complexo com K6 Web Dashboard..."
-          nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-complexo.js --summary-export=k6-reports/complex.json > k6-reports/complex.log 2>&1 &
+          nohup k6 run --out web-dashboard ./k6-teastore/cenarios-complexos.js --summary-export=k6-reports/complex.json > k6-reports/complex.log 2>&1 &
           sleep 15
 
       # ======================================================
@@ -67,8 +67,8 @@ jobs:
         run: |
           mkdir -p jmeter-reports
 
-          SIMPLE="./jmeter-teastore/teste-simples.jmx"
-          COMPLEX="./jmeter-teastore/teste-complexo.jmx"
+          SIMPLE="jmeter-teastore/teste-carga-simples.jmx"
+          COMPLEX="jmeter-teastore/cenarios-complexos.jmx"
 
           echo "🧪 Executando JMeter - Teste Simples..."
           /opt/jmeter/bin/jmeter -n -t "$SIMPLE" -l jmeter-reports/simple.jtl -e -o jmeter-reports/dashboard-simple
@@ -78,17 +78,67 @@ jobs:
 
           echo "✅ Dashboards HTML gerados com sucesso!"
 
+  locust-tests:
+    name: Locust - Carga Simples e Complexa
+    runs-on: ubuntu-latest
+
+    steps:
       # ======================================================
-      # 5. Executar Locust
+      # 1. Correção e Checkout do repositório
       # ======================================================
-      - name: Executar testes Locust
+      - name: Remover arquivo .gitmodules (Correção Forçada)
         run: |
-          mkdir -p locust-reports
-          echo "🚀 Executando Locust (modo headless)..."
-          locust -f ./locust-teastore/locustfile.py --headless -u 10 -r 2 -t 30s --csv=locust-reports/locust
+          if [ -f ".gitmodules" ]; then
+            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
+            rm .gitmodules
+          fi
+
+      - name: Checkout repository (sem submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
 
       # ======================================================
-      # 6. Gerar Dashboard Consolidado (HTML + PDF)
+      # 2. Construir imagem Locust customizada
+      # ======================================================
+      - name: Construir imagem Locust customizada
+        run: |
+          echo 'FROM locustio/locust:latest' > Dockerfile.locust-custom
+          echo 'RUN pip install bs4 requests' >> Dockerfile.locust-custom
+          docker build -t meu-locust:latest -f Dockerfile.locust-custom .
+
+      # ======================================================
+      # 3. Testes Locust
+      # ======================================================
+      - name: Teste de Carga Simples (Locust via Docker)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/locust-teastore:/app \
+            -w /app \
+            meu-locust:latest \
+            -f locustfile.py \
+            --host http://teastore-webui:8080 \
+            --users 5 \
+            --spawn-rate 5 \
+            --headless \
+            --run-time 30s
+
+      - name: Teste de Carga Complexo (Locust via Docker)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/locust-teastore:/app \
+            -w /app \
+            meu-locust:latest \
+            -f cenarios-complexos-locust.py \
+            --host http://teastore-webui:8080 \
+            --users 10 \
+            --spawn-rate 5 \
+            --headless \
+            --run-time 1m
+
+      # ======================================================
+      # 4. Gerar Dashboard Consolidado (HTML + PDF)
       # ======================================================
       - name: Gerar Dashboard Consolidado
         run: |
@@ -102,7 +152,7 @@ jobs:
             --pdf reports/dashboard.pdf
 
       # ======================================================
-      # 7. Upload dos Relatórios
+      # 5. Upload dos Relatórios
       # ======================================================
       - name: Upload dos Relatórios
         uses: actions/upload-artifact@v4
