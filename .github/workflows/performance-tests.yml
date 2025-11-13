@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v21 - Root Directory Fix)
+name: Pipeline de Performance (v22 - Healthcheck Wait)
 
 on:
   workflow_dispatch:
@@ -7,39 +7,59 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
-    # NÃO HÁ 'DEFAULTS' DE DIRETÓRIO AQUI - TUDO RODA NA RAIZ
     
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        # O 'path:' foi removido. O código fica na raiz.
+        # O código fica na raiz
 
       - name: Install system packages
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
-        # Não precisa de 'working-directory'
 
-      - name: Start TeaStore stack
+      # -----------------------------------------------------------------
+      # CORREÇÃO CRÍTICA: Controlar manualmente a ordem de subida
+      # -----------------------------------------------------------------
+      - name: Start TeaStore stack (Manually Ordered)
         run: |
-          echo "🚀 Iniciando Banco de Dados..."
-          # Encontra o docker-compose.yml na raiz
+          echo "🚀 Iniciando SOMENTE o Banco de Dados (teastore-db)..."
           docker compose up -d teastore-db
           
-          echo "⏳ Aguardando 40s para o MySQL inicializar..."
-          sleep 40
+          echo "⏳ Aguardando o Banco de Dados ficar 'healthy' (max 2 min)..."
+          MAX_WAIT=120 # 2 minutos (120 segundos)
+          COUNT=0
+          while [ $COUNT -lt $MAX_WAIT ]; do
+            # Procura pelo texto '(healthy)' no status do container do DB
+            HEALTH=$(docker ps --filter "name=teastore-db-1" --format "{{.Status}}")
+            
+            if echo "$HEALTH" | grep -q "(healthy)"; then
+              echo "✅ DB está 'healthy'!"
+              break
+            fi
+            
+            if echo "$HEALTH" | grep -q "unhealthy"; then
+              echo "❌ DB está 'unhealthy'. Falha imediata."
+              docker logs teastore-db-1
+              exit 1
+            fi
+
+            echo "   (Aguardando $COUNT/$MAX_WAIT... Status: $HEALTH)"
+            sleep 2
+            COUNT=$((COUNT + 2))
+          done
           
-          echo "🚀 Iniciando Registry..."
-          docker compose up -d teastore-registry
+          if [ $COUNT -ge $MAX_WAIT ]; then
+            echo "❌ Timeout: O Banco de Dados não ficou 'healthy' a tempo."
+            docker logs teastore-db-1
+            exit 1
+          fi
+
+          echo "🚀 Iniciando o restante da Stack (Registry, Persistence, WebUI, etc)..."
+          docker compose up -d teastore-registry teastore-persistence teastore-auth teastore-image teastore-recommender teastore-webui
+
+          echo "⏳ Aguardando 20s para os serviços Java iniciarem..."
           sleep 20
-          
-          echo "🚀 Iniciando restante da Stack..."
-          docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
-          sleep 20
-          docker compose up -d teastore-webui
-          sleep 15
-        # Não precisa de 'working-directory'
 
       - name: Wait WebUI (Login Page)
         run: |
@@ -61,17 +81,13 @@ jobs:
           done
           echo "❌ Timeout: WebUI não carregou."
           exit 1
-        # Não precisa de 'working-directory'
 
-      - name: Fix Connection & Populate
+      # -----------------------------------------------------------------
+      # O 'restart' foi removido, pois agora a persistência só sobe
+      # depois que o DB está 100% saudável.
+      # -----------------------------------------------------------------
+      - name: Populate & Wait for Products
         run: |
-          echo "🔧 Reiniciando container de Persistência para forçar reconexão com DB..."
-          # Encontra o docker-compose.yml na raiz
-          docker compose restart teastore-persistence
-          
-          echo "⏳ Aguardando 15s para Persistência subir novamente..."
-          sleep 15
-
           # 1. FORÇAR GERAÇÃO DE DADOS
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           
@@ -113,14 +129,11 @@ jobs:
 
           echo "❌ Erro Fatal: Banco de dados vazio."
           echo "--- Debug: Logs Atuais da Persistência ---"
-          # O nome do container agora será baseado no nome do diretório raiz
           docker compose logs teastore-persistence || true
           exit 1
-        # Não precisa de 'working-directory'
 
       - name: Check containers
         run: docker ps -a
-        # Não precisa de 'working-directory'
 
       # -----------------------
       # JMETER
@@ -151,7 +164,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
-          # CORREÇÃO: Removido prefixo do path
           path: jmeter-teastore/report*
 
       # -----------------------
@@ -176,7 +188,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
-          # CORREÇÃO: Removido prefixo do path
           path: |
             k6-*.json
             k6-*.html
@@ -195,7 +206,7 @@ jobs:
 
       - name: Run Locust Simples
         run: |
-          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s \
+          locust -f locust-teastore/loctestfile.py --headless -u 5 -r 2 -t 15s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html \
             --csv locust-teastore/simple || true
@@ -211,7 +222,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-locust
-          # CORREÇÃO: Removido prefixo do path
           path: locust-teastore/*.html
 
       # -----------------------
@@ -230,7 +240,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorio-consolidado
-          # CORREÇÃO: Removido prefixo do path
           path: |
             dashboard.html
             report.pdf
