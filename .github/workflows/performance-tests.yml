@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v26 - No-Redirect API Check)
+name: Pipeline de Performance (v27 - A Grande Espera)
 
 on:
   workflow_dispatch:
@@ -18,9 +18,8 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # FASE 1: A "Inicialização Paranoica" (v25) está CORRETA.
-      # Vamos mantê-la como está para garantir que os containers subam
-      # na ordem correta.
+      # CORREÇÃO CRÍTICA: Aumentar drasticamente os SLEEPs
+      # Os serviços Java/Tomcat precisam de mais tempo.
       # -----------------------------------------------------------------
       - name: Start TeaStore stack (Manually Ordered)
         run: |
@@ -55,27 +54,30 @@ jobs:
           # FASE 2: O REGISTRY (depende do DB)
           echo "🚀 FASE 2: Iniciando o Registry..."
           docker compose up -d teastore-registry
-          echo "⏳ Aguardando 15s para o Registry se conectar ao DB..."
-          sleep 15
+          echo "⏳ Aguardando 20s para o Registry se conectar ao DB..."
+          sleep 20
           
-          # FASE 3: O BACKEND (depende do Registry)
+          # FASE 3: O BACKEND (depende do Registry e DB)
           echo "🚀 FASE 3: Iniciando os serviços de Backend (Persistence, Auth, etc.)..."
           docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
-          echo "⏳ Aguardando 45s para os .war do backend implantarem..."
-          sleep 45
+          echo "⏳ Aguardando 90 SEGUNDOS para os .war do backend implantarem (Java é lento)..."
+          # AUMENTADO DE 45 para 90
+          sleep 90
 
           # FASE 4: O FRONTEND (depende do Registry)
           echo "🚀 FASE 4: Iniciando o Frontend (WebUI)..."
           docker compose up -d teastore-webui
-          echo "⏳ Aguardando 30s para o .war do WebUI implantar..."
-          sleep 30
+          echo "⏳ Aguardando 45 SEGUNDOS para o .war do WebUI implantar..."
+          # AUMENTADO DE 30 para 45
+          sleep 45
           
           echo "✅ Todos os serviços estão iniciados em ordem."
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Loop de verificação de API SEM o -L
+      # Este passo agora tem uma chance muito maior de
+      # funcionar na primeira tentativa.
       # -----------------------------------------------------------------
-      - name: Populate & Wait for Products (v26)
+      - name: Populate & Wait for Products (v27)
         run: |
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
@@ -83,9 +85,6 @@ jobs:
           echo "🚀 Iniciando Loop de Verificação da API de Persistência (max 2 min)..."
           
           # --- LOOP 1: Esperar a API de Geração ficar ONLINE ---
-          # Nós vamos chamar a API sem -L e esperar que ela pare de dar 302/404
-          # e finalmente nos dê um 200 (OK) ou 204 (No Content).
-          
           MAX_WAIT_API=120 # 2 minutos
           COUNT=0
           API_READY=false
@@ -121,12 +120,10 @@ jobs:
           MAX_WAIT_DATA=60
           COUNT=0
           while [ $COUNT -lt $MAX_WAIT_DATA ]; do
-            # Agora usamos -L para verificar a página
             HOME_HTML=$(curl -L -s "$HOME_URL")
             CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
 
             if [ -n "$CAT_LINK" ]; then
-               # Achamos categorias, agora verificamos se têm produtos
                FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
                RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
 
@@ -206,7 +203,7 @@ jobs:
           name: relatorios-k6
           path: |
             k6-*.json
-            k6-*.html
+            k6*.html
 
       # -----------------------
       # LOCUST (sem alterações)
