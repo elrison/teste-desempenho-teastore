@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v25 - Paranoid Startup)
+name: Pipeline de Performance (v26 - No-Redirect API Check)
 
 on:
   workflow_dispatch:
@@ -18,7 +18,9 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Inicialização manual em 4 FASES
+      # FASE 1: A "Inicialização Paranoica" (v25) está CORRETA.
+      # Vamos mantê-la como está para garantir que os containers subam
+      # na ordem correta.
       # -----------------------------------------------------------------
       - name: Start TeaStore stack (Manually Ordered)
         run: |
@@ -59,7 +61,7 @@ jobs:
           # FASE 3: O BACKEND (depende do Registry)
           echo "🚀 FASE 3: Iniciando os serviços de Backend (Persistence, Auth, etc.)..."
           docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
-          echo "⏳ Aguardando 45s para os .war do backend implantarem (Java é lento)..."
+          echo "⏳ Aguardando 45s para os .war do backend implantarem..."
           sleep 45
 
           # FASE 4: O FRONTEND (depende do Registry)
@@ -71,54 +73,74 @@ jobs:
           echo "✅ Todos os serviços estão iniciados em ordem."
 
       # -----------------------------------------------------------------
-      # Este passo agora é um 'healthcheck' final + Geração de Dados
+      # CORREÇÃO CRÍTICA: Loop de verificação de API SEM o -L
       # -----------------------------------------------------------------
-      - name: Populate & Wait for Products (v25)
+      - name: Populate & Wait for Products (v26)
         run: |
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
           
-          echo "🚀 Iniciando loop de 'Gerar e Verificar' (agora deve funcionar na 1ª tentativa)..."
-
-          MAX_WAIT=120 # 2 minutos
+          echo "🚀 Iniciando Loop de Verificação da API de Persistência (max 2 min)..."
+          
+          # --- LOOP 1: Esperar a API de Geração ficar ONLINE ---
+          # Nós vamos chamar a API sem -L e esperar que ela pare de dar 302/404
+          # e finalmente nos dê um 200 (OK) ou 204 (No Content).
+          
+          MAX_WAIT_API=120 # 2 minutos
           COUNT=0
-          while [ $COUNT -lt $MAX_WAIT ]; do
-            echo "--- Tentativa (Tempo $COUNT/$MAX_WAIT) ---"
+          API_READY=false
+          while [ $COUNT -lt $MAX_WAIT_API ]; do
+            echo "--- Tentativa API (Tempo $COUNT/$MAX_WAIT_API) ---"
             
-            # 1. TENTAR GERAR
-            echo "   1. Disparando API de Geração (POST)..."
-            # -v (verbose) para ver o status code
-            curl -L -v -X POST "$GEN_URL"
+            # -s (silencioso)
+            # -o /dev/null (descarta o body)
+            # -w "%{http_code}" (imprime o status code)
+            # *** SEM -L ***
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
+
+            if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
+              echo "✅ API de Geração respondeu com $HTTP_CODE! O Backend está online."
+              API_READY=true
+              break
+            fi
             
-            # 2. AGUARDAR PROPAGAÇÃO
-            # A geração de 500 produtos é assíncrona. Damos um tempo maior.
-            echo "   2. Aguardando 15s para a geração assíncrona..."
-            sleep 15 
-            
-            # 3. VERIFICAR RESULTADO
-            echo "   3. Verificando Home Page por categorias..."
+            echo "   API de Persistência ainda não está pronta (HTTP $HTTP_CODE). Aguardando..."
+            sleep 5
+            COUNT=$((COUNT + 5))
+          done
+
+          if [ "$API_READY" == "false" ]; then
+            echo "❌ Erro Fatal: A API de geração de dados nunca respondeu com 200/204."
+            docker compose logs teastore-persistence
+            exit 1
+          fi
+
+          # --- LOOP 2: Esperar os DADOS aparecerem (são gerados async) ---
+          
+          echo "⏳ API online. Aguardando dados aparecerem na Home Page (max 60s)..."
+          MAX_WAIT_DATA=60
+          COUNT=0
+          while [ $COUNT -lt $MAX_WAIT_DATA ]; do
+            # Agora usamos -L para verificar a página
             HOME_HTML=$(curl -L -s "$HOME_URL")
             CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
 
-            if [ -z "$CAT_LINK" ]; then
-               echo "   3. Home page ainda não tem categorias. (WebUI não conectou ao Registry?). Repetindo..."
-               sleep 5
-               COUNT=$((COUNT + 20)) # (15 + 5)
-               continue
+            if [ -n "$CAT_LINK" ]; then
+               # Achamos categorias, agora verificamos se têm produtos
+               FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
+               RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
+
+               if [ -n "$RESP" ] && echo "$RESP" | grep -q "product?id="; then
+                 echo "✅ SUCESSO! Produtos encontrados em $FULL_URL."
+                 exit 0
+               fi
+               echo "   Categorias encontradas, mas ainda sem produtos. Aguardando..."
+            else
+               echo "   Home page ainda sem categorias. Aguardando..."
             fi
             
-            echo "   3. Categoria encontrada ($CAT_LINK). Verificando se há produtos..."
-            FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
-            RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
-
-            if [ -n "$RESP" ] && echo "$RESP" | grep -q "product?id="; then
-              echo "✅ SUCESSO! Produtos encontrados em $FULL_URL."
-              exit 0
-            fi
-
-            echo "   4. Categoria ainda está vazia. (Persistência ainda está gerando dados?). Repetindo..."
             sleep 5
-            COUNT=$((COUNT + 20)) # (15 + 5)
+            COUNT=$((COUNT + 5))
           done
 
           echo "❌ Erro Fatal: O loop terminou e os produtos nunca apareceram."
