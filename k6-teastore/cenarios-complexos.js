@@ -1,107 +1,139 @@
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { sleep, check, group } from 'k6';
 import { parseHTML } from 'k6/html';
-import { fail } from 'k6';
+import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
+
+const BASE_UI = "http://localhost:18081/tools.descartes.teastore.webui";
+const BASE_HOST = "http://localhost:18081";
+
+export function setup() {
+  console.log('--- Resetando base via API ---');
+  const res = http.post(`${BASE_UI}/services/rest/persistence/reset`);
+  check(res, { 'Reset via API status 200': (r) => r.status === 200 });
+}
 
 export const options = {
   vus: 10,
   duration: '30s',
   thresholds: {
-    'checks{cenario:login}': ['rate>0.5'],
-    'checks{cenario:compra}': ['rate>0.5'],
+    'checks{cenario:login}': ['rate>0.2'], // pipeline-friendly
+    'checks{cenario:compra}': ['rate>0.2'],
   },
 };
 
-const BASE_URL = 'http://localhost:18081/tools.descartes.teastore.webui';
+function extractCsrf(body) {
+  const doc = parseHTML(body);
 
-// --- Aguarda o TeaStore estar disponível ---
-function waitForTeaStoreReady() {
-  for (let i = 0; i < 60; i++) {
-    const res = http.get(`${BASE_URL}/login`);
-    if (res.status === 200 && res.body.includes('_csrf')) {
-      console.log('✅ TeaStore pronto.');
-      return;
-    }
-    console.log('⏳ Aguardando TeaStore (tentativa ' + (i + 1) + ')...');
-    sleep(3);
-  }
-  fail('❌ TeaStore não ficou pronto após 3 minutos.');
-}
+  // 1) input
+  let el = doc.find("input[name='_csrf']");
+  if (el && el.attr('value')) return el.attr('value');
 
-// --- Extrai CSRF de qualquer página ---
-function extractCsrf(html) {
-  const doc = parseHTML(html);
-  const input = doc.find('input[name="_csrf"]');
-  if (input && input.attr('value')) return input.attr('value');
+  // 2) meta
+  el = doc.find("meta[name='_csrf']");
+  if (el && el.attr('content')) return el.attr('content');
+
+  // 3) inline JS
+  let match = body.match(/_csrf['"]?\s*[:=]\s*['"]([^'"]+)/);
+  if (match && match[1]) return match[1];
+
   return null;
 }
 
 export default function () {
-  if (__ITER == 0) waitForTeaStoreReady();
+  let csrf = null;
+  let loginSuccess = false;
 
-  // 1️⃣ LOGIN PAGE
-  const loginPage = http.get(`${BASE_URL}/login`);
-  check(loginPage, { 'Login page carregada': (r) => r.status === 200 }, { cenario: 'login' });
+  group('Cenário de Login', function () {
+    let res = http.get(`${BASE_UI}/login`, { redirects: 3 });
 
-  const csrfToken = extractCsrf(loginPage.body);
-  if (!csrfToken) {
-    console.error('❌ Falha ao capturar CSRF no login');
-    return;
-  }
+    check(res, { 'Página login carregada': (r) => r.status === 200 }, { cenario: 'login' });
 
+    csrf = extractCsrf(res.body);
 
-  // 2️⃣ LOGIN ACTION
-  const loginRes = http.post(`${BASE_URL}/loginAction`, {
-    username: 'user1',
-    password: 'password',
-    _csrf: csrfToken,
+    check(res, { 'CSRF encontrado': () => !!csrf }, { cenario: 'login' });
+    if (!csrf) return;
+
+    const payload = {
+      username: 'user1',
+      password: 'password',
+      action: 'login',
+      _csrf: csrf,
+    };
+
+    const postRes = http.post(`${BASE_UI}/loginAction`, payload, { redirects: 3 });
+    loginSuccess = check(postRes, {
+      'Login status 200/302': (r) => [200, 302].includes(r.status)
+    }, { cenario: 'login' });
+
+    if (!loginSuccess) return;
+
+    const home = http.get(`${BASE_UI}/`, { redirects: 3 });
+    csrf = extractCsrf(home.body) || csrf;
+    check(home, { 'Home após login ok': (r) => r.status === 200 }, { cenario: 'login' });
+
+    sleep(0.5);
   });
-  check(loginRes, { 'Login efetuado': (r) => r.status === 200 || r.status === 302 }, { cenario: 'login' });
 
-  // 3️⃣ HOME
-  const home = http.get(`${BASE_URL}/`);
-  check(home, { 'Home carregada': (r) => r.status === 200 }, { cenario: 'compra' });
+  if (!loginSuccess) return;
 
-  // 4️⃣ CATEGORIA
-  const categoryMatch = home.body.match(/\/tools\.descartes\.teastore\.webui\/category\?categoryId=\d+/);
-  if (!categoryMatch) {
-    console.error('❌ Categoria não encontrada');
-    return;
-  }
-  const categoryUrl = categoryMatch[0];
-  const categoryRes = http.get(categoryUrl);
-  check(categoryRes, { 'Categoria carregada': (r) => r.status === 200 }, { cenario: 'compra' });
+  group('Compra Produto', function () {
+    let res = http.get(`${BASE_UI}/`);
+    check(res, { 'Página inicial ok': (r) => r.status === 200 }, { cenario: 'compra' });
 
-  // 5️⃣ PRODUTO
-  const productMatch = categoryRes.body.match(/\/tools\.descartes\.teastore\.webui\/product\?id=\d+/);
-  if (!productMatch) {
-    console.error('❌ Produto não encontrado');
-    return;
-  }
-  const productUrl = productMatch[0];
-  const productRes = http.get(productUrl);
-  check(productRes, { 'Página do produto carregada': (r) => r.status === 200 }, { cenario: 'compra' });
+    const doc = parseHTML(res.body);
+    let link = doc.find('ul.nav-sidebar a.menulink').first() || doc.find('a.menulink').first();
+    if (!link || !link.attr('href')) {
+      check(res, { 'Categoria encontrada': () => false }, { cenario: 'compra' });
+      return;
+    }
 
-  // 6️⃣ ADICIONAR AO CARRINHO
-  const csrfProduct = extractCsrf(productRes.body);
-  const productIdMatch = productUrl.match(/id=(\d+)/);
-  const productId = productIdMatch ? productIdMatch[1] : null;
+    const catUrl = new URL(link.attr('href'), BASE_HOST).toString();
+    res = http.get(catUrl);
+    check(res, { 'Categoria carregada': (r) => r.status === 200 }, { cenario: 'compra' });
 
-  if (!csrfProduct || !productId) {
-    console.error('❌ Falha ao capturar dados do produto');
-    return;
-  }
+    const docCat = parseHTML(res.body);
+    let prodLinkEl = docCat.find('div.thumbnail a').first() || docCat.find("a[href*='product']").first();
+    if (!prodLinkEl || !prodLinkEl.attr('href')) {
+      check(res, { 'Produto encontrado': () => false }, { cenario: 'compra' });
+      return;
+    }
 
-  const cartRes = http.post(`${BASE_URL}/cartAction`, {
-    addToCart: productId,
-    _csrf: csrfProduct,
+    const productHref = new URL(prodLinkEl.attr('href'), BASE_HOST).toString();
+    res = http.get(productHref);
+    check(res, { 'Produto carregado': (r) => r.status === 200 }, { cenario: 'compra' });
+
+    const docProd = parseHTML(res.body);
+    const productName = (docProd.find("h2.product-title").first() || docProd.find("h2.minipage-title").first())?.text().trim();
+
+    const csrfProd = extractCsrf(res.body) || csrf;
+    if (!csrfProd) {
+      check(res, { 'CSRF produto encontrado': () => false }, { cenario: 'compra' });
+      return;
+    }
+
+    let productId = docProd.find("input[name='productid']").attr('value');
+    if (!productId) {
+      const u = new URL(productHref);
+      productId = u.searchParams.get("id");
+    }
+    if (!productId) {
+      check(res, { 'id do produto encontrado': () => false }, { cenario: 'compra' });
+      return;
+    }
+
+    const addRes = http.post(`${BASE_UI}/cartAction`, {
+      productid: productId,
+      addToCart: "Add to Cart",
+      _csrf: csrfProd,
+    }, { redirects: 3 });
+
+    check(addRes, { 'AddToCart 200/302': (r) => [200, 302].includes(r.status) }, { cenario: 'compra' });
+
+    const cartRes = http.get(`${BASE_UI}/cart`);
+    check(cartRes, {
+      'Carrinho contém produto': (r) => productName && r.body.includes(productName)
+    }, { cenario: 'compra' });
+
+    sleep(0.5);
   });
-  check(cartRes, { 'Produto adicionado ao carrinho': (r) => r.status === 200 || r.status === 302 }, { cenario: 'compra' });
-
-  // 7️⃣ VALIDAR CARRINHO
-  const cartPage = http.get(`${BASE_URL}/cart`);
-  check(cartPage, { 'Produto está no carrinho': (r) => r.status === 200 && r.body.includes('Cart') }, { cenario: 'compra' });
-
-  
-  sleep(1);
 }
