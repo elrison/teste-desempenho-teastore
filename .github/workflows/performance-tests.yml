@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v13 - FULL FIX)
+name: Pipeline de Performance (v14 - ULTIMATE)
 
 on:
   workflow_dispatch:
@@ -73,7 +73,7 @@ jobs:
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: Run JMeter Simple
+      - name: Run JMeter Simples
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
@@ -81,7 +81,7 @@ jobs:
             -e -o jmeter-teastore/report-simples \
             -Jhostname=localhost -Jport=18081 || true
 
-      - name: Run JMeter Complex
+      - name: Run JMeter Complexos
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
@@ -107,17 +107,21 @@ jobs:
 
       - name: Run K6 Simples
         run: |
+          # O script 'simples' também pode ser adaptado para gerar HTML
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
 
       - name: Run K6 Complexos
         run: |
-          k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json || true
+          # Removido --summary-export, pois o handleSummary no script cuidará dos relatórios
+          k6 run k6-teastore/cenarios-complexos.js || true
 
       - name: Upload K6 summaries
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
-          path: k6-*.json
+          path: |
+            k6-*.json
+            k6-*.html
 
       # -----------------------
       # LOCUST
@@ -147,7 +151,8 @@ jobs:
 
       - name: Generate consolidated dashboard & PDF
         run: |
-          python3 generate_dashboard.py
+          # Este passo presume que você tem o script 'generate_dashboard.py' no repositório
+          python3 generate_dashboard.py || true
 
       - name: Upload consolidated
         uses: actions/upload-artifact@v4
@@ -157,8 +162,10 @@ jobs:
             dashboard.html
             report.pdf
             charts/**
+        if: always() # Garante upload mesmo se o python falhar
 
       - name: Logs & Stop containers
+        if: always() # Garante que os containers parem mesmo se um teste falhar
         run: |
           docker compose logs --no-color
           docker compose down
