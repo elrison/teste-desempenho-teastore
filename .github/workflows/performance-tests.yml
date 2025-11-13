@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v19 - Restart Persistence Fix)
+name: Pipeline de Performance (v20 - Fix Pathing)
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    # Define o diretório padrão para ONDE ESTÁ O SEU CÓDIGO
     defaults:
       run:
         working-directory: ./teste-desempenho-teastore
@@ -22,14 +23,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
-        working-directory: .
+        # Instalação global pode rodar em qualquer lugar, deixamos o default
 
       - name: Start TeaStore stack
         run: |
           echo "🚀 Iniciando Banco de Dados..."
           docker compose up -d teastore-db
           
-          echo "⏳ Aguardando 40s para o MySQL inicializar (First boot é lento)..."
+          echo "⏳ Aguardando 40s para o MySQL inicializar..."
           sleep 40
           
           echo "🚀 Iniciando Registry..."
@@ -41,7 +42,7 @@ jobs:
           sleep 20
           docker compose up -d teastore-webui
           sleep 15
-        # Usa o WD default
+        # Usa o default (encontra o docker-compose.yml)
 
       - name: Wait WebUI (Login Page)
         run: |
@@ -53,11 +54,7 @@ jobs:
 
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             RESP=$(curl -L -s --max-time 5 "$URL" || true)
-
             if [ -n "$RESP" ]; then
-              if echo "$RESP" | grep -q "_csrf"; then
-                echo "✅ _csrf encontrado."
-              fi
               if echo "$RESP" | grep -qi "TeaStore"; then
                 echo "✅ Página TeaStore carregada na tentativa $attempt"
                 exit 0
@@ -67,14 +64,15 @@ jobs:
           done
           echo "❌ Timeout: WebUI não carregou."
           exit 1
-        working-directory: .
+        # Usa o default
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Reiniciar persistência para reconectar ao DB
+      # CORREÇÃO: Removido 'working-directory: .' para achar o docker-compose.yml
       # -----------------------------------------------------------------
       - name: Fix Connection & Populate
         run: |
           echo "🔧 Reiniciando container de Persistência para forçar reconexão com DB..."
+          # Agora este comando vai funcionar porque está no diretório correto
           docker compose restart teastore-persistence
           
           echo "⏳ Aguardando 15s para Persistência subir novamente..."
@@ -123,11 +121,11 @@ jobs:
           echo "--- Debug: Logs Atuais da Persistência ---"
           docker logs teste-desempenho-teastore-teastore-persistence-1 --tail 50 || true
           exit 1
-        working-directory: .
+        # REMOVIDO working-directory: . (Esta era a causa do erro)
 
       - name: Check containers
         run: docker ps -a
-        working-directory: .
+        # Usa o default
 
       # -----------------------
       # JMETER
@@ -169,7 +167,7 @@ jobs:
           echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
           sudo apt-get install -y k6
-        working-directory: .
+        # Instalação global
 
       - name: Run K6 Simples
         run: |
