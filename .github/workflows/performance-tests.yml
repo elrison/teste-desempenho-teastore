@@ -26,50 +26,47 @@ jobs:
           sudo apt install -y default-jdk python3 python3-pip unzip wget curl
           pip install matplotlib pandas reportlab
 
-          # ✅ Instalar última versão do k6 (corrigida)
+          # ✅ Instalar última versão do K6
           K6_VERSION=$(curl -s https://api.github.com/repos/grafana/k6/releases/latest | grep tag_name | cut -d '"' -f 4)
-          echo "🔹 Instalando K6 versão: $K6_VERSION"
+          echo "🔹 Baixando K6 versão: $K6_VERSION"
           wget https://github.com/grafana/k6/releases/download/${K6_VERSION}/k6-${K6_VERSION}-linux-amd64.tar.gz
           tar -xvzf k6-${K6_VERSION}-linux-amd64.tar.gz
           sudo mv k6-${K6_VERSION}-linux-amd64/k6 /usr/local/bin/
 
-          # ✅ Instalar JMeter versão 5.4.3 (compatível com seus .jmx)
-          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.4.3.zip
-          unzip -q apache-jmeter-5.4.3.zip
-          sudo mv apache-jmeter-5.4.3 /opt/jmeter
+          # ✅ Instalar Apache JMeter 5.6.3
+          wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.zip
+          unzip -q apache-jmeter-5.6.3.zip
+          sudo mv apache-jmeter-5.6.3 /opt/jmeter
 
           # ✅ Instalar Locust
           pip install locust
 
       # ======================================================
-      # 3. Executar K6 com Web Dashboard
+      # 3. Executar K6 com Web Dashboard e salvar relatório HTML
       # ======================================================
       - name: Executar teste simples (K6) com Web Dashboard
         run: |
           mkdir -p k6-reports
-          echo "🌐 Iniciando K6 Web Dashboard (teste simples)..."
-          nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-simples.js \
-            --summary-export=k6-reports/simple.json > k6-reports/simple.log 2>&1 &
-          sleep 10
-          echo "✅ K6 Web Dashboard ativo (modo headless)."
+          echo "🌐 Executando teste simples com Web Dashboard..."
+          k6 run --out web-dashboard=./k6-reports/dashboard-simple ./k6-teastore/teste-carga-simples.js --summary-export=k6-reports/simple.json
+          echo "✅ Dashboard salvo em ./k6-reports/dashboard-simple"
 
       - name: Executar teste complexo (K6) com Web Dashboard
         run: |
           mkdir -p k6-reports
-          echo "🌐 Executando teste complexo com K6 Web Dashboard..."
-          nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-complexo.js \
-            --summary-export=k6-reports/complex.json > k6-reports/complex.log 2>&1 &
-          sleep 15
+          echo "🌐 Executando teste complexo com Web Dashboard..."
+          k6 run --out web-dashboard=./k6-reports/dashboard-complex ./k6-teastore/cenarios-complexos.js --summary-export=k6-reports/complex.json
+          echo "✅ Dashboard salvo em ./k6-reports/dashboard-complex"
 
       # ======================================================
-      # 4. Executar JMeter (Simples + Complexo com dashboards HTML)
+      # 4. Executar JMeter (com dashboards HTML)
       # ======================================================
-      - name: Executar testes JMeter (com dashboards)
+      - name: Executar testes JMeter
         run: |
           mkdir -p jmeter-reports
 
           SIMPLE="./jmeter-teastore/teste-carga-simples.jmx"
-          COMPLEX="./jmeter-teastore/teste-carga-complexo.jmx"
+          COMPLEX="./jmeter-teastore/cenarios-complexos.jmx"
 
           echo "🧪 Executando JMeter - Teste Simples..."
           /opt/jmeter/bin/jmeter -n -t "$SIMPLE" -l jmeter-reports/simple.jtl -e -o jmeter-reports/dashboard-simple
@@ -80,13 +77,12 @@ jobs:
           echo "✅ Dashboards HTML gerados com sucesso!"
 
       # ======================================================
-      # 5. Executar testes Locust (mantido sem alterações)
+      # 5. Executar Locust (inalterado)
       # ======================================================
       - name: Executar testes Locust
         run: |
           mkdir -p locust-reports
-          locust -f ./locust-teastore/locustfile.py \
-            --headless -u 10 -r 2 -t 30s --csv=locust-reports/locust
+          locust -f ./locust-teastore/locustfile.py --headless -u 10 -r 2 -t 30s --csv=locust-reports/locust
 
       # ======================================================
       # 6. Gerar Dashboard Consolidado (HTML + PDF)
@@ -103,7 +99,7 @@ jobs:
             --pdf reports/dashboard.pdf
 
       # ======================================================
-      # 7. Upload dos Relatórios
+      # 7. Upload dos Relatórios (inclui dashboards do K6)
       # ======================================================
       - name: Upload dos Relatórios
         uses: actions/upload-artifact@v4
