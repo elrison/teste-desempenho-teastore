@@ -30,11 +30,35 @@ jobs:
 
       - name: Wait WebUI
         run: |
-          for i in {1..80}; do
-            RESP=$(curl -s http://localhost:18081/tools.descartes.teastore.webui/login || true)
-            if echo "$RESP" | grep -q "_csrf"; then exit 0; fi
-            sleep 3
+          MAX_ATTEMPTS=80
+          SLEEP_SECONDS=3
+          URL="http://localhost:18081/tools.descartes.teastore.webui/login"
+
+          echo "⏳ Aguardando WebUI na URL: $URL (até $((MAX_ATTEMPTS * SLEEP_SECONDS))s)..."
+
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            RESP=$(curl -L -s --max-time 5 "$URL" || true)
+
+            if [ -n "$RESP" ]; then
+              if echo "$RESP" | grep -q "_csrf"; then
+                echo "✅ _csrf encontrado na tentativa $attempt"
+                exit 0
+              fi
+              if echo "$RESP" | grep -qi "TeaStore"; then
+                echo "✅ Página TeaStore carregada na tentativa $attempt"
+                exit 0
+              fi
+            else
+              echo "⏳ Tentativa $attempt: resposta vazia (curl timeout)"
+            fi
+
+            echo "⏳ Tentativa $attempt: ainda aguardando..."
+            sleep $SLEEP_SECONDS
           done
+
+          echo "❌ Timeout: não encontrou _csrf nem 'TeaStore' após $MAX_ATTEMPTS tentativas."
+          echo "Última resposta (parcial):"
+          curl -L -s "$URL" | head -n 40 || true
           exit 1
 
       - name: Check containers
@@ -81,11 +105,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: Run K6 Simple
+      - name: Run K6 Simples
         run: |
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
 
-      - name: Run K6 Complex
+      - name: Run K6 Complexos
         run: |
           k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json || true
 
@@ -107,11 +131,11 @@ jobs:
         run: |
           pip install locust beautifulsoup4 requests pandas matplotlib lxml reportlab
 
-      - name: Run Locust Simple
+      - name: Run Locust Simples
         run: |
           locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s --host http://localhost:18081 --html locust-teastore/simple.html || true
 
-      - name: Run Locust Complex
+      - name: Run Locust Complexos
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s --host http://localhost:18081 --html locust-teastore/complex.html || true
 
