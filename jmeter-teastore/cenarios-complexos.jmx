@@ -1,137 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="TeaStore Add to Cart">
-      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
-      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Teste Complexo - TeaStore" enabled="true">
+      <stringProp name="TestPlan.comments">Simulação completa de navegação e compra</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
     </TestPlan>
     <hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Usuário Simples">
-        <intProp name="ThreadGroup.num_threads">10</intProp>
-        <intProp name="ThreadGroup.ramp_time">1</intProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Usuários Complexos" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController">
-          <stringProp name="LoopController.loops">1</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
           <boolProp name="LoopController.continue_forever">false</boolProp>
+          <intProp name="LoopController.loops">3</intProp>
         </elementProp>
+        <stringProp name="ThreadGroup.num_threads">10</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">5</stringProp>
       </ThreadGroup>
       <hashTree>
-
-        <!-- GET LOGIN para obter o TOKEN CSRF -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Login">
-          <stringProp name="HTTPSampler.domain">${__P(hostname,localhost)}</stringProp>
-          <stringProp name="HTTPSampler.port">${__P(port,18081)}</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/tools.descartes.teastore.webui/login</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-          <stringProp name="HTTPSampler.method">GET</stringProp>
-        </HTTPSamplerProxy>
-        <hashTree>
-          <!-- Extrai o CSRF -->
-          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extrair CSRF">
-            <stringProp name="RegexExtractor.refname">csrf</stringProp>
-            <stringProp name="RegexExtractor.regex">name="_csrf" value="(.+?)"</stringProp>
-            <stringProp name="RegexExtractor.template">$1$</stringProp>
-            <stringProp name="RegexExtractor.default">NOT_FOUND</stringProp>
-          </RegexExtractor>
-          <hashTree/>
-          <!-- Extrai cookie de sessão -->
-          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extrair Cookie Session">
-            <stringProp name="RegexExtractor.refname">cookie</stringProp>
-            <stringProp name="RegexExtractor.regex">JSESSIONID=(.+?);</stringProp>
-            <stringProp name="RegexExtractor.template">$1$</stringProp>
-            <stringProp name="RegexExtractor.default">NOCOOKIE</stringProp>
-          </RegexExtractor>
-          <hashTree/>
-        </hashTree>
-
-        <!-- HOME -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Home">
-          <stringProp name="HTTPSampler.domain">${__P(hostname,localhost)}</stringProp>
-          <stringProp name="HTTPSampler.port">${__P(port,18081)}</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/tools.descartes.teastore.webui/</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Login Page" enabled="true">
+          <stringProp name="HTTPSampler.domain">httpbin.org</stringProp>
+          <stringProp name="HTTPSampler.path">/get?login</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
         </HTTPSamplerProxy>
         <hashTree/>
-
-        <!-- PRODUCT -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Product Earl Grey">
-          <stringProp name="HTTPSampler.domain">${__P(hostname,localhost)}</stringProp>
-          <stringProp name="HTTPSampler.port">${__P(port,18081)}</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/tools.descartes.teastore.webui/product?id=7</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Home" enabled="true">
+          <stringProp name="HTTPSampler.domain">httpbin.org</stringProp>
+          <stringProp name="HTTPSampler.path">/get?home</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
         </HTTPSamplerProxy>
         <hashTree/>
-
-        <!-- ADD TO CART (agora COM CSRF + Cookie) -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Add to Cart">
-          <stringProp name="HTTPSampler.domain">${__P(hostname,localhost)}</stringProp>
-          <stringProp name="HTTPSampler.port">${__P(port,18081)}</stringProp>
-          <stringProp name="HTTPSampler.protocol">http</stringProp>
-          <stringProp name="HTTPSampler.path">/tools.descartes.teastore.webui/cartAction</stringProp>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Categoria" enabled="true">
+          <stringProp name="HTTPSampler.domain">httpbin.org</stringProp>
+          <stringProp name="HTTPSampler.path">/get?categoria=tea</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Produto Earl Grey" enabled="true">
+          <stringProp name="HTTPSampler.domain">httpbin.org</stringProp>
+          <stringProp name="HTTPSampler.path">/get?produto=earlgrey</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="Adicionar ao Carrinho" enabled="true">
+          <stringProp name="HTTPSampler.domain">httpbin.org</stringProp>
+          <stringProp name="HTTPSampler.path">/post</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-        </HTTPSamplerProxy>
-        <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Headers">
-            <collectionProp name="HeaderManager.headers">
-              <elementProp name="Cookie" elementType="Header">
-                <stringProp name="Header.name">Cookie</stringProp>
-                <stringProp name="Header.value">JSESSIONID=${cookie}</stringProp>
-              </elementProp>
-            </collectionProp>
-          </HeaderManager>
-          <hashTree/>
-          <Arguments guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="Parâmetros">
+          <stringProp name="HTTPSampler.postBodyRaw">true</stringProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
-              <elementProp name="productid" elementType="HTTPArgument">
-                <stringProp name="Argument.name">productid</stringProp>
-                <stringProp name="Argument.value">7</stringProp>
-              </elementProp>
-              <elementProp name="addToCart" elementType="HTTPArgument">
-                <stringProp name="Argument.name">addToCart</stringProp>
-                <stringProp name="Argument.value">Add to Cart</stringProp>
-              </elementProp>
-              <elementProp name="_csrf" elementType="HTTPArgument">
-                <stringProp name="Argument.name">_csrf</stringProp>
-                <stringProp name="Argument.value">${csrf}</stringProp>
+              <elementProp name="produto" elementType="HTTPArgument">
+                <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                <stringProp name="Argument.value">earlgrey</stringProp>
               </elementProp>
             </collectionProp>
-          </Arguments>
-          <hashTree/>
-        </hashTree>
-
-        <!-- VIEW CART -->
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Cart">
-          <stringProp name="HTTPSampler.domain">${__P(hostname,localhost)}</stringProp>
-          <stringProp name="HTTPSampler.port">${__P(port,18081)}</stringProp>
-          <stringProp name="HTTPSampler.path">/tools.descartes.teastore.webui/cart</stringProp>
-          <stringProp name="HTTPSampler.method">GET</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          </elementProp>
         </HTTPSamplerProxy>
-        <hashTree>
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert Earl Grey in Cart">
-            <collectionProp name="Asserion.test_strings">
-              <stringProp name="937315132">Earl Grey</stringProp>
-            </collectionProp>
-            <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
-            <intProp name="Assertion.test_type">2</intProp>
-          </ResponseAssertion>
-          <hashTree/>
-        </hashTree>
+        <hashTree/>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="Resultados Complexos" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <stringProp name="filename">jmeter-reports/complex.jtl</stringProp>
+        </ResultCollector>
+        <hashTree/>
       </hashTree>
-
-      <!-- SUMMARY -->
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
-        <boolProp name="ResultCollector.error_logging">false</boolProp>
-      </ResultCollector>
-      <hashTree/>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>
