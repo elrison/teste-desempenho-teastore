@@ -1,4 +1,4 @@
-name: Teste de Desempenho - TeaStore v14
+name: Teste de Desempenho - TeaStore v15
 
 on:
   push:
@@ -26,17 +26,17 @@ jobs:
           sudo apt install -y default-jdk python3 python3-pip unzip wget curl
           pip install matplotlib pandas reportlab
 
-          # ✅ Instalar última versão do k6 (sem erro 404)
+          # ✅ Instalar última versão do k6 (corrigida)
           K6_VERSION=$(curl -s https://api.github.com/repos/grafana/k6/releases/latest | grep tag_name | cut -d '"' -f 4)
-          echo "🔹 Baixando K6 versão: $K6_VERSION"
+          echo "🔹 Instalando K6 versão: $K6_VERSION"
           wget https://github.com/grafana/k6/releases/download/${K6_VERSION}/k6-${K6_VERSION}-linux-amd64.tar.gz
           tar -xvzf k6-${K6_VERSION}-linux-amd64.tar.gz
           sudo mv k6-${K6_VERSION}-linux-amd64/k6 /usr/local/bin/
 
-          # ✅ Instalar JMeter (com suporte a dashboards)
-          wget https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-5.6.3.zip
-          unzip -q apache-jmeter-5.6.3.zip
-          sudo mv apache-jmeter-5.6.3 /opt/jmeter
+          # ✅ Instalar JMeter versão 5.4.3 (compatível com seus .jmx)
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.4.3.zip
+          unzip -q apache-jmeter-5.4.3.zip
+          sudo mv apache-jmeter-5.4.3 /opt/jmeter
 
           # ✅ Instalar Locust
           pip install locust
@@ -48,16 +48,17 @@ jobs:
         run: |
           mkdir -p k6-reports
           echo "🌐 Iniciando K6 Web Dashboard (teste simples)..."
-          nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-simples.js --summary-export=k6-reports/simple.json > k6-reports/simple.log 2>&1 &
+          nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-simples.js \
+            --summary-export=k6-reports/simple.json > k6-reports/simple.log 2>&1 &
           sleep 10
           echo "✅ K6 Web Dashboard ativo (modo headless)."
-          sleep 10
 
       - name: Executar teste complexo (K6) com Web Dashboard
         run: |
           mkdir -p k6-reports
           echo "🌐 Executando teste complexo com K6 Web Dashboard..."
-          nohup k6 run --out web-dashboard ./k6-teastore/cenarios-complexos.js --summary-export=k6-reports/complex.json > k6-reports/complex.log 2>&1 &
+          nohup k6 run --out web-dashboard ./k6-teastore/teste-carga-complexo.js \
+            --summary-export=k6-reports/complex.json > k6-reports/complex.log 2>&1 &
           sleep 15
 
       # ======================================================
@@ -67,8 +68,8 @@ jobs:
         run: |
           mkdir -p jmeter-reports
 
-          SIMPLE="jmeter-teastore/teste-carga-simples.jmx"
-          COMPLEX="jmeter-teastore/cenarios-complexos.jmx"
+          SIMPLE="./jmeter-teastore/teste-carga-simples.jmx"
+          COMPLEX="./jmeter-teastore/teste-carga-complexo.jmx"
 
           echo "🧪 Executando JMeter - Teste Simples..."
           /opt/jmeter/bin/jmeter -n -t "$SIMPLE" -l jmeter-reports/simple.jtl -e -o jmeter-reports/dashboard-simple
@@ -78,67 +79,17 @@ jobs:
 
           echo "✅ Dashboards HTML gerados com sucesso!"
 
-  locust-tests:
-    name: Locust - Carga Simples e Complexa
-    runs-on: ubuntu-latest
-
-    steps:
       # ======================================================
-      # 1. Correção e Checkout do repositório
+      # 5. Executar testes Locust (mantido sem alterações)
       # ======================================================
-      - name: Remover arquivo .gitmodules (Correção Forçada)
+      - name: Executar testes Locust
         run: |
-          if [ -f ".gitmodules" ]; then
-            echo "Arquivo .gitmodules encontrado. Removendo para evitar erro de checkout."
-            rm .gitmodules
-          fi
-
-      - name: Checkout repository (sem submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-          fetch-depth: 1
+          mkdir -p locust-reports
+          locust -f ./locust-teastore/locustfile.py \
+            --headless -u 10 -r 2 -t 30s --csv=locust-reports/locust
 
       # ======================================================
-      # 2. Construir imagem Locust customizada
-      # ======================================================
-      - name: Construir imagem Locust customizada
-        run: |
-          echo 'FROM locustio/locust:latest' > Dockerfile.locust-custom
-          echo 'RUN pip install bs4 requests' >> Dockerfile.locust-custom
-          docker build -t meu-locust:latest -f Dockerfile.locust-custom .
-
-      # ======================================================
-      # 3. Testes Locust
-      # ======================================================
-      - name: Teste de Carga Simples (Locust via Docker)
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/locust-teastore:/app \
-            -w /app \
-            meu-locust:latest \
-            -f locustfile.py \
-            --host http://teastore-webui:8080 \
-            --users 5 \
-            --spawn-rate 5 \
-            --headless \
-            --run-time 30s
-
-      - name: Teste de Carga Complexo (Locust via Docker)
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/locust-teastore:/app \
-            -w /app \
-            meu-locust:latest \
-            -f cenarios-complexos-locust.py \
-            --host http://teastore-webui:8080 \
-            --users 10 \
-            --spawn-rate 5 \
-            --headless \
-            --run-time 1m
-
-      # ======================================================
-      # 4. Gerar Dashboard Consolidado (HTML + PDF)
+      # 6. Gerar Dashboard Consolidado (HTML + PDF)
       # ======================================================
       - name: Gerar Dashboard Consolidado
         run: |
@@ -152,12 +103,12 @@ jobs:
             --pdf reports/dashboard.pdf
 
       # ======================================================
-      # 5. Upload dos Relatórios
+      # 7. Upload dos Relatórios
       # ======================================================
       - name: Upload dos Relatórios
         uses: actions/upload-artifact@v4
         with:
-          name: relatorios-desempenho-v14
+          name: relatorios-desempenho-v15
           path: |
             k6-reports/
             jmeter-reports/
