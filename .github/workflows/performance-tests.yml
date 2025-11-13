@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v17 - Force Data Gen)
+name: Pipeline de Performance (v18 - Generate & Dynamic Check)
 
 on:
   workflow_dispatch:
@@ -66,43 +66,61 @@ jobs:
         working-directory: .
 
       # -----------------------------------------------------------------
-      # CORREÇÃO: Força a geração de dados antes de esperar os produtos
+      # CORREÇÃO: Geração Forçada + Detecção Dinâmica de Categoria
       # -----------------------------------------------------------------
       - name: Populate & Wait for Products
         run: |
-          # 1. FORÇAR CRIAÇÃO DE DADOS (RESET)
-          echo "🚀 Disparando endpoint de Reset/Populate Database..."
-          curl -X POST "http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/reset"
-          echo "⏳ Aguardando 10s para propagação dos dados..."
-          sleep 10
+          # 1. FORÇAR GERAÇÃO DE DADOS (GenerateDatabase em vez de Reset)
+          # Cria 500 produtos e 50 categorias para garantir que haja dados.
+          GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
+          
+          echo "🚀 Forçando geração de dados via: $GEN_URL"
+          # Usamos -v para ver o status code no log se falhar
+          curl -v -X POST "$GEN_URL" || true
+          
+          echo "⏳ Aguardando 15s para persistência dos dados..."
+          sleep 15
 
-          # 2. VERIFICAR SE OS PRODUTOS APARECERAM
+          # 2. DESCOBRIR UMA CATEGORIA VÁLIDA (Dinâmico)
+          echo "🔍 Buscando uma categoria válida na Home Page..."
+          HOME_HTML=$(curl -s "http://localhost:18081/tools.descartes.teastore.webui/")
+          
+          # Extrai o primeiro link de categoria (href="category?id=XXX")
+          CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
+
+          if [ -z "$CAT_LINK" ]; then
+             echo "⚠️ Nenhuma categoria encontrada na Home. Tentando fallback para ID=2..."
+             CAT_LINK="category?id=2"
+          else
+             echo "✅ Categoria detectada: $CAT_LINK"
+          fi
+
+          # 3. VERIFICAR SE OS PRODUTOS APARECERAM NESSA CATEGORIA
           MAX_ATTEMPTS=60
           SLEEP_SECONDS=2
-          # Categoria "Black Tea" geralmente é ID=2 ou ID=1
-          URL="http://localhost:18081/tools.descartes.teastore.webui/category?id=1"
+          FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
           
-          echo "⏳ Verificando produtos em $URL..."
+          echo "⏳ Verificando produtos em $FULL_URL..."
 
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
-            RESP=$(curl -L -s --max-time 5 "$URL" || true)
+            RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
 
             if [ -n "$RESP" ]; then
               # Verifica se existe link para algum produto (product?id=...)
               if echo "$RESP" | grep -q "product?id="; then
-                echo "✅ Produtos encontrados na tentativa $attempt! O banco está populado."
+                echo "✅ Produtos encontrados na tentativa $attempt! Banco populado com sucesso."
                 exit 0
               fi
-              echo "⏳ Tentativa $attempt: Categoria vazia (persistência lenta ou vazia)..."
+              echo "⏳ Tentativa $attempt: Categoria carregou mas está vazia..."
             else
               echo "⏳ Tentativa $attempt: Timeout..."
             fi
             sleep $SLEEP_SECONDS
           done
 
-          echo "❌ Erro Fatal: O banco de dados continua vazio após o Reset."
-          echo "--- Debug: Log do container de persistencia ---"
-          docker logs teste-desempenho-teastore-teastore-persistence-1 || true
+          echo "❌ Erro Fatal: Não foi possível encontrar produtos."
+          echo "--- Debug: Logs da Persistência ---"
+          docker logs teste-desempenho-teastore-teastore-persistence-1 --tail 50 || true
           exit 1
         working-directory: .
 
