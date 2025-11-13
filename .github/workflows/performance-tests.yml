@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v16 - Wait for Products Fix)
+name: Pipeline de Performance (v17 - Force Data Gen)
 
 on:
   workflow_dispatch:
@@ -50,7 +50,6 @@ jobs:
             if [ -n "$RESP" ]; then
               if echo "$RESP" | grep -q "_csrf"; then
                 echo "✅ _csrf encontrado na tentativa $attempt"
-                # Continua para a próxima verificação
               fi
               if echo "$RESP" | grep -qi "TeaStore"; then
                 echo "✅ Página TeaStore carregada na tentativa $attempt"
@@ -59,46 +58,51 @@ jobs:
             else
               echo "⏳ Tentativa $attempt: resposta vazia (curl timeout)"
             fi
-
-            echo "⏳ Tentativa $attempt: ainda aguardando..."
             sleep $SLEEP_SECONDS
           done
 
-          echo "❌ Timeout: não encontrou _csrf nem 'TeaStore' após $MAX_ATTEMPTS tentativas."
-          curl -L -s "$URL" | head -n 40 || true
+          echo "❌ Timeout: WebUI não carregou."
           exit 1
         working-directory: .
 
       # -----------------------------------------------------------------
-      # NOVA ETAPA: Garante que o DB populou os produtos
+      # CORREÇÃO: Força a geração de dados antes de esperar os produtos
       # -----------------------------------------------------------------
-      - name: Wait for Products (Database Population)
+      - name: Populate & Wait for Products
         run: |
+          # 1. FORÇAR CRIAÇÃO DE DADOS (RESET)
+          echo "🚀 Disparando endpoint de Reset/Populate Database..."
+          curl -X POST "http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/reset"
+          echo "⏳ Aguardando 10s para propagação dos dados..."
+          sleep 10
+
+          # 2. VERIFICAR SE OS PRODUTOS APARECERAM
           MAX_ATTEMPTS=60
           SLEEP_SECONDS=2
-          # Categoria "All products" (ID=1)
+          # Categoria "Black Tea" geralmente é ID=2 ou ID=1
           URL="http://localhost:18081/tools.descartes.teastore.webui/category?id=1"
           
-          echo "⏳ Aguardando produtos aparecerem em $URL (até $((MAX_ATTEMPTS * SLEEP_SECONDS))s)..."
+          echo "⏳ Verificando produtos em $URL..."
 
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             RESP=$(curl -L -s --max-time 5 "$URL" || true)
 
             if [ -n "$RESP" ]; then
-              # Procuramos por um link de produto
+              # Verifica se existe link para algum produto (product?id=...)
               if echo "$RESP" | grep -q "product?id="; then
-                echo "✅ Produtos encontrados na página na tentativa $attempt"
+                echo "✅ Produtos encontrados na tentativa $attempt! O banco está populado."
                 exit 0
               fi
-              echo "⏳ Tentativa $attempt: Página de categoria carregada, mas ainda sem produtos..."
+              echo "⏳ Tentativa $attempt: Categoria vazia (persistência lenta ou vazia)..."
             else
-              echo "⏳ Tentativa $attempt: resposta vazia (curl timeout)"
+              echo "⏳ Tentativa $attempt: Timeout..."
             fi
             sleep $SLEEP_SECONDS
           done
 
-          echo "❌ Timeout: Produtos não apareceram após $MAX_ATTEMPTS tentativas."
-          curl -L -s "$URL" | head -n 40 || true
+          echo "❌ Erro Fatal: O banco de dados continua vazio após o Reset."
+          echo "--- Debug: Log do container de persistencia ---"
+          docker logs teste-desempenho-teastore-teastore-persistence-1 || true
           exit 1
         working-directory: .
 
@@ -114,7 +118,6 @@ jobs:
           sudo apt-get install -y openjdk-11-jre-headless
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
-        # Usa o WD default
 
       - name: Run JMeter Simples
         run: |
@@ -123,7 +126,6 @@ jobs:
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
             -Jhostname=localhost -Jport=18081 || true
-        # Usa o WD default
 
       - name: Run JMeter Complexos
         run: |
@@ -132,7 +134,6 @@ jobs:
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
             -Jhostname=localhost -Jport=18081 || true
-        # Usa o WD default
 
       - name: Upload JMeter reports
         uses: actions/upload-artifact@v4
@@ -154,12 +155,10 @@ jobs:
       - name: Run K6 Simples
         run: |
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
-        # Usa o WD default
 
       - name: Run K6 Complexos
         run: |
           k6 run k6-teastore/cenarios-complexos.js || true
-        # Usa o WD default
 
       - name: Upload K6 summaries
         uses: actions/upload-artifact@v4
@@ -180,7 +179,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install locust beautifulsoup4 requests pandas matplotlib lxml reportlab
-        # Usa o WD default
 
       - name: Run Locust Simples
         run: |
@@ -188,7 +186,6 @@ jobs:
             --host http://localhost:18081 \
             --html locust-teastore/simple.html \
             --csv locust-teastore/simple || true
-        # Usa o WD default
 
       - name: Run Locust Complexos
         run: |
@@ -196,7 +193,6 @@ jobs:
             --host http://localhost:18081 \
             --html locust-teastore/complex.html \
             --csv locust-teastore/complex || true
-        # Usa o WD default
 
       - name: Upload Locust HTML
         uses: actions/upload-artifact@v4
@@ -215,7 +211,6 @@ jobs:
             --locust locust-teastore/complex_stats.csv \
             --pdf report.pdf \
             --out dashboard.html || true
-        # Usa o WD default
 
       - name: Upload consolidated
         uses: actions/upload-artifact@v4
@@ -232,4 +227,3 @@ jobs:
         run: |
           docker compose logs --no-color
           docker compose down
-        # Usa o WD default
