@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v28 - Brute Force Wait)
+name: Pipeline de Performance (v27 - A Grande Espera)
 
 on:
   workflow_dispatch:
@@ -18,7 +18,8 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Aumentar SLEEPs para 2 min (backend) e 1 min (frontend)
+      # CORREÇÃO CRÍTICA: Aumentar drasticamente os SLEEPs
+      # Os serviços Java/Tomcat precisam de mais tempo.
       # -----------------------------------------------------------------
       - name: Start TeaStore stack (Manually Ordered)
         run: |
@@ -59,23 +60,24 @@ jobs:
           # FASE 3: O BACKEND (depende do Registry e DB)
           echo "🚀 FASE 3: Iniciando os serviços de Backend (Persistence, Auth, etc.)..."
           docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
-          echo "⏳ Aguardando 120 SEGUNDOS (2 Min) para os .war do backend implantarem..."
-          # AUMENTADO DE 90 para 120
-          sleep 120
+          echo "⏳ Aguardando 90 SEGUNDOS para os .war do backend implantarem (Java é lento)..."
+          # AUMENTADO DE 45 para 90
+          sleep 90
 
           # FASE 4: O FRONTEND (depende do Registry)
           echo "🚀 FASE 4: Iniciando o Frontend (WebUI)..."
           docker compose up -d teastore-webui
-          echo "⏳ Aguardando 60 SEGUNDOS (1 Min) para o .war do WebUI implantar..."
-          # AUMENTADO DE 45 para 60
-          sleep 60
+          echo "⏳ Aguardando 45 SEGUNDOS para o .war do WebUI implantar..."
+          # AUMENTADO DE 30 para 45
+          sleep 45
           
           echo "✅ Todos os serviços estão iniciados em ordem."
 
       # -----------------------------------------------------------------
-      # Este passo (v26) agora tem o tempo necessário para funcionar
+      # Este passo agora tem uma chance muito maior de
+      # funcionar na primeira tentativa.
       # -----------------------------------------------------------------
-      - name: Populate & Wait for Products (v26 logic)
+      - name: Populate & Wait for Products (v27)
         run: |
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
