@@ -1,105 +1,94 @@
-version: "3.9"
-
 services:
   teastore-db:
     image: mysql:5.7
-    container_name: teastore-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: teadb
-      MYSQL_USER: teauser
-      MYSQL_PASSWORD: teapass
+      MYSQL_ROOT_PASSWORD: "rootpass"
+      MYSQL_DATABASE: "teadb"
+      MYSQL_USER: "teauser"
+      MYSQL_PASSWORD: "teapass"
+    command: [--skip-ssl]
+    networks:
+      - teastore-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass --silent"]
       interval: 5s
       timeout: 5s
-      retries: 20
-    ports:
-      - "3306:3306"
-    networks:
-      - teastore-net
+      retries: 15
+      start_period: 10s
 
-  teastore-persistence:
-    image: descartesresearch/teastore-persistence:latest
-    container_name: teastore-persistence
-    restart: always
+  teastore-registry:
+    image: descartesresearch/teastore-registry:latest
     depends_on:
       teastore-db:
         condition: service_healthy
     environment:
       DB_HOST: teastore-db
-      DB_PORT: "3306"
+      DB_PORT: 3306
       DB_USER: teauser
       DB_PASS: teapass
       DB_NAME: teadb
-
-      # 🔥 ESSA É A CORREÇÃO QUE RESOLVE O HTTP 500:
-      TEASTORE_DB_HOST: teastore-db
-      TEASTORE_DB_PORT: "3306"
-
-    ports:
-      - "18084:8080"
     networks:
-      - teastore-net
+      - teastore-network
 
-  teastore-auth:
-    image: descartesresearch/teastore-auth:latest
-    container_name: teastore-auth
-    restart: always
+  teastore-persistence:
+    image: descartesresearch/teastore-persistence:latest
     depends_on:
-      teastore-persistence:
+      teastore-registry:
         condition: service_started
     environment:
-      PERSISTENCE_HOST: teastore-persistence
-    ports:
-      - "18085:8080"
+      REGISTRY_HOST: teastore-registry
+      DB_HOST: teastore-db
+      DB_PORT: 3306
+      DB_NAME: teadb
+      DB_USER: teauser
+      DB_PASS: teapass
     networks:
-      - teastore-net
+      - teastore-network
 
   teastore-recommender:
     image: descartesresearch/teastore-recommender:latest
-    container_name: teastore-recommender
-    restart: always
     depends_on:
-      teastore-persistence:
+      teastore-registry:
         condition: service_started
+    environment:
+      REGISTRY_HOST: teastore-registry
     networks:
-      - teastore-net
+      - teastore-network
+
+  teastore-auth:
+    image: descartesresearch/teastore-auth:latest
+    depends_on:
+      teastore-registry:
+        condition: service_started
+    environment:
+      REGISTRY_HOST: teastore-registry
+    networks:
+      - teastore-network
 
   teastore-image:
     image: descartesresearch/teastore-image:latest
-    container_name: teastore-image
-    restart: always
     depends_on:
-      teastore-persistence:
+      teastore-registry:
         condition: service_started
+    environment:
+      REGISTRY_HOST: teastore-registry
     networks:
-      - teastore-net
+      - teastore-network
 
   teastore-webui:
     image: descartesresearch/teastore-webui:latest
-    container_name: teastore-webui
-    restart: always
-    depends_on:
-      teastore-auth:
-        condition: service_started
-      teastore-image:
-        condition: service_started
-      teastore-recommender:
-        condition: service_started
-      teastore-persistence:
-        condition: service_started
-    environment:
-      AUTH_HOST: teastore-auth
-      IMAGE_HOST: teastore-image
-      RECOMMENDER_HOST: teastore-recommender
-      PERSISTENCE_HOST: teastore-persistence
     ports:
       - "18081:8080"
+    depends_on:
+      teastore-registry:
+        condition: service_started
+    environment:
+      REGISTRY_HOST: teastore-registry
+      SERVICE_PORT: 8080
     networks:
-      - teastore-net
+      - teastore-network
 
 networks:
-  teastore-net:
+  teastore-network:
     driver: bridge

@@ -1,94 +1,79 @@
-name: Pipeline Performance Completa
+name: Pipeline de Performance (v13 - FULL FIX)
 
 on:
   workflow_dispatch:
 
 jobs:
   performance:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install system deps
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose curl wget python3-pip unzip
+          sudo apt-get install -y docker-compose \
+            netcat-openbsd curl wget python3-bs4 python3-venv
 
-      # ============================================================
-      # TEASTORE — INICIAR STACK
-      # ============================================================
-      - name: Start TeaStore
+      - name: Start TeaStore stack in phases
         run: |
-          echo "🚀 Subindo TeaStore stack"
-          docker compose up -d
-          echo "⏳ Aguardando 60s..."
-          sleep 60
-          docker ps
+          docker compose up -d teastore-db
+          sleep 8
+          docker compose up -d teastore-registry
+          sleep 20
+          docker compose up -d teastore-persistence teastore-auth \
+            teastore-image teastore-recommender
+          sleep 20
+          docker compose up -d teastore-webui
+          sleep 10
 
-      # ============================================================
-      # VERIFICAR WEBUI (ENDPOINT BASE)
-      # ============================================================
-      - name: Test WebUI Online
+      - name: Wait for WebUI (HTTP 200)
         run: |
-          echo "⏳ Testando WebUI..."
-          for i in {1..20}; do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:18081/tools.descartes.teastore.webui/)
-            echo "Tentativa $i: HTTP $CODE"
-
-            if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
-              echo "🟢 WebUI ONLINE!"
+          echo "⏳ Aguardando WebUI..."
+          for i in {1..80}; do
+            CODE=$(curl -o /dev/null -s -w "%{http_code}" \
+              http://localhost:18081/tools.descartes.teastore.webui/login)
+            if [ "$CODE" = "200" ]; then
+              echo "✅ WebUI pronta!"
               exit 0
             fi
-            
-            sleep 5
+            sleep 3
           done
-          echo "❌ WebUI não respondeu."
+          echo "❌ Timeout aguardando WebUI"
           exit 1
 
-      # ============================================================
-      # JMETER — INSTALAÇÃO
-      # ============================================================
-      - name: Install JMeter
+      - name: Install Java & JMeter
         run: |
-          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
+          sudo apt-get install -y openjdk-11-jre-headless
+          wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      # ============================================================
-      # JMETER — TESTE SIMPLES
-      # ============================================================
-      - name: Run JMeter Simples
+      - name: Run JMeter Simple
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
-           -t jmeter-teastore/teste-carga-simples.jmx \
-           -l jmeter-teastore/results-simples.jtl \
-           -e -o jmeter-teastore/report-simples \
-           -Jhostname=localhost -Jport=18081 || true
+            -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl \
+            -e -o jmeter-teastore/report-simples \
+            -Jhostname=localhost -Jport=18081
 
-      # ============================================================
-      # JMETER — TESTE COMPLEXO
-      # ============================================================
-      - name: Run JMeter Complexos
+      - name: Run JMeter Complex
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
-           -t jmeter-teastore/cenarios-complexos.jmx \
-           -l jmeter-teastore/results-complexos.jtl \
-           -e -o jmeter-teastore/report-complexos \
-           -Jhostname=localhost -Jport=18081 || true
+            -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl \
+            -e -o jmeter-teastore/report-complexos \
+            -Jhostname=localhost -Jport=18081
 
-      - name: Upload JMeter Reports
+      - name: Upload JMeter reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: jmeter-reports
-          path: |
-            jmeter-teastore/report-simples
-            jmeter-teastore/report-complexos
+          name: relatorios-jmeter
+          path: jmeter-teastore/report*
 
-      # ============================================================
-      # K6 — INSTALAÇÃO
-      # ============================================================
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -96,75 +81,66 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      # ============================================================
-      # K6 — TESTE SIMPLES
-      # ============================================================
-      - name: Run K6 Simples
+      - name: Run K6 simple
         run: |
           k6 run k6-teastore/teste-carga-simples.js \
-            --out web-dashboard \
-            --summary-export=k6-simples.json || true
+            --summary-export=k6-simple.json || true
 
-      # ============================================================
-      # K6 — TESTE COMPLEXO
-      # ============================================================
-      - name: Run K6 Complexos
+      - name: Run K6 complex
         run: |
           k6 run k6-teastore/cenarios-complexos.js \
-            --out web-dashboard \
-            --summary-export=k6-complexos.json || true
+            --summary-export=k6-complex.json || true
 
-      - name: Upload K6 Dashboard
+      - name: Upload K6 summaries
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-dashboard
-          path: |
-            k6-results/
-            k6-simples.json
-            k6-complexos.json
+          name: relatorios-k6
+          path: "k6-*.json"
 
-      # ============================================================
-      # LOCUST — INSTALAR
-      # ============================================================
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Locust
-        run: pip install locust
+      - name: Install Locust & deps + PDF libs
+        run: |
+          pip install locust beautifulsoup4 requests matplotlib pandas reportlab PyPDF2
 
-      # ============================================================
-      # LOCUST — TESTE SIMPLES
-      # ============================================================
-      - name: Run Locust Simples
+      - name: Run Locust Simple
         run: |
           locust -f locust-teastore/locustfile.py \
-            --headless --host http://localhost:18081 \
-            -u 10 -r 2 -t 20s \
-            --html locust-simples.html || true
+            --headless -u 5 -r 2 -t 15s \
+            --host http://localhost:18081 \
+            --html locust-teastore/simple.html || true
 
-      # ============================================================
-      # LOCUST — TESTE COMPLEXO
-      # ============================================================
-      - name: Run Locust Complexos
+      - name: Run Locust Complex
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless --host http://localhost:18081 \
-            -u 20 -r 3 -t 30s \
-            --html locust-complexos.html || true
+            --headless -u 10 -r 3 -t 30s \
+            --host http://localhost:18081 \
+            --html locust-teastore/complex.html || true
 
-      - name: Upload Locust Reports
+      - name: Upload Locust reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: locust-reports
-          path: |
-            locust-simples.html
-            locust-complexos.html
+          name: relatorios-locust
+          path: locust-teastore/*.html
 
-      # ============================================================
-      # ENCERRAR STACK
-      # ============================================================
-      - name: Stop containers
+      - name: Generate Dashboard Consolidado
+        run: |
+          python3 generate_dashboard.py
+
+      - name: Upload Dashboard
         if: always()
-        run: docker compose down
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-consolidado
+          path: dashboard*.html
+
+      - name: Logs & Stop containers
+        if: always()
+        run: |
+          docker compose logs --no-color
+          docker compose down
