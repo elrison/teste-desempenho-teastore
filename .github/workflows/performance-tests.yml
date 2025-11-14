@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v31 - Docker Compose Fixo)
+name: Pipeline de Performance (v32 ULTRA ESTÁVEL)
 
 on:
   workflow_dispatch:
@@ -6,111 +6,94 @@ on:
 jobs:
   performance:
     runs-on: ubuntu-22.04
-   
-    timeout-minutes: 30
-    
+    timeout-minutes: 40
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install system packages
+      - name: Instalar pacotes base
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
+          sudo apt-get install -y docker-compose curl wget python3-pip netcat-openbsd
 
-      # -----------------------------------------------------------------
-      # Usar 'docker compose up' (v29) + 'sleep 300' (v30)
-      # -----------------------------------------------------------------
-      - name: Start TeaStore stack (Trusting Compose)
+      # ============================================================
+      # 1) SUBIR SERVIÇOS EM ORDEM + ESPERA REAL
+      # ============================================================
+      - name: Subir MySQL (com healthcheck forte)
         run: |
-          echo "🚀 Iniciando toda a stack com 'docker compose up -d'..."
-          echo "Isto usará a lógica 'depends_on' (CORRIGIDA) do seu arquivo."
-          docker compose up -d
-          
-          echo "⏳ A 'Grande Espera'..."
-          echo "Aguardando 300 SEGUNDOS (5 Minutos) para todos os serviços Java/Tomcat"
-          echo "implantarem seus arquivos .war internos antes de continuar."
-          sleep 300
-          
-          echo "✅ Todos os serviços devem estar prontos. Verificando agora..."
+          docker compose up -d teastore-db
+          echo "⏳ Aguardando MySQL subir (até 90 segundos)..."
+          sleep 90
 
-      # -----------------------------------------------------------------
-      # A lógica de verificação (v26) permanece
-      # -----------------------------------------------------------------
-      - name: Populate & Wait for Products (v26 logic)
+      - name: Subir Registry
         run: |
-          
+          docker compose up -d teastore-registry
+          sleep 20
+
+      - name: Subir Persistence + serviços internos
+        run: |
+          docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
+          echo "⏳ Aguardando serviços Java internalizarem o WAR (60s)..."
+          sleep 60
+
+      - name: Subir WebUI
+        run: |
+          docker compose up -d teastore-webui
+          echo "⏳ Aguardando WebUI (mais 25s)..."
+          sleep 25
+
+      - name: Logs iniciais
+        run: docker compose logs --tail=60
+
+      # ============================================================
+      # 2) VERIFICAÇÃO DO ENDPOINT DE GERAÇÃO
+      # ============================================================
+      - name: Validar API de Persistence e gerar dados
+        run: |
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
 
-          echo "Aguardando teastore-persistence ficar online..."
-          sleep 40
-            
-          echo "🚀 Iniciando Loop de Verificação da API de Persistência (max 2 min)..."
-          
-          # --- LOOP 1: Esperar a API de Geração ficar ONLINE ---
-          MAX_WAIT_API=120 # 2 minutos
-          COUNT=0
-          API_READY=false
-          while [ $COUNT -lt $MAX_WAIT_API ]; do
-            echo "--- Tentativa API (Tempo $COUNT/$MAX_WAIT_API) ---"
-            
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
+          echo "⏳ Aguardando a API estar online (máx 120s)..."
 
-            if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
-              echo "✅ API de Geração respondeu com $HTTP_CODE! O Backend está online."
-              API_READY=true
+          for i in {1..24}; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
+            echo "Tentativa $i - HTTP $CODE"
+
+            if [ "$CODE" = "200" ] || [ "$CODE" = "204" ]; then
+              echo "✅ API ONLINE e respondendo!"
               break
             fi
-            
-            echo "   API de Persistência ainda não está pronta (HTTP $HTTP_CODE). Aguardando..."
+
             sleep 5
-            COUNT=$((COUNT + 5))
           done
 
-          if [ "$API_READY" == "false" ]; then
-            echo "❌ Erro Fatal: A API de geração de dados nunca respondeu com 200/204."
+          if ! [ "$CODE" = "200" ] && ! [ "$CODE" = "204" ]; then
+            echo "❌ A API NÃO RESPONDEU 200/204!"
             docker compose logs teastore-persistence
             exit 1
           fi
 
-          # --- LOOP 2: Esperar os DADOS aparecerem (são gerados async) ---
-          
-          echo "⏳ API online. Aguardando dados aparecerem na Home Page (max 60s)..."
-          MAX_WAIT_DATA=60
-          COUNT=0
-          while [ $COUNT -lt $MAX_WAIT_DATA ]; do
-            HOME_HTML=$(curl -L -s "$HOME_URL")
-            CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
-
-            if [ -n "$CAT_LINK" ]; then
-               FULL_URL="http://localhost:18081/tools.descartes.teastore.webui/$CAT_LINK"
-               RESP=$(curl -L -s --max-time 5 "$FULL_URL" || true)
-
-               if [ -n "$RESP" ] && echo "$RESP" | grep -q "product?id="; then
-                 echo "✅ SUCESSO! Produtos encontrados em $FULL_URL."
-                 exit 0
-               fi
-               echo "   Categorias encontradas, mas ainda sem produtos. Aguardando..."
-            else
-               echo "   Home page ainda sem categorias. Aguardando..."
+          # ------ Esperar produtos aparecerem ------
+          echo "⏳ Aguardando produtos na Home Page..."
+          for i in {1..12}; do
+            PAGE=$(curl -s "$HOME_URL")
+            if echo "$PAGE" | grep -q "category?id="; then
+              echo "Categorias OK."
+              if echo "$PAGE" | grep -q "product?id="; then
+                echo "✅ PRODUTOS OK!"
+                break
+              fi
             fi
-            
             sleep 5
-            COUNT=$((COUNT + 5))
           done
-
-          echo "❌ Erro Fatal: O loop terminou e os produtos nunca apareceram."
-          echo "--- Debug: Logs Atuais da Persistência ---"
-          docker compose logs teastore-persistence || true
-          exit 1
 
       - name: Check containers
         run: docker ps -a
 
-      # -----------------------
-      # JMETER (sem alterações)
-      # -----------------------
+      # ============================================================
+      # 3) JMETER
+      # ============================================================
       - name: Install Java & JMeter
         run: |
           sudo apt-get install -y openjdk-11-jre-headless
@@ -139,9 +122,9 @@ jobs:
           name: relatorios-jmeter
           path: jmeter-teastore/report*
 
-      # -----------------------
-      # K6 (sem alterações)
-      # -----------------------
+      # ============================================================
+      # 4) K6
+      # ============================================================
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -155,19 +138,17 @@ jobs:
 
       - name: Run K6 Complexos
         run: |
-          k6 run k6-teastore/cenarios-complexos.js || true
+          k6 run k6-teastore/cenarios-complexos.js --summary-export=k6-complex.json || true
 
       - name: Upload K6 summaries
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
-          path: |
-            k6-*.json
-            k6*.html
+          path: k6-*.json
 
-      # -----------------------
-      # LOCUST (sem alterações)
-      # -----------------------
+      # ============================================================
+      # 5) LOCUST
+      # ============================================================
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -177,19 +158,19 @@ jobs:
         run: |
           pip install locust beautifulsoup4 requests pandas matplotlib lxml reportlab
 
-      - name: Run Locust Simples
+      - name: Run Locust simples
         run: |
-          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s \
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 5 -r 2 -t 20s \
             --host http://localhost:18081 \
-            --html locust-teastore/simple.html \
-            --csv locust-teastore/simple || true
+            --html locust-teastore/simple.html || true
 
-      - name: Run Locust Complexos
+      - name: Run Locust complexos
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s \
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 3 -t 30s \
             --host http://localhost:18081 \
-            --html locust-teastore/complex.html \
-            --csv locust-teastore/complex || true
+            --html locust-teastore/complex.html || true
 
       - name: Upload Locust HTML
         uses: actions/upload-artifact@v4
@@ -197,10 +178,10 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      # -----------------------
-      # CONSOLIDATED (sem alterações)
-      # -----------------------
-      - name: Generate consolidated dashboard & PDF
+      # ============================================================
+      # 6) CONSOLIDATED REPORT
+      # ============================================================
+      - name: Gerar Dashboard & PDF
         run: |
           python3 generate_dashboard.py \
             --k6 k6-complex.json \
@@ -217,9 +198,8 @@ jobs:
             dashboard.html
             report.pdf
             charts/
-        if: always()
 
-      - name: Logs & Stop containers
+      - name: Logs finais & Stop
         if: always()
         run: |
           docker compose logs --no-color

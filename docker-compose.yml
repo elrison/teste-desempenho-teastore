@@ -10,24 +10,20 @@ services:
     command: [--skip-ssl]
     networks:
       - teastore-network
+
+    # 🔥 Healthcheck robusto para GitHub Actions
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass --silent"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 15
-      start_period: 10s
+      retries: 25         # 25 × 10s = 250s de tolerância
+      start_period: 20s
 
   teastore-registry:
     image: descartesresearch/teastore-registry:latest
     depends_on:
       teastore-db:
         condition: service_healthy
-    environment:
-      DB_HOST: teastore-db
-      DB_PORT: 3306
-      DB_USER: teauser
-      DB_PASS: teapass
-      DB_NAME: teadb
     networks:
       - teastore-network
 
@@ -36,13 +32,6 @@ services:
     depends_on:
       teastore-registry:
         condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
-      DB_HOST: teastore-db
-      DB_PORT: 3306
-      DB_NAME: teadb
-      DB_USER: teauser
-      DB_PASS: teapass
     networks:
       - teastore-network
 
@@ -51,8 +40,6 @@ services:
     depends_on:
       teastore-registry:
         condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
     networks:
       - teastore-network
 
@@ -61,8 +48,6 @@ services:
     depends_on:
       teastore-registry:
         condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
     networks:
       - teastore-network
 
@@ -71,8 +56,6 @@ services:
     depends_on:
       teastore-registry:
         condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
     networks:
       - teastore-network
 
@@ -83,9 +66,6 @@ services:
     depends_on:
       teastore-registry:
         condition: service_started
-    environment:
-      REGISTRY_HOST: teastore-registry
-      SERVICE_PORT: 8080
     networks:
       - teastore-network
 
