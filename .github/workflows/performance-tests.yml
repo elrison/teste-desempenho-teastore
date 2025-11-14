@@ -164,6 +164,45 @@ jobs:
             dashboard.html
             report.pdf
 
+      - name: Gerar gráficos extras JMeter
+        run: |
+          python3 scripts/unify_jmeter_graphs.py \
+            jmeter-teastore/results-complexos.jtl \
+            jmeter-teastore/graficos
+
+      - name: PDF JMeter
+        run: |
+          python3 scripts/generate_jmeter_pdf.py \
+            jmeter-teastore/graficos \
+            jmeter-jtl.pdf
+
+      - name: Dashboard HTML do K6
+        run: |
+          bash scripts/k6_dashboard.sh
+
+      - name: PDF K6
+        run: |
+          python3 scripts/generate_k6_pdf.py \
+            k6-complex.json \
+            k6.pdf
+
+      - name: PDF Locust
+        run: |
+          python3 scripts/generate_locust_pdf.py \
+            locust-teastore/complex.html \
+            locust.pdf
+
+      - name: Upload PDFs individualizados
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-pdf
+          path: |
+            jmeter-jtl.pdf
+            k6.pdf
+            locust.pdf
+            k6-html/*.html
+
+
       # ------------------------------------------------------------
       # 4) ENCERRAR
       # ------------------------------------------------------------
