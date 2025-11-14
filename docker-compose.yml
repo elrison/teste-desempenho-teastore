@@ -33,8 +33,11 @@ services:
       DB_USER: teauser
       DB_PASS: teapass
       DB_NAME: teadb
-      # 🔥 ESTA VARIÁVEL É O QUE REALMENTE CORRIGE TUDO:
-      tools.descartes.teastore.persistence.dburl: jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true
+
+      # 🔥 ESSA É A CORREÇÃO QUE RESOLVE O HTTP 500:
+      TEASTORE_DB_HOST: teastore-db
+      TEASTORE_DB_PORT: "3306"
+
     ports:
       - "18084:8080"
     networks:
@@ -49,7 +52,6 @@ services:
         condition: service_started
     environment:
       PERSISTENCE_HOST: teastore-persistence
-      tools.descartes.teastore.auth.persistenceurl: http://teastore-persistence:8080/tools.descartes.teastore.persistence/rest
     ports:
       - "18085:8080"
     networks:
