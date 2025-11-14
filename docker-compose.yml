@@ -14,7 +14,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
     ports:
       - "3306:3306"
     networks:
@@ -29,10 +29,12 @@ services:
         condition: service_healthy
     environment:
       DB_HOST: teastore-db
-      DB_PORT: 3306
+      DB_PORT: "3306"
       DB_USER: teauser
       DB_PASS: teapass
       DB_NAME: teadb
+      # 🔥 ESTA VARIÁVEL É O QUE REALMENTE CORRIGE TUDO:
+      tools.descartes.teastore.persistence.dburl: jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true
     ports:
       - "18084:8080"
     networks:
@@ -43,14 +45,11 @@ services:
     container_name: teastore-auth
     restart: always
     depends_on:
-      teastore-db:
-        condition: service_healthy
+      teastore-persistence:
+        condition: service_started
     environment:
-      DB_HOST: teastore-db
-      DB_PORT: 3306
-      DB_USER: teauser
-      DB_PASS: teapass
-      DB_NAME: teadb
+      PERSISTENCE_HOST: teastore-persistence
+      tools.descartes.teastore.auth.persistenceurl: http://teastore-persistence:8080/tools.descartes.teastore.persistence/rest
     ports:
       - "18085:8080"
     networks:
