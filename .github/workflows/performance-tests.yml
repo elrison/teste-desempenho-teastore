@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v27 - A Grande Espera)
+name: Pipeline de Performance (v29 - Trust Compose + Brute Wait)
 
 on:
   workflow_dispatch:
@@ -18,66 +18,27 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Aumentar drasticamente os SLEEPs
-      # Os serviços Java/Tomcat precisam de mais tempo.
+      # CORREÇÃO CRÍTICA: Um único 'docker compose up' para
+      # respeitar o 'depends_on' do seu arquivo YAML original.
       # -----------------------------------------------------------------
-      - name: Start TeaStore stack (Manually Ordered)
+      - name: Start TeaStore stack (Trusting Compose)
         run: |
-          # FASE 1: O BANCO DE DADOS
-          echo "🚀 FASE 1: Iniciando SOMENTE o Banco de Dados (teastore-db)..."
-          docker compose up -d teastore-db
+          echo "🚀 Iniciando toda a stack com 'docker compose up -d'..."
+          echo "Isto usará a lógica 'depends_on: service_healthy' do seu arquivo."
+          docker compose up -d
           
-          echo "⏳ Aguardando o Banco de Dados ficar 'healthy' (max 2 min)..."
-          MAX_WAIT=120
-          COUNT=0
-          while [ $COUNT -lt $MAX_WAIT ]; do
-            HEALTH=$(docker ps --filter "name=teastore-db-1" --format "{{.Status}}")
-            if echo "$HEALTH" | grep -q "(healthy)"; then
-              echo "✅ DB está 'healthy'!"
-              break
-            fi
-            if echo "$HEALTH" | grep -q "unhealthy"; then
-              echo "❌ DB está 'unhealthy'. Falha imediata."
-              docker logs teastore-db-1
-              exit 1
-            fi
-            echo "   (Aguardando $COUNT/$MAX_WAIT... Status: $HEALTH)"
-            sleep 2
-            COUNT=$((COUNT + 2))
-          done
-          if [ $COUNT -ge $MAX_WAIT ]; then
-            echo "❌ Timeout: O Banco de Dados não ficou 'healthy' a tempo."
-            docker logs teastore-db-1
-            exit 1
-          fi
-
-          # FASE 2: O REGISTRY (depende do DB)
-          echo "🚀 FASE 2: Iniciando o Registry..."
-          docker compose up -d teastore-registry
-          echo "⏳ Aguardando 20s para o Registry se conectar ao DB..."
-          sleep 20
+          echo "⏳ A 'Grande Espera'..."
+          echo "Aguardando 180 SEGUNDOS (3 Minutos) para todos os serviços Java/Tomcat"
+          echo "implantarem seus arquivos .war internos antes de continuar."
+          sleep 180
           
-          # FASE 3: O BACKEND (depende do Registry e DB)
-          echo "🚀 FASE 3: Iniciando os serviços de Backend (Persistence, Auth, etc.)..."
-          docker compose up -d teastore-persistence teastore-auth teastore-image teastore-recommender
-          echo "⏳ Aguardando 90 SEGUNDOS para os .war do backend implantarem (Java é lento)..."
-          # AUMENTADO DE 45 para 90
-          sleep 90
-
-          # FASE 4: O FRONTEND (depende do Registry)
-          echo "🚀 FASE 4: Iniciando o Frontend (WebUI)..."
-          docker compose up -d teastore-webui
-          echo "⏳ Aguardando 45 SEGUNDOS para o .war do WebUI implantar..."
-          # AUMENTADO DE 30 para 45
-          sleep 45
-          
-          echo "✅ Todos os serviços estão iniciados em ordem."
+          echo "✅ Todos os serviços devem estar prontos. Verificando agora..."
 
       # -----------------------------------------------------------------
-      # Este passo agora tem uma chance muito maior de
-      # funcionar na primeira tentativa.
+      # Este passo agora tem 3 minutos de vantagem e verificará
+      # se a API de persistência está realmente online.
       # -----------------------------------------------------------------
-      - name: Populate & Wait for Products (v27)
+      - name: Populate & Wait for Products (v26 logic)
         run: |
           GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
