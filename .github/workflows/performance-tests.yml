@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v30 - Brute Force Wait 5 min)
+name: Pipeline de Performance (v31 - Docker Compose Fixo)
 
 on:
   workflow_dispatch:
@@ -18,24 +18,23 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Aumentar a espera para 300s (5 Minutos)
+      # Usar 'docker compose up' (v29) + 'sleep 300' (v30)
       # -----------------------------------------------------------------
       - name: Start TeaStore stack (Trusting Compose)
         run: |
           echo "🚀 Iniciando toda a stack com 'docker compose up -d'..."
-          echo "Isto usará a lógica 'depends_on: service_healthy' do seu arquivo."
+          echo "Isto usará a lógica 'depends_on' (CORRIGIDA) do seu arquivo."
           docker compose up -d
           
           echo "⏳ A 'Grande Espera'..."
           echo "Aguardando 300 SEGUNDOS (5 Minutos) para todos os serviços Java/Tomcat"
           echo "implantarem seus arquivos .war internos antes de continuar."
-          # AUMENTADO DE 180 PARA 300
           sleep 300
           
           echo "✅ Todos os serviços devem estar prontos. Verificando agora..."
 
       # -----------------------------------------------------------------
-      # Este passo agora tem 5 minutos de vantagem.
+      # A lógica de verificação (v26) permanece
       # -----------------------------------------------------------------
       - name: Populate & Wait for Products (v26 logic)
         run: |
@@ -51,10 +50,6 @@ jobs:
           while [ $COUNT -lt $MAX_WAIT_API ]; do
             echo "--- Tentativa API (Tempo $COUNT/$MAX_WAIT_API) ---"
             
-            # -s (silencioso)
-            # -o /dev/null (descarta o body)
-            # -w "%{http_code}" (imprime o status code)
-            # *** SEM -L ***
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
 
             if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then

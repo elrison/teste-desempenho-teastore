@@ -23,6 +23,7 @@ services:
       teastore-db:
         condition: service_healthy
     environment:
+      # O Registry é o ÚNICO que deve saber as credenciais do DB
       DB_HOST: teastore-db
       DB_PORT: 3306
       DB_USER: teauser
@@ -31,18 +32,17 @@ services:
     networks:
       - teastore-network
 
+  # -----------------------------------------------------------------
+  # CORREÇÃO: Variáveis de DB REMOVIDAS daqui
+  # -----------------------------------------------------------------
   teastore-persistence:
     image: descartesresearch/teastore-persistence:latest
     depends_on:
       teastore-registry:
         condition: service_started
     environment:
+      # Ele só precisa saber onde o Registry está
       REGISTRY_HOST: teastore-registry
-      DB_HOST: teastore-db
-      DB_PORT: 3306
-      DB_NAME: teadb
-      DB_USER: teauser
-      DB_PASS: teapass
     networks:
       - teastore-network
 
