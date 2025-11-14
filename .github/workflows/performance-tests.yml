@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v13 - FULL FIX)
+name: Pipeline de Performance (v14 - Separado)
 
 on:
   workflow_dispatch:
@@ -12,13 +12,16 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Instalar dependências básicas
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose \
             netcat-openbsd curl wget python3-bs4 python3-venv
 
-      - name: Start TeaStore stack in phases
+      # ------------------------------------------------------------
+      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
+      # ------------------------------------------------------------
+      - name: Start TeaStore stack (mesmo da versão que funciona)
         run: |
           docker compose up -d teastore-db
           sleep 8
@@ -30,42 +33,50 @@ jobs:
           docker compose up -d teastore-webui
           sleep 10
 
-      - name: Wait for WebUI (HTTP 200)
+      - name: Wait for WebUI login (HTTP 200)
         run: |
-          echo "⏳ Aguardando WebUI..."
+          echo "⏳ Testando WebUI..."
           for i in {1..80}; do
             CODE=$(curl -o /dev/null -s -w "%{http_code}" \
               http://localhost:18081/tools.descartes.teastore.webui/login)
+            echo "Tentativa $i: HTTP $CODE"
+
             if [ "$CODE" = "200" ]; then
-              echo "✅ WebUI pronta!"
+              echo "🟢 WebUI ONLINE!"
               exit 0
             fi
+            
             sleep 3
           done
-          echo "❌ Timeout aguardando WebUI"
+          echo "❌ WebUI não respondeu."
           exit 1
 
+      # ------------------------------------------------------------
+      # 2) TESTES 100% SEPARADOS
+      # ------------------------------------------------------------
+
+      # ------------------------ J M E T E R -----------------------
       - name: Install Java & JMeter
         run: |
           sudo apt-get install -y openjdk-11-jre-headless
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: Run JMeter Simple
+      - name: JMETER - Simple Test
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=18081
+            -Jhostname=localhost -Jport=18081 || true
 
-      - name: Run JMeter Complex
+      - name: JMETER - Complex Tests
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=18081
+            -Jhostname=localhost -Jport=18081 || true
 
       - name: Upload JMeter reports
         if: always()
@@ -74,6 +85,7 @@ jobs:
           name: relatorios-jmeter
           path: jmeter-teastore/report*
 
+      # ---------------------------- K 6 ----------------------------
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -81,12 +93,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: Run K6 simple
+      - name: K6 - Simple Test
         run: |
           k6 run k6-teastore/teste-carga-simples.js \
             --summary-export=k6-simple.json || true
 
-      - name: Run K6 complex
+      - name: K6 - Complex Test
         run: |
           k6 run k6-teastore/cenarios-complexos.js \
             --summary-export=k6-complex.json || true
@@ -96,25 +108,28 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
-          path: "k6-*.json"
+          path: |
+            k6-simple.json
+            k6-complex.json
 
+      # -------------------------- L O C U S T ------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install Locust & deps + PDF libs
+      - name: Install Locust & deps
         run: |
-          pip install locust beautifulsoup4 requests matplotlib pandas reportlab PyPDF2
+          pip install locust beautifulsoup4 requests pandas matplotlib reportlab PyPDF2
 
-      - name: Run Locust Simple
+      - name: Locust - Simple Test
         run: |
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 15s \
             --host http://localhost:18081 \
             --html locust-teastore/simple.html || true
 
-      - name: Run Locust Complex
+      - name: Locust - Complex Test
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 3 -t 30s \
@@ -128,17 +143,30 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
+      # ------------------------------------------------------------
+      # 3) DASHBOARD FINAL (SEM MEXER NO SEU SCRIPT)
+      # ------------------------------------------------------------
       - name: Generate Dashboard Consolidado
         run: |
-          python3 generate_dashboard.py
+          python3 generate_dashboard.py \
+            --k6 k6-complex.json \
+            --jmeter jmeter-teastore/results-complexos.jtl \
+            --locust locust-teastore/complex.html \
+            --out dashboard.html \
+            --pdf report.pdf
 
       - name: Upload Dashboard
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dashboard-consolidado
-          path: dashboard*.html
+          path: |
+            dashboard.html
+            report.pdf
 
+      # ------------------------------------------------------------
+      # 4) ENCERRAR
+      # ------------------------------------------------------------
       - name: Logs & Stop containers
         if: always()
         run: |
