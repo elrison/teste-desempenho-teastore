@@ -39,7 +39,9 @@ jobs:
       # -----------------------------------------------------------------
       - name: Populate & Wait for Products (v26 logic)
         run: |
-          GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
+          
+          GEN_URL="http://localhost:18081/tools.descartes.teastore.persistence/rest/generate?products=500&clients=20&categories=50&orders=20"
+
           HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
           
           echo "🚀 Iniciando Loop de Verificação da API de Persistência (max 2 min)..."
