@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v29 - Trust Compose + Brute Wait)
+name: Pipeline de Performance (v30 - Brute Force Wait 5 min)
 
 on:
   workflow_dispatch:
@@ -18,8 +18,7 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # CORREÇÃO CRÍTICA: Um único 'docker compose up' para
-      # respeitar o 'depends_on' do seu arquivo YAML original.
+      # CORREÇÃO CRÍTICA: Aumentar a espera para 300s (5 Minutos)
       # -----------------------------------------------------------------
       - name: Start TeaStore stack (Trusting Compose)
         run: |
@@ -28,15 +27,15 @@ jobs:
           docker compose up -d
           
           echo "⏳ A 'Grande Espera'..."
-          echo "Aguardando 180 SEGUNDOS (3 Minutos) para todos os serviços Java/Tomcat"
+          echo "Aguardando 300 SEGUNDOS (5 Minutos) para todos os serviços Java/Tomcat"
           echo "implantarem seus arquivos .war internos antes de continuar."
-          sleep 180
+          # AUMENTADO DE 180 PARA 300
+          sleep 300
           
           echo "✅ Todos os serviços devem estar prontos. Verificando agora..."
 
       # -----------------------------------------------------------------
-      # Este passo agora tem 3 minutos de vantagem e verificará
-      # se a API de persistência está realmente online.
+      # Este passo agora tem 5 minutos de vantagem.
       # -----------------------------------------------------------------
       - name: Populate & Wait for Products (v26 logic)
         run: |
