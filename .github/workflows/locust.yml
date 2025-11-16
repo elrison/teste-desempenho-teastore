@@ -38,7 +38,7 @@ jobs:
           echo "⏳ Testando WebUI..."
           for i in {1..80}; do
             CODE=$(curl -o /dev/null -s -w "%{http_code}" \
-              http://localhost:8080/tools.descartes.teastore.webui/login)
+              http://localhost:18081/tools.descartes.teastore.webui/login)
             echo "Tentativa $i: HTTP $CODE"
 
             if [ "$CODE" = "200" ]; then
