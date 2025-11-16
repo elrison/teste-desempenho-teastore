@@ -88,7 +88,7 @@ services:
   teastore-webui:
     image: descartesresearch/teastore-webui:latest
     ports:
-      - "18081:8080"
+      - "8080:8080"
     depends_on:
       teastore-registry:
         condition: service_started
