@@ -1,0 +1,107 @@
+name: Pipeline de Performance (v14 - Separado)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Instalar dependências básicas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose \
+            netcat-openbsd curl wget python3-bs4 python3-venv
+
+      # ------------------------------------------------------------
+      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
+      # ------------------------------------------------------------
+      - name: Start TeaStore stack (mesmo da versão que funciona)
+        run: |
+          docker compose up -d teastore-db
+          sleep 8
+          docker compose up -d teastore-registry
+          sleep 20
+          docker compose up -d teastore-persistence teastore-auth \
+            teastore-image teastore-recommender
+          sleep 20
+          docker compose up -d teastore-webui
+          sleep 10
+
+      - name: Wait for WebUI login (HTTP 200)
+        run: |
+          echo "⏳ Testando WebUI..."
+          for i in {1..80}; do
+            CODE=$(curl -o /dev/null -s -w "%{http_code}" \
+              http://localhost:18081/tools.descartes.teastore.webui/login)
+            echo "Tentativa $i: HTTP $CODE"
+
+            if [ "$CODE" = "200" ]; then
+              echo "🟢 WebUI ONLINE!"
+              exit 0
+            fi
+            
+            sleep 3
+          done
+          echo "❌ WebUI não respondeu."
+          exit 1
+
+      # ------------------------------------------------------------
+      # 2) TESTES 100% SEPARADOS
+      # ------------------------------------------------------------
+
+      # ------------------------ J M E T E R -----------------------
+      - name: Install Java & JMeter
+        run: |
+          sudo apt-get install -y openjdk-11-jre-headless
+          wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
+          tar -xzf apache-jmeter-5.6.2.tgz
+
+      # Garantir que os assets do template do JMeter estejam disponíveis
+      - name: Copiar assets do dashboard JMeter (content e sbadmin2)
+        run: |
+          # Cria pastas alvo (caso não existam) e copia template do JMeter para dentro do projeto
+          mkdir -p jmeter-teastore/report-simples
+          mkdir -p jmeter-teastore/report-complexos
+          # Copia os assets do report-template do JMeter para o diretório jmeter-teastore,
+          # isso garante que o index.html gerado terá os CSS/JS (sbadmin2/content)
+          cp -r apache-jmeter-5.6.2/bin/report-template/content jmeter-teastore/ 2>/dev/null || true
+          cp -r apache-jmeter-5.6.2/bin/report-template/sbadmin2-1.0.7 jmeter-teastore/ 2>/dev/null || true
+
+      - name: JMETER - testes simples
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl \
+            -e -o jmeter-teastore/report-simples \
+            -Jhostname=localhost -Jport=18081 || true
+
+      - name: JMETER - Testes complexos
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl \
+            -e -o jmeter-teastore/report-complexos \
+            -Jhostname=localhost -Jport=18081 || true
+
+      - name: Upload JMeter reports (completo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-jmeter
+          path: |
+            jmeter-teastore/report-simples/**
+            jmeter-teastore/report-complexos/**
+ # ------------------------------------------------------------
+      # 4) ENCERRAR
+      # ------------------------------------------------------------
+      - name: Logs & Stop containers
+        if: always()
+        run: |
+          docker compose logs --no-color
+          docker compose down
