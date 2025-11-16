@@ -133,7 +133,7 @@ $(document).ready(function() {
         widgets: ['zebra']
     });
 
-    var data = {"OkPercent": 71.42857142857143, "KoPercent": 28.571428571428573};
+    var data = {"OkPercent": 0.0, "KoPercent": 100.0};
     var dataset = [
         {
             "label" : "FAIL",
@@ -173,7 +173,7 @@ $(document).ready(function() {
     });
 
     // Creates APDEX table
-    createTable($("#apdexTable"), {"supportsControllersDiscrimination": true, "overall": {"data": [0.7142857142857143, 500, 1500, "Total"], "isController": false}, "titles": ["Apdex", "T (Toleration threshold)", "F (Frustration threshold)", "Label"], "items": [{"data": [0.0, 500, 1500, "GET Cart"], "isController": false}, {"data": [1.0, 500, 1500, "GET Product Earl Grey"], "isController": false}, {"data": [1.0, 500, 1500, "GET Home"], "isController": false}, {"data": [1.0, 500, 1500, "POST Add to Cart-1"], "isController": false}, {"data": [1.0, 500, 1500, "POST Add to Cart-0"], "isController": false}, {"data": [1.0, 500, 1500, "POST Add to Cart"], "isController": false}]}, function(index, item){
+    createTable($("#apdexTable"), {"supportsControllersDiscrimination": true, "overall": {"data": [0.0, 500, 1500, "Total"], "isController": false}, "titles": ["Apdex", "T (Toleration threshold)", "F (Frustration threshold)", "Label"], "items": [{"data": [0.0, 500, 1500, "GET Categoria"], "isController": false}, {"data": [0.0, 500, 1500, "T01_Login"], "isController": true}, {"data": [0.0, 500, 1500, "GET Login Page"], "isController": false}, {"data": [0.0, 500, 1500, "GET Home"], "isController": false}, {"data": [0.0, 500, 1500, "T02_Navegar_e_Comprar"], "isController": true}, {"data": [0.0, 500, 1500, "GET Produto"], "isController": false}, {"data": [0.0, 500, 1500, "POST Login Action"], "isController": false}, {"data": [0.0, 500, 1500, "POST Add to Cart"], "isController": false}]}, function(index, item){
         switch(index){
             case 0:
                 item = item.toFixed(3);
@@ -187,7 +187,7 @@ $(document).ready(function() {
     }, [[0, 0]], 3);
 
     // Create statistics table
-    createTable($("#statisticsTable"), {"supportsControllersDiscrimination": true, "overall": {"data": ["Total", 35, 10, 28.571428571428573, 20.114285714285714, 9, 46, 17.0, 36.8, 41.99999999999998, 46.0, 41.91616766467065, 802.3542758233533, 8.584393712574851], "isController": false}, "titles": ["Label", "#Samples", "FAIL", "Error %", "Average", "Min", "Max", "Median", "90th pct", "95th pct", "99th pct", "Transactions/s", "Received", "Sent"], "items": [{"data": ["GET Cart", 10, 10, 100.0, 16.400000000000002, 15, 20, 15.0, 20.0, 20.0, 20.0, 13.568521031207599, 129.74898236092267, 2.014077340569878], "isController": false}, {"data": ["GET Product Earl Grey", 5, 0, 0.0, 38.2, 30, 46, 38.0, 46.0, 46.0, 46.0, 6.561679790026247, 559.7100045111548, 1.025262467191601], "isController": false}, {"data": ["GET Home", 5, 0, 0.0, 18.4, 11, 29, 17.0, 29.0, 29.0, 29.0, 6.693440428380187, 59.60038068942436, 0.967411311914324], "isController": false}, {"data": ["POST Add to Cart-1", 5, 0, 0.0, 15.2, 14, 17, 15.0, 17.0, 17.0, 17.0, 6.7658998646820026, 64.69891745602165, 1.0043132611637349], "isController": false}, {"data": ["POST Add to Cart-0", 5, 0, 0.0, 10.4, 9, 12, 10.0, 12.0, 12.0, 12.0, 6.784260515603799, 5.220700474898236, 1.8285702170963365], "isController": false}, {"data": ["POST Add to Cart", 5, 0, 0.0, 25.8, 23, 29, 26.0, 29.0, 29.0, 29.0, 6.657789613848202, 68.78849034620507, 2.7827480026631157], "isController": false}]}, function(index, item){
+    createTable($("#statisticsTable"), {"supportsControllersDiscrimination": true, "overall": {"data": ["Total", 60, 60, 100.0, 16.16666666666666, 1, 117, 11.0, 32.0, 55.74999999999998, 117.0, 5.190311418685121, 24.537399978373703, 1.104968641868512], "isController": false}, "titles": ["Label", "#Samples", "FAIL", "Error %", "Average", "Min", "Max", "Median", "90th pct", "95th pct", "99th pct", "Transactions/s", "Received", "Sent"], "items": [{"data": ["GET Categoria", 10, 10, 100.0, 4.199999999999999, 2, 9, 3.5, 8.700000000000001, 9.0, 9.0, 1.1328877308258753, 1.080889954118047, 0.20467209980740908], "isController": false}, {"data": ["T01_Login", 10, 10, 100.0, 64.7, 32, 191, 45.0, 181.00000000000003, 191.0, 191.0, 1.1057054400707653, 14.86547538423264, 0.5021025680008845], "isController": true}, {"data": ["GET Login Page", 10, 10, 100.0, 40.9, 20, 117, 31.0, 110.90000000000002, 117.0, 117.0, 1.1160714285714286, 7.487705775669642, 0.22125244140624997], "isController": false}, {"data": ["GET Home", 10, 10, 100.0, 19.2, 14, 32, 18.5, 31.000000000000004, 32.0, 32.0, 1.1316057485572026, 7.5919252857304516, 0.21880658028742786], "isController": false}, {"data": ["T02_Navegar_e_Comprar", 10, 10, 100.0, 32.3, 23, 45, 31.5, 44.8, 45.0, 45.0, 1.1299435028248588, 16.859772245762713, 0.9302171610169492], "isController": true}, {"data": ["GET Produto", 10, 10, 100.0, 3.3, 1, 7, 3.0, 6.800000000000001, 7.0, 7.0, 1.1332728921124207, 1.0823641489120581, 0.20584839641885766], "isController": false}, {"data": ["POST Login Action", 10, 10, 100.0, 23.8, 11, 74, 14.0, 70.10000000000002, 74.0, 74.0, 1.1261261261261262, 7.584855363175675, 0.2881299268018018], "isController": false}, {"data": ["POST Add to Cart", 10, 10, 100.0, 5.600000000000001, 2, 11, 5.0, 10.600000000000001, 11.0, 11.0, 1.13314447592068, 7.14190864022663, 0.3032046742209632], "isController": false}]}, function(index, item){
         switch(index){
             // Errors pct
             case 3:
@@ -217,7 +217,7 @@ $(document).ready(function() {
     }, [[0, 0]], 0, summaryTableHeader);
 
     // Create error table
-    createTable($("#errorsTable"), {"supportsControllersDiscrimination": false, "titles": ["Type of error", "Number of errors", "% in errors", "% in all samples"], "items": [{"data": ["Test failed: text expected to contain /Earl Grey (loose)/", 10, 100.0, 28.571428571428573], "isController": false}]}, function(index, item){
+    createTable($("#errorsTable"), {"supportsControllersDiscrimination": false, "titles": ["Type of error", "Number of errors", "% in errors", "% in all samples"], "items": [{"data": ["500", 40, 66.66666666666667, 66.66666666666667], "isController": false}, {"data": ["404", 20, 33.333333333333336, 33.333333333333336], "isController": false}]}, function(index, item){
         switch(index){
             case 2:
             case 3:
@@ -228,7 +228,7 @@ $(document).ready(function() {
     }, [[1, 1]]);
 
         // Create top5 errors by sampler
-    createTable($("#top5ErrorsBySamplerTable"), {"supportsControllersDiscrimination": false, "overall": {"data": ["Total", 35, 10, "Test failed: text expected to contain /Earl Grey (loose)/", 10, "", "", "", "", "", "", "", ""], "isController": false}, "titles": ["Sample", "#Samples", "#Errors", "Error", "#Errors", "Error", "#Errors", "Error", "#Errors", "Error", "#Errors", "Error", "#Errors"], "items": [{"data": ["GET Cart", 10, 10, "Test failed: text expected to contain /Earl Grey (loose)/", 10, "", "", "", "", "", "", "", ""], "isController": false}, {"data": [], "isController": false}, {"data": [], "isController": false}, {"data": [], "isController": false}, {"data": [], "isController": false}, {"data": [], "isController": false}]}, function(index, item){
+    createTable($("#top5ErrorsBySamplerTable"), {"supportsControllersDiscrimination": false, "overall": {"data": ["Total", 60, 60, "500", 40, "404", 20, "", "", "", "", "", ""], "isController": false}, "titles": ["Sample", "#Samples", "#Errors", "Error", "#Errors", "Error", "#Errors", "Error", "#Errors", "Error", "#Errors", "Error", "#Errors"], "items": [{"data": ["GET Categoria", 10, 10, "404", 10, "", "", "", "", "", "", "", ""], "isController": false}, {"data": [], "isController": false}, {"data": ["GET Login Page", 10, 10, "500", 10, "", "", "", "", "", "", "", ""], "isController": false}, {"data": ["GET Home", 10, 10, "500", 10, "", "", "", "", "", "", "", ""], "isController": false}, {"data": [], "isController": false}, {"data": ["GET Produto", 10, 10, "404", 10, "", "", "", "", "", "", "", ""], "isController": false}, {"data": ["POST Login Action", 10, 10, "500", 10, "", "", "", "", "", "", "", ""], "isController": false}, {"data": ["POST Add to Cart", 10, 10, "500", 10, "", "", "", "", "", "", "", ""], "isController": false}]}, function(index, item){
         return item;
     }, [[0, 0]], 0);
 
