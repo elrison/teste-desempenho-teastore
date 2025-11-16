@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v14 - Separado)
+name: Pipeline de Performance JMETER
 
 on:
   workflow_dispatch:
