@@ -52,11 +52,7 @@ jobs:
           exit 1
 
       # ----------------------- CORREÇÃO CRUCIAL -----------------------
-      - name: Debug - HTML da Home
-        run: |
-          curl -s http://localhost:18081/tools.descartes.teastore.webui/ > home.html
-          cat home.html
-
+        
       - name: Wait for Home Page Categories
         run: |
           echo "⏳ Verificando se pelo menos uma categoria está disponível na Home..."
