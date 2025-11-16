@@ -1,6 +1,6 @@
 from locust import HttpUser, task, between, events
 from bs4 import BeautifulSoup
-import requests, logging, re
+import requests, logging
 
 @events.test_start.add_listener
 def reset_database(environment, **kwargs):
@@ -18,48 +18,28 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
 
-    # --- INÍCIO DA CORREÇÃO (v9) ---
-    # Regex mais confiável para encontrar o CSRF
-    csrf_pattern = re.compile(r'name="(?P<name>_?csrf|csrfToken)" value="(?P<value>[^"]+)"')
-
-    def extract_csrf(self, html):
-        match = self.csrf_pattern.search(html)
-        if match:
-            logging.info("CSRF token encontrado.")
-            return match.group("value")
-        logging.warning("CSRF token NÃO encontrado.")
-        return None
+    # --- INÍCIO DA CORREÇÃO (v10) ---
+    # A função extract_csrf foi removida pois o login não usa CSRF.
 
     def on_start(self):
-        # Login GET
-        res = self.client.get(
+        # Login GET (Opcional, mas bom para simular o 1º acesso)
+        self.client.get(
             "/tools.descartes.teastore.webui/login",
             name="/login"
         )
-        if res.status_code != 200:
-            res.failure(f"Falha ao abrir login (HTTP {res.status_code})")
-            return
-
-        # Se já estamos logados (vemos o botão Logout), não faça nada.
-        if 'name="logout"' in res.text:
-            logging.info("Usuário já está logado, pulando POST login.")
-            return
-
-        csrf = self.extract_csrf(res.text)
-        if not csrf:
-            res.failure("CSRF ausente no login")
-            return # Para o usuário se o CSRF não for encontrado
             
-        # Login POST
-        payload = {"username": "user1", "password": "password", "_csrf": csrf}
+        # Login POST (Payload agora sem CSRF)
+        payload = {"username": "user1", "password": "password"}
         res = self.client.post(
             "/tools.descartes.teastore.webui/loginAction",
             data=payload, name="/loginAction",
             allow_redirects=True
         )
+        
+        # O 'allow_redirects=True' já cuida da checagem de sucesso
         if res.status_code not in (200, 302):
-            res.failure(f"Falha no loginAction (HTTP {res.status_code})")
-    # --- FIM DA CORREÇÃO (v9) ---
+             res.failure(f"Falha no loginAction (HTTP {res.status_code})")
+    # --- FIM DA CORREÇÃO (v10) ---
 
     @task
     def fluxo_completo(self):
@@ -76,7 +56,7 @@ class TeaStoreUser(HttpUser):
         if not cats:
             res.failure("Categoria não encontrada")
             return
-        cat_link = cats[0].get("href")
+        cat_link = cats[0].get("href") # Pega o primeiro
 
         # Categoria Page
         res = self.client.get(
@@ -91,7 +71,7 @@ class TeaStoreUser(HttpUser):
         if not prods:
             res.failure("Produto não encontrado")
             return
-        prod_link = prods[0].get("href")
+        prod_link = prods[0].get("href") # Pega o primeiro
 
         # Produto Page
         res = self.client.get(
@@ -113,7 +93,7 @@ class TeaStoreUser(HttpUser):
         pid = pid_elem.get("value")
         pname = pname_elem.text.strip()
 
-        # Add to cart
+        # Add to cart (já estava correto, sem CSRF)
         payload = {"productid": pid, "addToCart": "Add to Cart"}
         res = self.client.post(
             "/tools.descartes.teastore.webui/cartAction",
