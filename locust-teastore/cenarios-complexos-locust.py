@@ -1,6 +1,6 @@
 from locust import HttpUser, task, between, events
 from bs4 import BeautifulSoup
-import requests, logging
+import requests, logging, re
 
 @events.test_start.add_listener
 def reset_database(environment, **kwargs):
@@ -18,24 +18,17 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
 
-    # --- INÍCIO DA CORREÇÃO ---
-    # Função atualizada para procurar por 'csrf', '_csrf', ou 'csrfToken'
+    # --- INÍCIO DA CORREÇÃO (v9) ---
+    # Regex mais confiável para encontrar o CSRF
+    csrf_pattern = re.compile(r'name="(?P<name>_?csrf|csrfToken)" value="(?P<value>[^"]+)"')
+
     def extract_csrf(self, html):
-        soup = BeautifulSoup(html, "html.parser")
-        # Procura por diferentes nomes de token no <input>
-        token = soup.select_one('input[name="_csrf"]') \
-                or soup.select_one('input[name="csrf"]') \
-                or soup.select_one('input[name="csrfToken"]')
-        if token:
-            return token.get("value")
-        
-        # Plano B: Procura na <meta> tag
-        token = soup.select_one('meta[name="_csrf"]')
-        if token:
-            return token.get("content")
-            
+        match = self.csrf_pattern.search(html)
+        if match:
+            logging.info("CSRF token encontrado.")
+            return match.group("value")
+        logging.warning("CSRF token NÃO encontrado.")
         return None
-    # --- FIM DA CORREÇÃO ---
 
     def on_start(self):
         # Login GET
@@ -46,7 +39,12 @@ class TeaStoreUser(HttpUser):
         if res.status_code != 200:
             res.failure(f"Falha ao abrir login (HTTP {res.status_code})")
             return
-            
+
+        # Se já estamos logados (vemos o botão Logout), não faça nada.
+        if 'name="logout"' in res.text:
+            logging.info("Usuário já está logado, pulando POST login.")
+            return
+
         csrf = self.extract_csrf(res.text)
         if not csrf:
             res.failure("CSRF ausente no login")
@@ -61,6 +59,7 @@ class TeaStoreUser(HttpUser):
         )
         if res.status_code not in (200, 302):
             res.failure(f"Falha no loginAction (HTTP {res.status_code})")
+    # --- FIM DA CORREÇÃO (v9) ---
 
     @task
     def fluxo_completo(self):
