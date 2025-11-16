@@ -34,7 +34,8 @@
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Usuários - Fluxo de Compra" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" enabled="true">
-          <intProp name="LoopController.loops">-1</intProp>
+          <!-- Alterado de -1 (loop infinito) para 1 para permitir que o duration finalize corretamente -->
+          <intProp name="LoopController.loops">1</intProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
         <stringProp name="ThreadGroup.num_threads">10</stringProp>
@@ -60,10 +61,11 @@
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
           </HTTPSamplerProxy>
           <hashTree>
+            <!-- RegexExtractor atualizado para captar variações: _csrf, csrf, csrfToken -->
             <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extrair CSRF" enabled="true">
               <stringProp name="RegexExtractor.useHeaders">false</stringProp>
               <stringProp name="RegexExtractor.refname">csrf_token</stringProp>
-              <stringProp name="RegexExtractor.regex">&lt;input type=&quot;hidden&quot; name=&quot;_csrf&quot; value=&quot;(.*?)&quot;/&gt;</stringProp>
+              <stringProp name="RegexExtractor.regex">&lt;input[^&gt;]*name=&quot;(?:_?csrf|csrfToken|csrf)&quot;[^&gt;]*value=&quot;(.*?)&quot;.*?&gt;</stringProp>
               <stringProp name="RegexExtractor.template">$1$</stringProp>
               <stringProp name="RegexExtractor.default">CSRF_NOT_FOUND</stringProp>
               <stringProp name="RegexExtractor.match_number">1</stringProp>
@@ -95,12 +97,13 @@
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                   <stringProp name="Argument.name">password</stringProp>
                 </elementProp>
-                <elementProp name="_csrf" elementType="HTTPArgument">
+                <!-- Enviar parâmetro 'csrf' (mais compatível). Valor vem de ${csrf_token} extraído. -->
+                <elementProp name="csrf" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">true</boolProp>
                   <stringProp name="Argument.value">${csrf_token}</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                  <stringProp name="Argument.name">_csrf</stringProp>
+                  <stringProp name="Argument.name">csrf</stringProp>
                 </elementProp>
               </collectionProp>
             </elementProp>
@@ -166,10 +169,11 @@
             <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
           </HTTPSamplerProxy>
           <hashTree>
+            <!-- Extrator de CSRF atualizado também na página de produto -->
             <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extrair CSRF (Produto)" enabled="true">
               <stringProp name="RegexExtractor.useHeaders">false</stringProp>
               <stringProp name="RegexExtractor.refname">csrf_token</stringProp>
-              <stringProp name="RegexExtractor.regex">&lt;input type=&quot;hidden&quot; name=&quot;_csrf&quot; value=&quot;(.*?)&quot;/&gt;</stringProp>
+              <stringProp name="RegexExtractor.regex">&lt;input[^&gt;]*name=&quot;(?:_?csrf|csrfToken|csrf)&quot;[^&gt;]*value=&quot;(.*?)&quot;.*?&gt;</stringProp>
               <stringProp name="RegexExtractor.template">$1$</stringProp>
               <stringProp name="RegexExtractor.default">CSRF_NOT_FOUND</stringProp>
               <stringProp name="RegexExtractor.match_number">1</stringProp>
@@ -210,12 +214,13 @@
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
                   <stringProp name="Argument.name">addToCart</stringProp>
                 </elementProp>
-                <elementProp name="_csrf" elementType="HTTPArgument">
+                <!-- Enviar parametro 'csrf' aqui tambem -->
+                <elementProp name="csrf" elementType="HTTPArgument">
                   <boolProp name="HTTPArgument.always_encode">true</boolProp>
                   <stringProp name="Argument.value">${csrf_token}</stringProp>
                   <stringProp name="Argument.metadata">=</stringProp>
                   <boolProp name="HTTPArgument.use_equals">true</boolProp>
-                  <stringProp name="Argument.name">_csrf</stringProp>
+                  <stringProp name="Argument.name">csrf</stringProp>
                 </elementProp>
               </collectionProp>
             </elementProp>
