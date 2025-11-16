@@ -18,10 +18,24 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
 
+    # --- INÍCIO DA CORREÇÃO ---
+    # Função atualizada para procurar por 'csrf', '_csrf', ou 'csrfToken'
     def extract_csrf(self, html):
         soup = BeautifulSoup(html, "html.parser")
-        token = soup.select_one('input[name="_csrf"]') or soup.select_one('meta[name="_csrf"]')
-        return token.get("value") or token.get("content") if token else None
+        # Procura por diferentes nomes de token no <input>
+        token = soup.select_one('input[name="_csrf"]') \
+                or soup.select_one('input[name="csrf"]') \
+                or soup.select_one('input[name="csrfToken"]')
+        if token:
+            return token.get("value")
+        
+        # Plano B: Procura na <meta> tag
+        token = soup.select_one('meta[name="_csrf"]')
+        if token:
+            return token.get("content")
+            
+        return None
+    # --- FIM DA CORREÇÃO ---
 
     def on_start(self):
         # Login GET
@@ -32,10 +46,12 @@ class TeaStoreUser(HttpUser):
         if res.status_code != 200:
             res.failure(f"Falha ao abrir login (HTTP {res.status_code})")
             return
+            
         csrf = self.extract_csrf(res.text)
         if not csrf:
             res.failure("CSRF ausente no login")
-            return
+            return # Para o usuário se o CSRF não for encontrado
+            
         # Login POST
         payload = {"username": "user1", "password": "password", "_csrf": csrf}
         res = self.client.post(
@@ -57,13 +73,11 @@ class TeaStoreUser(HttpUser):
             return
         soup = BeautifulSoup(res.text, "html.parser")
         
-        # --- CORREÇÃO: Usar 'select' para pegar todos os links e escolher um
         cats = soup.select("a.menulink")
         if not cats:
             res.failure("Categoria não encontrada")
             return
-        # Escolhe um link de categoria aleatório (se houver)
-        cat_link = cats[0].get("href") # Pega o primeiro para simplificar
+        cat_link = cats[0].get("href")
 
         # Categoria Page
         res = self.client.get(
@@ -74,12 +88,11 @@ class TeaStoreUser(HttpUser):
             return
         soup = BeautifulSoup(res.text, "html.parser")
         
-        # --- CORREÇÃO: Usar 'select' para pegar todos os produtos e escolher um
         prods = soup.select("div.thumbnail a")
         if not prods:
             res.failure("Produto não encontrado")
             return
-        prod_link = prods[0].get("href") # Pega o primeiro para simplificar
+        prod_link = prods[0].get("href")
 
         # Produto Page
         res = self.client.get(
@@ -91,14 +104,9 @@ class TeaStoreUser(HttpUser):
         
         soup = BeautifulSoup(res.text, "html.parser")
         
-        # --- INÍCIO DA CORREÇÃO ---
-        # A página de produto não tem CSRF. Não precisamos dele para o cartAction.
-        # csrf = self.extract_csrf(res.text) # <-- REMOVIDO
-        
         pid_elem = soup.select_one('input[name="productid"]')
         pname_elem = soup.select_one("h2.product-title")
         
-        # 'csrf' removido da checagem
         if not pid_elem or not pname_elem:
             res.failure("Detalhes do produto ausentes")
             return
@@ -107,13 +115,11 @@ class TeaStoreUser(HttpUser):
         pname = pname_elem.text.strip()
 
         # Add to cart
-        # 'csrf' removido do payload
         payload = {"productid": pid, "addToCart": "Add to Cart"}
         res = self.client.post(
             "/tools.descartes.teastore.webui/cartAction",
             data=payload, name="/cartAction"
         )
-        # --- FIM DA CORREÇÃO ---
         
         if res.status_code not in (200, 302):
             res.failure(f"Falha ao adicionar ao carrinho (HTTP {res.status_code})")
