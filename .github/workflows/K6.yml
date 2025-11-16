@@ -1,0 +1,87 @@
+name: Pipeline de Performance k6
+
+on:
+  workflow_dispatch:
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Instalar dependências básicas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose \
+            netcat-openbsd curl wget python3-bs4 python3-venv
+
+      # ------------------------------------------------------------
+      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
+      # ------------------------------------------------------------
+      - name: Start TeaStore stack (mesmo da versão que funciona)
+        run: |
+          docker compose up -d teastore-db
+          sleep 8
+          docker compose up -d teastore-registry
+          sleep 20
+          docker compose up -d teastore-persistence teastore-auth \
+            teastore-image teastore-recommender
+          sleep 20
+          docker compose up -d teastore-webui
+          sleep 10
+
+      - name: Wait for WebUI login (HTTP 200)
+        run: |
+          echo "⏳ Testando WebUI..."
+          for i in {1..80}; do
+            CODE=$(curl -o /dev/null -s -w "%{http_code}" \
+              http://localhost:18081/tools.descartes.teastore.webui/login)
+            echo "Tentativa $i: HTTP $CODE"
+
+            if [ "$CODE" = "200" ]; then
+              echo "🟢 WebUI ONLINE!"
+              exit 0
+            fi
+            
+            sleep 3
+          done
+          echo "❌ WebUI não respondeu."
+          exit 1
+
+# ---------------------------- K 6 ----------------------------
+      - name: Install K6
+        run: |
+          curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: K6 - testes simples
+        run: |
+          k6 run k6-teastore/teste-carga-simples.js \
+            --summary-export=k6-simple.json || true
+
+      - name: K6 - testes complexos
+        run: |
+          k6 run k6-teastore/cenarios-complexos.js \
+            --summary-export=k6-complex.json || true
+
+      - name: Upload K6 summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-k6
+          path: |
+            k6-simple.json
+            k6-complex.json
+# ------------------------------------------------------------
+      # 4) ENCERRAR
+      # ------------------------------------------------------------
+      - name: Logs & Stop containers
+        if: always()
+        run: |
+          docker compose logs --no-color
+          docker compose down
