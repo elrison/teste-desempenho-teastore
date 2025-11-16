@@ -22,8 +22,6 @@ services:
     depends_on:
       teastore-db:
         condition: service_healthy
-    # CORREÇÃO: Adicionadas variáveis HOST_NAME e SERVICE_PORT para o registry se auto-registrar.
-    # Removidas variáveis de DB que não são necessárias aqui.
     environment:
       HOST_NAME: teastore-registry
       SERVICE_PORT: 8080
@@ -37,11 +35,9 @@ services:
         condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
-      # CORREÇÃO: Adicionadas variáveis que faltavam
       REGISTRY_PORT: 8080
       HOST_NAME: teastore-persistence
       SERVICE_PORT: 8080
-      # Variáveis de DB
       DB_HOST: teastore-db
       DB_PORT: 3306
       DB_NAME: teadb
@@ -57,7 +53,6 @@ services:
         condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
-      # CORREÇÃO: Adicionadas variáveis que faltavam
       REGISTRY_PORT: 8080
       HOST_NAME: teastore-recommender
       SERVICE_PORT: 8080
@@ -71,7 +66,6 @@ services:
         condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
-      # CORREÇÃO: Adicionadas variáveis que faltavam
       REGISTRY_PORT: 8080
       HOST_NAME: teastore-auth
       SERVICE_PORT: 8080
@@ -85,7 +79,6 @@ services:
         condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
-      # CORREÇÃO: Adicionadas variáveis que faltavam
       REGISTRY_PORT: 8080
       HOST_NAME: teastore-image
       SERVICE_PORT: 8080
@@ -95,14 +88,12 @@ services:
   teastore-webui:
     image: descartesresearch/teastore-webui:latest
     ports:
-      # Porta 18081 exposta para localhost, como usado no seu teste
       - "18081:8080"
     depends_on:
       teastore-registry:
         condition: service_started
     environment:
       REGISTRY_HOST: teastore-registry
-      # CORREÇÃO: Adicionadas variáveis que faltavam
       REGISTRY_PORT: 8080
       HOST_NAME: teastore-webui
       SERVICE_PORT: 8080

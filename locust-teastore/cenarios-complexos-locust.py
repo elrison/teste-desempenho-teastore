@@ -18,28 +18,38 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
 
-    # --- INÍCIO DA CORREÇÃO (v10) ---
-    # A função extract_csrf foi removida pois o login não usa CSRF.
-
     def on_start(self):
-        # Login GET (Opcional, mas bom para simular o 1º acesso)
+        # Login GET
         self.client.get(
             "/tools.descartes.teastore.webui/login",
             name="/login"
         )
             
-        # Login POST (Payload agora sem CSRF)
+        # Login POST
         payload = {"username": "user1", "password": "password"}
         res = self.client.post(
             "/tools.descartes.teastore.webui/loginAction",
             data=payload, name="/loginAction",
-            allow_redirects=True
+            allow_redirects=True # Importante: Locust segue o redirect para a Home
         )
         
-        # O 'allow_redirects=True' já cuida da checagem de sucesso
+        # --- INÍCIO DA CORREÇÃO (v11) ---
+        # Precisamos validar se o login deu certo.
+        # Se o login funcionar, o 'res' (após o redirect) será o HTML da Home
+        # e deve conter o botão "Logout".
+        
         if res.status_code not in (200, 302):
              res.failure(f"Falha no loginAction (HTTP {res.status_code})")
-    # --- FIM DA CORREÇÃO (v10) ---
+             return
+
+        # Verifica se o login foi bem-sucedido procurando o botão Logout
+        if 'name="logout"' not in res.text:
+            res.failure("Login falhou. 'Logout' não encontrado na resposta.")
+            return # Para o usuário se o login falhou
+        
+        logging.info("Login bem-sucedido.")
+        # --- FIM DA CORREÇÃO (v11) ---
+
 
     @task
     def fluxo_completo(self):
@@ -52,11 +62,12 @@ class TeaStoreUser(HttpUser):
             return
         soup = BeautifulSoup(res.text, "html.parser")
         
+        # O seletor "a.menulink" (baseado no HTML do JMeter) deve funcionar agora
         cats = soup.select("a.menulink")
         if not cats:
-            res.failure("Categoria não encontrada")
+            res.failure("Categoria não encontrada (usuário logado)")
             return
-        cat_link = cats[0].get("href") # Pega o primeiro
+        cat_link = cats[0].get("href")
 
         # Categoria Page
         res = self.client.get(
@@ -71,7 +82,7 @@ class TeaStoreUser(HttpUser):
         if not prods:
             res.failure("Produto não encontrado")
             return
-        prod_link = prods[0].get("href") # Pega o primeiro
+        prod_link = prods[0].get("href")
 
         # Produto Page
         res = self.client.get(
@@ -93,7 +104,7 @@ class TeaStoreUser(HttpUser):
         pid = pid_elem.get("value")
         pname = pname_elem.text.strip()
 
-        # Add to cart (já estava correto, sem CSRF)
+        # Add to cart
         payload = {"productid": pid, "addToCart": "Add to Cart"}
         res = self.client.post(
             "/tools.descartes.teastore.webui/cartAction",
