@@ -18,69 +18,42 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
 
-    # --- INÍCIO DA CORREÇÃO (v12) ---
-    # Função de extração de CSRF robusta
-    def extract_csrf(self, html):
-        soup = BeautifulSoup(html, "html.parser")
-        
-        # 1. Tenta encontrar na tag <input>
-        token = soup.select_one('input[name="_csrf"]') or \
-                soup.select_one('input[name="csrf"]') or \
-                soup.select_one('input[name="csrfToken"]')
-        if token:
-            logging.info("CSRF (input) encontrado.")
-            return token.get("value")
-        
-        # 2. Tenta encontrar na tag <meta>
-        token = soup.select_one('meta[name="_csrf"]') or \
-                soup.select_one('meta[name="csrf"]') or \
-                soup.select_one('meta[name="csrfToken"]')
-        if token:
-            logging.info("CSRF (meta) encontrado.")
-            return token.get("content")
-            
-        logging.warning("NENHUM token CSRF encontrado.")
-        return None
-    # --- FIM DA CORREÇÃO (v12) ---
-
+    # --- INÍCIO DA CORREÇÃO (v13) ---
+    # O on_start foi corrigido. Não há CSRF.
+    # Adicionamos o parâmetro 'signin' que faltava.
     def on_start(self):
-        # Login GET
-        res = self.client.get(
+        # O GET /login é opcional, mas ajuda a simular o usuário
+        self.client.get(
             "/tools.descartes.teastore.webui/login",
             name="/login"
         )
-        if res.status_code != 200:
-            res.failure(f"Falha ao abrir login (HTTP {res.status_code})")
-            return
             
-        # Extrai o CSRF
-        csrf = self.extract_csrf(res.text)
-        if not csrf:
-            res.failure("CSRF ausente no login")
-            return # Para o usuário se o CSRF não for encontrado
-            
-        # Login POST (agora com o payload correto)
-        payload = {"username": "user1", "password": "password", "_csrf": csrf}
+        # Payload corrigido: username, password, e o botão signin
+        payload = {
+            "username": "user1",
+            "password": "password",
+            "signin": "Sign in"
+        }
+        
         res = self.client.post(
             "/tools.descartes.teastore.webui/loginAction",
-            data=payload, name="/loginAction",
+            data=payload, 
+            name="/loginAction",
             allow_redirects=True
         )
         
-        if res.status_code not in (200, 302):
-             res.failure(f"Falha no loginAction (HTTP {res.status_code})")
+        # Validação: Se o login deu certo, a resposta (após redirect)
+        # deve ser a Home e conter o botão "Logout".
+        if res.status_code != 200 or 'name="logout"' not in res.text:
+             res.failure(f"Login falhou. 'Logout' não encontrado na resposta.")
              return
         
-        # Validação se o login deu certo
-        if 'name="logout"' not in res.text:
-            res.failure("Login falhou. 'Logout' não encontrado na resposta.")
-            return
-        
-        logging.info("Login bem-sucedido.")
+        logging.info("Login (v13) bem-sucedido.")
+    # --- FIM DA CORREÇÃO (v13) ---
 
     @task
     def fluxo_completo(self):
-        # Home Page
+        # Home Page (agora deve estar logado)
         res = self.client.get(
             "/tools.descartes.teastore.webui/", name="/home"
         )
@@ -89,9 +62,10 @@ class TeaStoreUser(HttpUser):
             return
         soup = BeautifulSoup(res.text, "html.parser")
         
+        # Este seletor (baseado no HTML do JMeter) deve funcionar
         cats = soup.select("a.menulink")
         if not cats:
-            res.failure("Categoria não encontrada")
+            res.failure("Categoria não encontrada (usuário logado)")
             return
         cat_link = cats[0].get("href")
 
