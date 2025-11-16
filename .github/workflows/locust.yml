@@ -1,4 +1,4 @@
-name: Pipeline de Performance JMETER
+name: Pipeline de Performance Locust
 
 on:
   workflow_dispatch:
