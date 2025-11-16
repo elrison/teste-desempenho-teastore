@@ -24,51 +24,91 @@ class TeaStoreUser(HttpUser):
         return token.get("value") or token.get("content") if token else None
 
     def on_start(self):
-        res = self.client.get("/tools.descartes.teastore.webui/login", name="/login")
+        # Login GET
+        res = self.client.get(
+            "/tools.descartes.teastore.webui/login",
+            name="/login"
+        )
         if res.status_code != 200:
-            res.failure("Falha ao abrir login")
+            res.failure(f"Falha ao abrir login (HTTP {res.status_code})")
             return
         csrf = self.extract_csrf(res.text)
         if not csrf:
             res.failure("CSRF ausente no login")
             return
+        # Login POST
         payload = {"username": "user1", "password": "password", "_csrf": csrf}
-        res = self.client.post("/tools.descartes.teastore.webui/loginAction", data=payload, name="/loginAction", allow_redirects=True)
+        res = self.client.post(
+            "/tools.descartes.teastore.webui/loginAction",
+            data=payload, name="/loginAction",
+            allow_redirects=True
+        )
         if res.status_code not in (200, 302):
-            res.failure("Falha no loginAction")
+            res.failure(f"Falha no loginAction (HTTP {res.status_code})")
 
     @task
     def fluxo_completo(self):
-        # Home
-        res = self.client.get("/tools.descartes.teastore.webui/", name="/home")
+        # Home Page
+        res = self.client.get(
+            "/tools.descartes.teastore.webui/", name="/home"
+        )
+        if res.status_code != 200:
+            res.failure(f"Falha ao acessar Home (HTTP {res.status_code})")
+            return
         soup = BeautifulSoup(res.text, "html.parser")
         cat = soup.select_one("a.menulink")
         if not cat:
             res.failure("Categoria não encontrada")
             return
 
-        # Categoria
-        res = self.client.get(cat["href"], name="/categoria")
+        # Categoria Page
+        res = self.client.get(
+            cat["href"], name="/categoria"
+        )
+        if res.status_code != 200:
+            res.failure(f"Falha ao acessar Categoria (HTTP {res.status_code})")
+            return
         soup = BeautifulSoup(res.text, "html.parser")
         prod = soup.select_one("div.thumbnail a")
         if not prod:
             res.failure("Produto não encontrado")
             return
 
-        # Produto
-        res = self.client.get(prod["href"], name="/produto")
+        # Produto Page
+        res = self.client.get(
+            prod["href"], name="/produto"
+        )
+        if res.status_code != 200:
+            res.failure(f"Falha ao acessar Produto (HTTP {res.status_code})")
+            return
         soup = BeautifulSoup(res.text, "html.parser")
         csrf = self.extract_csrf(res.text)
-        pid = soup.select_one('input[name="productid"]').get("value")
-        pname = soup.select_one("h2.product-title").text.strip()
+        pid_elem = soup.select_one('input[name="productid"]')
+        pname_elem = soup.select_one("h2.product-title")
+        if not csrf or not pid_elem or not pname_elem:
+            res.failure("Detalhes do produto ausentes")
+            return
+        pid = pid_elem.get("value")
+        pname = pname_elem.text.strip()
 
         # Add to cart
         payload = {"productid": pid, "addToCart": "Add to Cart", "_csrf": csrf}
-        self.client.post("/tools.descartes.teastore.webui/cartAction", data=payload, name="/cartAction")
+        res = self.client.post(
+            "/tools.descartes.teastore.webui/cartAction",
+            data=payload, name="/cartAction"
+        )
+        if res.status_code not in (200, 302):
+            res.failure(f"Falha ao adicionar ao carrinho (HTTP {res.status_code})")
+            return
 
-        # Cart
-        cart = self.client.get("/tools.descartes.teastore.webui/cart", name="/cart")
-        if pname.lower() in cart.text.lower():
-            cart.success()
+        # Cart Page
+        res = self.client.get(
+            "/tools.descartes.teastore.webui/cart", name="/cart"
+        )
+        if res.status_code != 200:
+            res.failure(f"Falha ao acessar Carrinho (HTTP {res.status_code})")
+            return
+        if pname.lower() in res.text.lower():
+            res.success()
         else:
-            cart.failure("Produto não encontrado no carrinho")
+            res.failure("Produto não encontrado no carrinho")
