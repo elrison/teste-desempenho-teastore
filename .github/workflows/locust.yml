@@ -51,7 +51,23 @@ jobs:
           echo "❌ WebUI não respondeu."
           exit 1
 
-# -------------------------- L O C U S T ------------------------
+      # ----------------------- CORREÇÃO CRUCIAL -----------------------
+      - name: Wait for Home Page Categories
+        run: |
+          echo "⏳ Verificando se pelo menos uma categoria está disponível na Home..."
+          for i in {1..40}; do
+            HTML=$(curl -s http://localhost:18081/tools.descartes.teastore.webui/)
+            if echo "$HTML" | grep -q 'menulink'; then
+              echo "🟢 Home pronta com categoria disponível!"
+              exit 0
+            fi
+            echo "Categoria não encontrada (tentativa $i). Esperando..."
+            sleep 5
+          done
+          echo "❌ Nenhuma categoria encontrada na Home!"
+          exit 1
+
+      # -------------------------- L O C U S T ------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -71,9 +87,9 @@ jobs:
       - name: Locust - teste complexo
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless -u 10 -r 3 -t 30s \
+            --headless -u 10 -r 3 -t 120s \
             --host http://localhost:18081 \
-            --html locust-teastore/complex.html || true
+            --html locust-teastore/complex.html > locust-teastore/complex.log 2>&1 || true
 
       - name: Upload Locust reports
         if: always()
@@ -81,6 +97,13 @@ jobs:
         with:
           name: relatorios-locust
           path: locust-teastore/*.html
+
+      - name: Upload Locust logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-locust
+          path: locust-teastore/complex.log
 
       - name: Debug – listar arquivos
         run: |
@@ -91,7 +114,7 @@ jobs:
           echo "=== JMeter Files ==="
           find jmeter-teastore -maxdepth 4 -type f || true
 
-# ------------------------------------------------------------
+      # ------------------------------------------------------------
       # 4) ENCERRAR
       # ------------------------------------------------------------
       - name: Logs & Stop containers
