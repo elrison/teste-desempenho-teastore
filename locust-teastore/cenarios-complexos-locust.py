@@ -18,38 +18,65 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
 
+    # --- INÍCIO DA CORREÇÃO (v12) ---
+    # Função de extração de CSRF robusta
+    def extract_csrf(self, html):
+        soup = BeautifulSoup(html, "html.parser")
+        
+        # 1. Tenta encontrar na tag <input>
+        token = soup.select_one('input[name="_csrf"]') or \
+                soup.select_one('input[name="csrf"]') or \
+                soup.select_one('input[name="csrfToken"]')
+        if token:
+            logging.info("CSRF (input) encontrado.")
+            return token.get("value")
+        
+        # 2. Tenta encontrar na tag <meta>
+        token = soup.select_one('meta[name="_csrf"]') or \
+                soup.select_one('meta[name="csrf"]') or \
+                soup.select_one('meta[name="csrfToken"]')
+        if token:
+            logging.info("CSRF (meta) encontrado.")
+            return token.get("content")
+            
+        logging.warning("NENHUM token CSRF encontrado.")
+        return None
+    # --- FIM DA CORREÇÃO (v12) ---
+
     def on_start(self):
         # Login GET
-        self.client.get(
+        res = self.client.get(
             "/tools.descartes.teastore.webui/login",
             name="/login"
         )
+        if res.status_code != 200:
+            res.failure(f"Falha ao abrir login (HTTP {res.status_code})")
+            return
             
-        # Login POST
-        payload = {"username": "user1", "password": "password"}
+        # Extrai o CSRF
+        csrf = self.extract_csrf(res.text)
+        if not csrf:
+            res.failure("CSRF ausente no login")
+            return # Para o usuário se o CSRF não for encontrado
+            
+        # Login POST (agora com o payload correto)
+        payload = {"username": "user1", "password": "password", "_csrf": csrf}
         res = self.client.post(
             "/tools.descartes.teastore.webui/loginAction",
             data=payload, name="/loginAction",
-            allow_redirects=True # Importante: Locust segue o redirect para a Home
+            allow_redirects=True
         )
-        
-        # --- INÍCIO DA CORREÇÃO (v11) ---
-        # Precisamos validar se o login deu certo.
-        # Se o login funcionar, o 'res' (após o redirect) será o HTML da Home
-        # e deve conter o botão "Logout".
         
         if res.status_code not in (200, 302):
              res.failure(f"Falha no loginAction (HTTP {res.status_code})")
              return
-
-        # Verifica se o login foi bem-sucedido procurando o botão Logout
+        
+        # Validação se o login deu certo
         if 'name="logout"' not in res.text:
             res.failure("Login falhou. 'Logout' não encontrado na resposta.")
-            return # Para o usuário se o login falhou
+            return
         
         logging.info("Login bem-sucedido.")
-        # --- FIM DA CORREÇÃO (v11) ---
-
 
     @task
     def fluxo_completo(self):
@@ -62,10 +89,9 @@ class TeaStoreUser(HttpUser):
             return
         soup = BeautifulSoup(res.text, "html.parser")
         
-        # O seletor "a.menulink" (baseado no HTML do JMeter) deve funcionar agora
         cats = soup.select("a.menulink")
         if not cats:
-            res.failure("Categoria não encontrada (usuário logado)")
+            res.failure("Categoria não encontrada")
             return
         cat_link = cats[0].get("href")
 
