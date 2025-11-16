@@ -56,47 +56,65 @@ class TeaStoreUser(HttpUser):
             res.failure(f"Falha ao acessar Home (HTTP {res.status_code})")
             return
         soup = BeautifulSoup(res.text, "html.parser")
-        cat = soup.select_one("a.menulink")
-        if not cat:
+        
+        # --- CORREÇÃO: Usar 'select' para pegar todos os links e escolher um
+        cats = soup.select("a.menulink")
+        if not cats:
             res.failure("Categoria não encontrada")
             return
+        # Escolhe um link de categoria aleatório (se houver)
+        cat_link = cats[0].get("href") # Pega o primeiro para simplificar
 
         # Categoria Page
         res = self.client.get(
-            cat["href"], name="/categoria"
+            cat_link, name="/categoria"
         )
         if res.status_code != 200:
             res.failure(f"Falha ao acessar Categoria (HTTP {res.status_code})")
             return
         soup = BeautifulSoup(res.text, "html.parser")
-        prod = soup.select_one("div.thumbnail a")
-        if not prod:
+        
+        # --- CORREÇÃO: Usar 'select' para pegar todos os produtos e escolher um
+        prods = soup.select("div.thumbnail a")
+        if not prods:
             res.failure("Produto não encontrado")
             return
+        prod_link = prods[0].get("href") # Pega o primeiro para simplificar
 
         # Produto Page
         res = self.client.get(
-            prod["href"], name="/produto"
+            prod_link, name="/produto"
         )
         if res.status_code != 200:
             res.failure(f"Falha ao acessar Produto (HTTP {res.status_code})")
             return
+        
         soup = BeautifulSoup(res.text, "html.parser")
-        csrf = self.extract_csrf(res.text)
+        
+        # --- INÍCIO DA CORREÇÃO ---
+        # A página de produto não tem CSRF. Não precisamos dele para o cartAction.
+        # csrf = self.extract_csrf(res.text) # <-- REMOVIDO
+        
         pid_elem = soup.select_one('input[name="productid"]')
         pname_elem = soup.select_one("h2.product-title")
-        if not csrf or not pid_elem or not pname_elem:
+        
+        # 'csrf' removido da checagem
+        if not pid_elem or not pname_elem:
             res.failure("Detalhes do produto ausentes")
             return
+        
         pid = pid_elem.get("value")
         pname = pname_elem.text.strip()
 
         # Add to cart
-        payload = {"productid": pid, "addToCart": "Add to Cart", "_csrf": csrf}
+        # 'csrf' removido do payload
+        payload = {"productid": pid, "addToCart": "Add to Cart"}
         res = self.client.post(
             "/tools.descartes.teastore.webui/cartAction",
             data=payload, name="/cartAction"
         )
+        # --- FIM DA CORREÇÃO ---
+        
         if res.status_code not in (200, 302):
             res.failure(f"Falha ao adicionar ao carrinho (HTTP {res.status_code})")
             return
@@ -108,6 +126,8 @@ class TeaStoreUser(HttpUser):
         if res.status_code != 200:
             res.failure(f"Falha ao acessar Carrinho (HTTP {res.status_code})")
             return
+        
+        # Validação final
         if pname.lower() in res.text.lower():
             res.success()
         else:
