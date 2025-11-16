@@ -65,14 +65,14 @@ jobs:
         run: |
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 15s \
-            --host http://localhost:18081 \
+            --host http://localhost:8080 \
             --html locust-teastore/simple.html || true
 
       - name: Locust - teste complexo
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 3 -t 30s \
-            --host http://localhost:18081 \
+            --host http://localhost:8080 \
             --html locust-teastore/complex.html || true
 
       - name: Upload Locust reports
