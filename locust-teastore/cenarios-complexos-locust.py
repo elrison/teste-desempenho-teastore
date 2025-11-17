@@ -7,6 +7,7 @@ def reset_database(environment, **kwargs):
     host = environment.host.rstrip('/')
     logging.info("🔄 Resetando base de dados...")
     try:
+        # O reset é feito através do WebUI, que atua como proxy
         r = requests.post(f"{host}/tools.descartes.teastore.webui/services/rest/persistence/reset")
         if r.status_code == 200:
             logging.info("✅ Base resetada com sucesso!")
@@ -19,12 +20,12 @@ class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
 
     def on_start(self):
-        # --- INÍCIO DA CORREÇÃO (v14) ---
+        # --- INÍCIO DA CORREÇÃO (v15) ---
+        
         # 1. FAZ O GET NA PÁGINA DE LOGIN
-        res_get = self.client.get(
-            "/tools.descartes.teastore.webui/login",
-            name="/login"
-        )
+        login_url = "/tools.descartes.teastore.webui/login"
+        res_get = self.client.get(login_url, name="/login")
+        
         if res_get.status_code != 200:
              res_get.failure(f"Falha no GET /login (HTTP {res_get.status_code})")
              return
@@ -36,26 +37,27 @@ class TeaStoreUser(HttpUser):
             "signin": "Sign in"
         }
         
+        # CORREÇÃO: Adicionando o header 'Referer'
+        headers = {
+            'Referer': self.host + login_url
+        }
+        
         res_post = self.client.post(
             "/tools.descartes.teastore.webui/loginAction",
             data=payload, 
             name="/loginAction",
-            allow_redirects=True # Queremos o HTML da página /home
+            headers=headers, # <--- Header adicionado
+            allow_redirects=True
         )
         
-        # 3. VALIDAÇÃO EXPLÍCITA
-        if res_post.status_code != 200:
-            res_post.failure(f"Falha no POST /loginAction (HTTP {res_post.status_code})")
-            return
-            
-        # A página de resposta DEVE conter "Logout" se o login funcionou
-        if 'name="logout"' not in res_post.text:
+        # 3. VALIDAÇÃO
+        if res_post.status_code != 200 or 'name="logout"' not in res_post.text:
             logging.error(">>> LOGIN FALHOU. 'name=\"logout\"' NÃO ENCONTRADO NA RESPOSTA. <<<")
             res_post.failure("Login falhou. 'Logout' não encontrado.")
-            return # Para o usuário
+            return
         
-        logging.info("Login (v14) BEM-SUCEDIDO.")
-    # --- FIM DA CORREÇÃO (v14) ---
+        logging.info("Login (v15) BEM-SUCEDIDO.")
+    # --- FIM DA CORREÇÃO (v15) ---
 
     @task
     def fluxo_completo(self):
@@ -68,6 +70,7 @@ class TeaStoreUser(HttpUser):
             return
         soup = BeautifulSoup(res.text, "html.parser")
         
+        # Este seletor (baseado no HTML do JMeter) deve funcionar
         cats = soup.select("a.menulink")
         if not cats:
             res.failure("Categoria não encontrada (usuário logado)")
