@@ -57,7 +57,7 @@ export default function () {
     if (!csrf) return;
 
     const payload = {
-      username: 'user1',
+      username: 'user2',
       password: 'password',
       action: 'login',
       _csrf: csrf,

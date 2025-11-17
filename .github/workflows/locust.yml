@@ -87,9 +87,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Locust & deps
+      - name: Install Python dependencies
         run: |
-          pip install locust beautifulsoup4 requests pandas matplotlib reportlab PyPDF2
+          pip install -r requirements.txt
 
       - name: Locust - teste simples
         run: |

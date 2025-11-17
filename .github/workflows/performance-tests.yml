@@ -38,7 +38,7 @@ jobs:
           echo "⏳ Testando WebUI..."
           for i in {1..80}; do
             CODE=$(curl -o /dev/null -s -w "%{http_code}" \
-              http://localhost:18081/tools.descartes.teastore.webui/login)
+              http://localhost:8080/tools.descartes.teastore.webui/login)
             echo "Tentativa $i: HTTP $CODE"
 
             if [ "$CODE" = "200" ]; then
@@ -87,7 +87,7 @@ jobs:
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=localhost -Jport=8080 || true
 
       - name: Upload JMeter reports (completo)
         if: always()
@@ -131,22 +131,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Locust & deps
+      - name: Install Python dependencies
         run: |
-          pip install locust beautifulsoup4 requests pandas matplotlib reportlab PyPDF2
+          pip install -r requirements.txt
 
       - name: Locust - teste simples
         run: |
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 15s \
-            --host http://localhost:18081 \
+            --host http://localhost:8080 \
             --html locust-teastore/simple.html || true
 
       - name: Locust - teste complexo
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 3 -t 30s \
-            --host http://localhost:18081 \
+            --host http://localhost:8080 \
             --html locust-teastore/complex.html || true
 
       - name: Upload Locust reports

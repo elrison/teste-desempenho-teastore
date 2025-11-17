@@ -1,0 +1,7 @@
+locust
+beautifulsoup4
+requests
+pandas
+matplotlib
+reportlab
+PyPDF2
