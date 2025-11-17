@@ -2,9 +2,6 @@ from locust import HttpUser, task, between, events
 from bs4 import BeautifulSoup
 import requests, logging
 
-# --- INÍCIO DA CORREÇÃO (v22) ---
-# 1. A função de reset foi RE-ABILITADA.
-# Ela é necessária para criar os usuários (como 'user2') no banco de dados limpo.
 @events.test_start.add_listener
 def reset_database(environment, **kwargs):
     host = environment.host.rstrip('/')
@@ -17,7 +14,6 @@ def reset_database(environment, **kwargs):
             logging.warning(f"⚠️ Falha ao resetar: {r.status_code}")
     except Exception as e:
         logging.error(f"Erro ao resetar: {e}")
-# --- FIM DA CORREÇÃO (v22) ---
 
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
@@ -29,22 +25,24 @@ class TeaStoreUser(HttpUser):
     def on_start(self):
         login_url = self.base_url + "/login"
         
+        # 1. FAZ O GET NA PÁGINA DE LOGIN
         with self.client.get(login_url, name="/login", catch_response=True) as response_get:
             if response_get.status_code != 200:
                 response_get.failure(f"Falha no GET /login (HTTP {response_get.status_code})")
                 return
 
-        # --- INÍCIO DA CORREÇÃO (v22) ---
-        # 2. Usuário mantido como 'user2'
+        # --- INÍCIO DA CORREÇÃO (v19) ---
+        # 2. FAZ O POST DO LOGIN
+        
+        # O usuário correto é 'user2', como visto no HTML
         referer_value = self.host + self.base_url + "/"
         
         payload = {
-            "username": "user2", # Usuário correto
+            "username": "user2", # <-- CORRIGIDO DE "user1"
             "password": "password",
             "signin": "Sign in",
             "referer": referer_value 
         }
-        # --- FIM DA CORREÇÃO (v22) ---
         
         headers = {
             'Referer': self.host + login_url
@@ -59,12 +57,14 @@ class TeaStoreUser(HttpUser):
             catch_response=True 
         ) as response_post:
         
+            # 3. VALIDAÇÃO
             if response_post.status_code != 200 or 'name="logout"' not in response_post.text:
-                logging.error(f">>> LOGIN FALHOU (v22). 'name=\"logout\"' NÃO ENCONTRADO. <<<")
+                logging.error(f">>> LOGIN FALHOU . 'name=\"logout\"' NÃO ENCONTRADO. <<<")
                 response_post.failure("Login falhou. 'Logout' não encontrado.")
                 return
             
-            logging.info("Login (v22) BEM-SUCEDIDO.")
+            logging.info("Login BEM-SUCEDIDO.")
+        # --- FIM DA CORREÇÃO (v19) ---
 
     @task
     def fluxo_completo(self):
@@ -75,7 +75,6 @@ class TeaStoreUser(HttpUser):
                 return
             soup = BeautifulSoup(res.text, "html.parser")
             
-            # O seletor "a.menulink" está correto
             cats = soup.select("a.menulink")
             if not cats:
                 res.failure("Categoria não encontrada (usuário logado)")
