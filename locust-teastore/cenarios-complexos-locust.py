@@ -18,14 +18,10 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
     
-    # --- INÍCIO DA CORREÇÃO (v17) ---
-    # Define o Header 'Referer' globalmente para todas as requisições
-    # que este usuário fará.
+    # Define caminhos base para reuso
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.base_url = "/tools.descartes.teastore.webui"
-        self.client.headers['Referer'] = self.host + self.base_url + "/"
-    # --- FIM DA CORREÇÃO (v17) ---
 
     def on_start(self):
         login_url = self.base_url + "/login"
@@ -36,30 +32,41 @@ class TeaStoreUser(HttpUser):
                 response_get.failure(f"Falha no GET /login (HTTP {response_get.status_code})")
                 return
 
+        # --- INÍCIO DA CORREÇÃO (v18) ---
         # 2. FAZ O POST DO LOGIN
+        
+        # O campo 'referer' precisa do valor da página inicial, 
+        # como visto no HTML.
+        referer_value = self.host + self.base_url + "/"
+        
         payload = {
-            "username": "user2",
+            "username": "user1",
             "password": "password",
             "signin": "Sign in",
-            "referer": "" # Campo oculto
+            "referer": referer_value # Corrigido de "" para a URL correta
         }
         
-        # O 'Referer' já está nos headers globais do self.client
+        headers = {
+            'Referer': self.host + login_url
+        }
+        
         with self.client.post(
             self.base_url + "/loginAction",
             data=payload, 
             name="/loginAction",
+            headers=headers,
             allow_redirects=True,
-            catch_response=True
+            catch_response=True 
         ) as response_post:
         
             # 3. VALIDAÇÃO
             if response_post.status_code != 200 or 'name="logout"' not in response_post.text:
-                logging.error(">>> LOGIN FALHOU. 'name=\"logout\"' NÃO ENCONTRADO. <<<")
+                logging.error(f">>> LOGIN FALHOU. 'name=\"logout\"' NÃO ENCONTRADO. Status: {response_post.status_code} <<<")
                 response_post.failure("Login falhou. 'Logout' não encontrado.")
                 return
             
-            logging.info("Login (v17) BEM-SUCEDIDO.")
+            logging.info("Login (v18) BEM-SUCEDIDO.")
+        # --- FIM DA CORREÇÃO (v18) ---
 
     @task
     def fluxo_completo(self):
@@ -70,11 +77,12 @@ class TeaStoreUser(HttpUser):
                 return
             soup = BeautifulSoup(res.text, "html.parser")
             
+            # O seletor "a.menulink" está correto
             cats = soup.select("a.menulink")
             if not cats:
                 res.failure("Categoria não encontrada (usuário logado)")
                 return
-            cat_link = cats[0].get("href") # Pega o primeiro
+            cat_link = cats[0].get("href")
 
         # Categoria Page
         with self.client.get(cat_link, name="/categoria", catch_response=True) as res:
