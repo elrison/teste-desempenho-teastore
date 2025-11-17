@@ -19,18 +19,24 @@ jobs:
             netcat-openbsd curl wget python3-bs4 python3-venv
 
       # ------------------------------------------------------------
-      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
+      # 1) SUBIDA DA STACK (VERSÃO IDENTICA À SUA, MAS FORÇANDO O ARQUIVO CORRETO)
       # ------------------------------------------------------------
-      - name: Start TeaStore stack (mesmo da versão que funciona)
+      - name: Start TeaStore stack (compose correto explicitado)
         run: |
-          docker compose up -d teastore-db
+          echo "📌 Usando docker-compose.yml EXPLÍCITO"
+          ls -lha
+
+          docker compose -f docker-compose.yml up -d teastore-db
           sleep 8
-          docker compose up -d teastore-registry
+
+          docker compose -f docker-compose.yml up -d teastore-registry
           sleep 20
-          docker compose up -d teastore-persistence teastore-auth \
-            teastore-image teastore-recommender
+
+          docker compose -f docker-compose.yml up -d teastore-persistence \
+            teastore-auth teastore-image teastore-recommender
           sleep 20
-          docker compose up -d teastore-webui
+
+          docker compose -f docker-compose.yml up -d teastore-webui
           sleep 10
 
       - name: Wait for WebUI login (HTTP 200)
@@ -51,7 +57,7 @@ jobs:
           echo "❌ WebUI não respondeu."
           exit 1
 
-# -------------------------- L O C U S T ------------------------
+      # -------------------------- L O C U S T ------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -82,20 +88,11 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      - name: Debug – listar arquivos
-        run: |
-          echo "=== K6 Files ==="
-          find . -name "k6*" -maxdepth 3 || true
-          echo "=== Locust Files ==="
-          find locust-teastore -maxdepth 2 -type f || true
-          echo "=== JMeter Files ==="
-          find jmeter-teastore -maxdepth 4 -type f || true
-
-# ------------------------------------------------------------
+      # ------------------------------------------------------------
       # 4) ENCERRAR
       # ------------------------------------------------------------
       - name: Logs & Stop containers
         if: always()
         run: |
-          docker compose logs --no-color
-          docker compose down
+          docker compose -f docker-compose.yml logs --no-color
+          docker compose -f docker-compose.yml down
