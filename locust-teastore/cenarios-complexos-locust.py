@@ -38,7 +38,7 @@ class TeaStoreUser(HttpUser):
 
         # 2. FAZ O POST DO LOGIN
         payload = {
-            "username": "user1",
+            "username": "user2",
             "password": "password",
             "signin": "Sign in",
             "referer": "" # Campo oculto
