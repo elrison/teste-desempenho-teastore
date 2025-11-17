@@ -95,10 +95,16 @@ class TeaStoreUser(HttpUser):
                 return
 
             soup = BeautifulSoup(res.text, "html.parser")
+            # try multiple selectors for category links
             cats = soup.select("a.menulink")
+            if not cats:
+                cats = soup.select("ul.nav-sidebar a")
+            if not cats:
+                cats = soup.select("a[href*='category']")
 
             if not cats:
                 res.failure("Nenhuma categoria encontrada na home")
+                self._dump_debug_page(res, "home_no_category")
                 return
 
             cat_link = cats[0].get("href")
@@ -110,10 +116,16 @@ class TeaStoreUser(HttpUser):
                 return
 
             soup = BeautifulSoup(res.text, "html.parser")
+            # product selectors fallback
             prods = soup.select("div.thumbnail a")
+            if not prods:
+                prods = soup.select("a[href*='product']")
+            if not prods:
+                prods = soup.select("a.menulink")
 
             if not prods:
                 res.failure("Nenhum produto encontrado na categoria")
+                self._dump_debug_page(res, "category_no_product")
                 return
 
             prod_link = prods[0].get("href")

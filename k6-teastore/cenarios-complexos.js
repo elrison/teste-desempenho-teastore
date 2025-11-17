@@ -30,18 +30,27 @@ export const options = {
 
 function extractCsrf(body) {
   const doc = parseHTML(body);
+  // 1) common input names
+  const inputNames = ["_csrf", "csrf", "csrfToken", "csrf_token", "_csrf_token"];
+  for (let name of inputNames) {
+    let el = doc.find(`input[name='${name}']`);
+    if (el && el.attr('value')) return el.attr('value');
+  }
 
-  // 1) input
-  let el = doc.find("input[name='_csrf']");
-  if (el && el.attr('value')) return el.attr('value');
+  // 2) meta tags with various names
+  const metaNames = ["_csrf", "csrf-token", "csrf_token", "csrf"];
+  for (let m of metaNames) {
+    let el = doc.find(`meta[name='${m}']`);
+    if (el && el.attr('content')) return el.attr('content');
+  }
 
-  // 2) meta
-  el = doc.find("meta[name='_csrf']");
-  if (el && el.attr('content')) return el.attr('content');
-
-  // 3) inline JS
-  let match = body.match(/_csrf['"]?\s*[:=]\s*['"]([^'"]+)/);
+  // 3) inline JS patterns
+  let match = body.match(/_csrf['"]?\s*[:=]\s*['"]([^'"]+)/) || body.match(/csrfToken['"]?\s*[:=]\s*['"]([^'"]+)/) || body.match(/csrf['"]?\s*[:=]\s*['"]([^'"]+)/);
   if (match && match[1]) return match[1];
+
+  // 4) meta property (og or similar) or input hidden fallback
+  let meta = doc.find("meta[name='csrf-token']");
+  if (meta && meta.attr('content')) return meta.attr('content');
 
   return null;
 }
