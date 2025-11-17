@@ -1,13 +1,21 @@
 import argparse, json, os
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
+
+# Optional heavy deps: try to import and fall back gracefully with helpful messages.
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    HAS_REPORTLAB = True
+except Exception:
+    HAS_REPORTLAB = False
 
 # optional pandas for JMeter CSV parsing
 try:
     import pandas as pd
+    HAS_PANDAS = True
 except Exception:
     pd = None
+    HAS_PANDAS = False
 
 parser = argparse.ArgumentParser(description="Gerar dashboard consolidado")
 parser.add_argument("--k6", required=True, help="Arquivo JSON do K6")
@@ -71,6 +79,32 @@ else:
     # cannot parse without pandas or file missing
     jmeter_summary = {}
 
+# Locust: try parse locust CSV stats if present (locust --csv=locust-teastore/locust)
+locust_summary = {}
+locust_csv = os.path.join('locust-teastore', 'locust_stats.csv')
+if os.path.exists(locust_csv) and pd is not None:
+    try:
+        ldf = pd.read_csv(locust_csv)
+        # locust stats has a summary row 'Total' often; try to find it
+        if 'Name' in ldf.columns:
+            total_row = ldf[ldf['Name'].str.lower() == 'total']
+            if not total_row.empty:
+                total_row = total_row.iloc[0]
+                locust_summary = {
+                    'requests': int(total_row.get('Request Count', total_row.get('Requests', 0))),
+                    'avg_latency_ms': float(total_row.get('Average Response Time', 0) or 0),
+                    'min_ms': float(total_row.get('Min Response Time', 0) or 0),
+                    'max_ms': float(total_row.get('Max Response Time', 0) or 0),
+                    'error_rate': float(total_row.get('Failure Count', 0) or 0) / max(1, int(total_row.get('Request Count', total_row.get('Requests', 1) or 1)))
+                }
+    except Exception:
+        locust_summary = {}
+
+# merge into unified
+unified = { 'k6': k6_data.get('metrics', {}), 'jmeter': jmeter_summary, 'locust': locust_summary }
+with open('summary-unified.json', 'w') as uf:
+    json.dump(unified, uf, indent=2)
+
 html = f"""
 <html>
 <head><title>Dashboard Consolidado — TeaStore</title></head>
@@ -102,19 +136,25 @@ unified = { 'k6': k6_data.get('metrics', {}), 'jmeter': jmeter_summary }
 with open('summary-unified.json', 'w') as uf:
     json.dump(unified, uf, indent=2)
 
-# --- Gera PDF ---
-doc = SimpleDocTemplate(args.pdf, pagesize=A4)
-styles = getSampleStyleSheet()
-content = [
-    Paragraph("Dashboard Consolidado — TeaStore", styles["Heading1"]),
-    Spacer(1, 12),
-    Paragraph("Relatório unificado com dados do K6, JMeter e Locust", styles["Normal"]),
-    Spacer(1, 12),
-    Paragraph(f"K6: {args.k6}", styles["Normal"]),
-    Paragraph(f"JMeter: {args.jmeter}", styles["Normal"]),
-    Paragraph(f"Locust: {args.locust}", styles["Normal"]),
-]
-doc.build(content)
+# --- Gera PDF (opcional) ---
+if not HAS_REPORTLAB:
+    print("⚠️  reportlab não está instalado. Pulei a geração de PDF. Instale as dependências: pip install -r requirements.txt")
+else:
+    try:
+        doc = SimpleDocTemplate(args.pdf, pagesize=A4)
+        styles = getSampleStyleSheet()
+        content = [
+            Paragraph("Dashboard Consolidado — TeaStore", styles["Heading1"]),
+            Spacer(1, 12),
+            Paragraph("Relatório unificado com dados do K6, JMeter e Locust", styles["Normal"]),
+            Spacer(1, 12),
+            Paragraph(f"K6: {args.k6}", styles["Normal"]),
+            Paragraph(f"JMeter: {args.jmeter}", styles["Normal"]),
+            Paragraph(f"Locust: {args.locust}", styles["Normal"]),
+        ]
+        doc.build(content)
+        print("✅ PDF gerado:", args.pdf)
+    except Exception as e:
+        print("Erro ao gerar PDF:", e)
 
 print("✅ Dashboard gerado:", args.out)
-print("✅ PDF gerado:", args.pdf)

@@ -147,14 +147,16 @@ jobs:
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 15s \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/simple.html || true
+            --html locust-teastore/simple.html \
+            --csv=locust-teastore/locust || true
 
       - name: Locust - teste complexo
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 3 -t 30s \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/complex.html || true
+            --html locust-teastore/complex.html \
+            --csv=locust-teastore/locust || true
 
       - name: Upload Locust reports
         if: always()
@@ -198,6 +200,22 @@ jobs:
           python3 scripts/unify_jmeter_graphs.py \
             jmeter-teastore/results-complexos.csv \
             jmeter-teastore/graficos
+
+      - name: Extract JMeter failures
+        if: always()
+        run: |
+          python3 scripts/extract_jmeter_failures.py jmeter-teastore/failures.jtl jmeter-teastore/failures
+
+      - name: Upload debug artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-artifacts
+          path: |
+            jmeter-teastore/failures/**
+            jmeter-teastore/failures.jtl
+            logs/**
+            summary-unified.json
 
       - name: PDF JMeter
         run: |

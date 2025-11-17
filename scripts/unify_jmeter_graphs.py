@@ -1,10 +1,20 @@
-import pandas as pd
-import matplotlib.pyplot as plt
 import sys
 import os
 
+# optional heavy deps
+try:
+	import pandas as pd
+	import matplotlib.pyplot as plt
+	HAS_DEPS = True
+except Exception:
+	HAS_DEPS = False
+
 jtl = sys.argv[1]
 out_dir = sys.argv[2]
+
+if not HAS_DEPS:
+	print("ERROR: Missing dependencies for unify_jmeter_graphs.py (pandas, matplotlib). Install with: pip install -r requirements.txt")
+	sys.exit(2)
 
 df = pd.read_csv(jtl)
 # normalize column names to lowercase for robustness
