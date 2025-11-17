@@ -29,6 +29,7 @@ export const options = {
 };
 
 function extractCsrf(body) {
+  if (!body) return null;
   const doc = parseHTML(body);
   // 1) common input names
   const inputNames = ["_csrf", "csrf", "csrfToken", "csrf_token", "_csrf_token"];
@@ -65,6 +66,19 @@ function _logDebug(tag, body) {
   }
 }
 
+// Collect debug dumps during the run so handleSummary can write them to files.
+const __DEBUG_ENTRIES = [];
+const __DEBUG_MAX_ENTRIES = 100; // safety limit to avoid OOM
+function _collectDebug(tag, body) {
+  try {
+    if (__DEBUG_ENTRIES.length >= __DEBUG_MAX_ENTRIES) return;
+    const maxBody = 20000; // keep reasonable
+    __DEBUG_ENTRIES.push({ tag, body: body ? body.substring(0, maxBody) : '', ts: Date.now() });
+  } catch (e) {
+    // ignore
+  }
+}
+
 export default function () {
   let csrf = null;
   let loginSuccess = false;
@@ -76,16 +90,17 @@ export default function () {
 
     csrf = extractCsrf(res.body);
 
-    check(res, { 'CSRF encontrado': () => !!csrf }, { cenario: 'login' });
-    if (!csrf) return;
-  if (!csrf) _logDebug('login_get_no_csrf', res.body);
+    // If no CSRF token is present, proceed without it - some deployments don't include a hidden _csrf
+    if (!csrf) {
+      _logDebug('login_get_no_csrf', res.body);
+    }
 
     const payload = {
       username: 'user2',
       password: 'password',
       action: 'login',
-      _csrf: csrf,
     };
+    if (csrf) payload._csrf = csrf;
 
     const postRes = http.post(`${BASE_UI}/loginAction`, payload, { redirects: 3 });
     loginSuccess = check(postRes, {
@@ -93,6 +108,7 @@ export default function () {
     }, { cenario: 'login' });
     if (!loginSuccess) {
       _logDebug('login_post_failure', postRes.body);
+      _collectDebug('login_post_failure', postRes.body);
       return;
     }
 
@@ -126,6 +142,7 @@ export default function () {
     if (!prodLinkEl || !prodLinkEl.attr('href')) {
       check(res, { 'Produto encontrado': () => false }, { cenario: 'compra' });
       _logDebug('no_product_link', res.body);
+      _collectDebug('no_product_link', res.body);
       return;
     }
 
@@ -134,13 +151,16 @@ export default function () {
     check(res, { 'Produto carregado': (r) => r.status === 200 }, { cenario: 'compra' });
 
     const docProd = parseHTML(res.body);
-    const productName = (docProd.find("h2.product-title").first() || docProd.find("h2.minipage-title").first())?.text().trim();
+    // Try a few fallbacks for product name (different TeaStore themes use different elements)
+    let productName = (docProd.find("h2.product-title").first() || docProd.find("h2.minipage-title").first())?.text().trim();
+    if (!productName) {
+      productName = (docProd.find('h1').first() || docProd.find('title').first())?.text().trim();
+    }
 
     const csrfProd = extractCsrf(res.body) || csrf;
     if (!csrfProd) {
-      check(res, { 'CSRF produto encontrado': () => false }, { cenario: 'compra' });
+      // some deployments don't expose a _csrf hidden input on product pages; we'll proceed without it
       _logDebug('no_csrf_product', res.body);
-      return;
     }
 
     let productId = docProd.find("input[name='productid']").attr('value');
@@ -151,23 +171,55 @@ export default function () {
     if (!productId) {
       check(res, { 'id do produto encontrado': () => false }, { cenario: 'compra' });
       _logDebug('no_product_id', res.body);
+      _collectDebug('no_product_id', res.body);
       return;
     }
 
-    const addRes = http.post(`${BASE_UI}/cartAction`, {
+    const addPayload = {
       productid: productId,
       addToCart: "Add to Cart",
-      _csrf: csrfProd,
-    }, { redirects: 3 });
+    };
+    if (csrfProd) addPayload._csrf = csrfProd;
+
+    const addRes = http.post(`${BASE_UI}/cartAction`, addPayload, { redirects: 3 });
 
     check(addRes, { 'AddToCart 200/302': (r) => [200, 302].includes(r.status) }, { cenario: 'compra' });
   if (![200,302].includes(addRes.status)) _logDebug('add_to_cart_failed', addRes.body);
+  if (![200,302].includes(addRes.status)) _collectDebug('add_to_cart_failed', addRes.body);
 
     const cartRes = http.get(`${BASE_UI}/cart`);
+
+    // Robust check: strip HTML tags, normalize entities/whitespace and compare case-insensitively.
+    function stripTags(s) {
+      if (!s) return '';
+      // remove script/style blocks first
+      s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ');
+      s = s.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+      // then remove all tags
+      return s.replace(/<[^>]+>/g, ' ');
+    }
+
+    function normalizeText(s) {
+      if (!s) return '';
+      let out = s.replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&');
+      out = stripTags(out);
+      out = out.replace(/\s+/g, ' ').trim();
+      return out.toLowerCase();
+    }
+
+    const normProduct = normalizeText(productName || '');
+    const normCart = normalizeText(cartRes.body || '');
+
+    const cartHasProduct = normProduct && normCart.includes(normProduct);
+
     check(cartRes, {
-      'Carrinho contém produto': (r) => productName && r.body.includes(productName)
+      'Carrinho contém produto': () => cartHasProduct
     }, { cenario: 'compra' });
-    if (!(productName && cartRes.body.includes(productName))) _logDebug('cart_missing_product', cartRes.body);
+
+    if (!cartHasProduct) {
+      _logDebug('cart_missing_product', cartRes.body);
+      _collectDebug('cart_missing_product', cartRes.body);
+    }
 
     sleep(0.5);
   });
@@ -182,9 +234,30 @@ export default function () {
 
 // NOVO: Adiciona o summary handler para gerar o HTML
 export function handleSummary(data) {
-  return {
+  const out = {
     'k6-complex-report.html': htmlReport(data),
     'k6-complex.json': JSON.stringify(data, null, 2),
     'stdout': textSummary(data, { indent: ' ', enableColors: true }),
   };
+
+  // Emit collected debug entries as separate files (flat filenames) so the runner will create them reliably.
+  // Also create a simple index HTML that links to each debug file for quick inspection.
+  try {
+    let indexLines = ['<html><head><meta charset="utf-8"><title>k6 debug files</title></head><body>','<h1>Debug dumps</h1>','<ul>'];
+    for (let i = 0; i < __DEBUG_ENTRIES.length; i++) {
+      const e = __DEBUG_ENTRIES[i];
+      const safeTag = (e.tag || 'debug').replace(/[^a-zA-Z0-9-_]/g, '_');
+      const fname = `debug_${safeTag}_${i + 1}.html`;
+      // ensure we add a small header so the file is valid HTML even if body is a fragment
+      const bodyContent = (e.body || '').startsWith('<') ? e.body : `<pre>${e.body || ''}</pre>`;
+      out[fname] = `<!-- collected ${new Date(e.ts).toISOString()} tag=${e.tag} -->\n${bodyContent}`;
+      indexLines.push(`<li><a href='./${fname}'>${fname}</a> - ${new Date(e.ts).toISOString()} - ${e.tag}</li>`);
+    }
+    indexLines.push('</ul></body></html>');
+    if (__DEBUG_ENTRIES.length > 0) out['debug_index.html'] = indexLines.join('\n');
+  } catch (err) {
+    console.error('Failed to emit debug entries in handleSummary:', err);
+  }
+
+  return out;
 }
