@@ -46,6 +46,16 @@ function extractCsrf(body) {
   return null;
 }
 
+function _logDebug(tag, body) {
+  try {
+    const max = 8000;
+    const snippet = body ? body.substring(0, max) : '';
+    console.error(`DEBUG [${tag}]: ${snippet}`);
+  } catch (e) {
+    // noop
+  }
+}
+
 export default function () {
   let csrf = null;
   let loginSuccess = false;
@@ -59,6 +69,7 @@ export default function () {
 
     check(res, { 'CSRF encontrado': () => !!csrf }, { cenario: 'login' });
     if (!csrf) return;
+  if (!csrf) _logDebug('login_get_no_csrf', res.body);
 
     const payload = {
       username: 'user2',
@@ -71,8 +82,10 @@ export default function () {
     loginSuccess = check(postRes, {
       'Login status 200/302': (r) => [200, 302].includes(r.status)
     }, { cenario: 'login' });
-
-    if (!loginSuccess) return;
+    if (!loginSuccess) {
+      _logDebug('login_post_failure', postRes.body);
+      return;
+    }
 
     const home = http.get(`${BASE_UI}/`, { redirects: 3 });
     csrf = extractCsrf(home.body) || csrf;
@@ -91,6 +104,7 @@ export default function () {
     let link = doc.find('ul.nav-sidebar a.menulink').first() || doc.find('a.menulink').first();
     if (!link || !link.attr('href')) {
       check(res, { 'Categoria encontrada': () => false }, { cenario: 'compra' });
+      _logDebug('no_category_link', res.body);
       return;
     }
 
@@ -102,6 +116,7 @@ export default function () {
     let prodLinkEl = docCat.find('div.thumbnail a').first() || docCat.find("a[href*='product']").first();
     if (!prodLinkEl || !prodLinkEl.attr('href')) {
       check(res, { 'Produto encontrado': () => false }, { cenario: 'compra' });
+      _logDebug('no_product_link', res.body);
       return;
     }
 
@@ -115,6 +130,7 @@ export default function () {
     const csrfProd = extractCsrf(res.body) || csrf;
     if (!csrfProd) {
       check(res, { 'CSRF produto encontrado': () => false }, { cenario: 'compra' });
+      _logDebug('no_csrf_product', res.body);
       return;
     }
 
@@ -125,6 +141,7 @@ export default function () {
     }
     if (!productId) {
       check(res, { 'id do produto encontrado': () => false }, { cenario: 'compra' });
+      _logDebug('no_product_id', res.body);
       return;
     }
 
@@ -135,13 +152,22 @@ export default function () {
     }, { redirects: 3 });
 
     check(addRes, { 'AddToCart 200/302': (r) => [200, 302].includes(r.status) }, { cenario: 'compra' });
+  if (![200,302].includes(addRes.status)) _logDebug('add_to_cart_failed', addRes.body);
 
     const cartRes = http.get(`${BASE_UI}/cart`);
     check(cartRes, {
       'Carrinho contém produto': (r) => productName && r.body.includes(productName)
     }, { cenario: 'compra' });
+    if (!(productName && cartRes.body.includes(productName))) _logDebug('cart_missing_product', cartRes.body);
 
     sleep(0.5);
+  });
+
+  // Logout at end of flow - TeaStore processes logout via loginAction?logout=
+  group('Logout', function () {
+    const logoutRes = http.post(`${BASE_UI}/loginAction?logout=`);
+    check(logoutRes, { 'Logout OK': (r) => [200, 302].includes(r.status) }, { cenario: 'logout' });
+    sleep(0.2);
   });
 }
 
