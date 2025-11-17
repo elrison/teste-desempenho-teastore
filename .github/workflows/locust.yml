@@ -19,42 +19,66 @@ jobs:
             netcat-openbsd curl wget python3-bs4 python3-venv
 
       # ------------------------------------------------------------
-      # 1) SUBIDA DA STACK (VERSÃO IDENTICA À SUA, MAS FORÇANDO O ARQUIVO CORRETO)
+      # 1) SUBINDO A STACK COM ORDENS CORRETAS E DELAYS SEGUROS
       # ------------------------------------------------------------
-      - name: Start TeaStore stack (compose correto explicitado)
+      - name: Start DB
         run: |
-          echo "📌 Usando docker-compose.yml EXPLÍCITO"
-          ls -lha
+          docker compose up -d teastore-db
+          sleep 12
 
-          docker compose -f docker-compose.yml up -d teastore-db
-          sleep 8
-
-          docker compose -f docker-compose.yml up -d teastore-registry
-          sleep 20
-
-          docker compose -f docker-compose.yml up -d teastore-persistence \
-            teastore-auth teastore-image teastore-recommender
-          sleep 20
-
-          docker compose -f docker-compose.yml up -d teastore-webui
-          sleep 10
-
-      - name: Wait for WebUI login (HTTP 200)
+      - name: Start Registry
         run: |
-          echo "⏳ Testando WebUI..."
-          for i in {1..80}; do
-            CODE=$(curl -o /dev/null -s -w "%{http_code}" \
-              http://localhost:8080/tools.descartes.teastore.webui/login)
-            echo "Tentativa $i: HTTP $CODE"
+          docker compose up -d teastore-registry
+          sleep 25
 
-            if [ "$CODE" = "200" ]; then
-              echo "🟢 WebUI ONLINE!"
+      - name: Start core services
+        run: |
+          docker compose up -d teastore-persistence teastore-auth \
+            teastore-image teastore-recommender
+          sleep 25
+
+      - name: Start WebUI
+        run: |
+          docker compose up -d teastore-webui
+          sleep 15
+
+      # ------------------------------------------------------------
+      # 2) VALIDAÇÃO REAL: REGISTRY -> CATEGORIAS/PRODUTOS
+      # ------------------------------------------------------------
+      - name: Wait for Registry categories
+        run: |
+          echo "⏳ Testando Registry /categories..."
+          for i in {1..60}; do
+            OUT=$(curl -s http://localhost:8080/tools.descartes.teastore.registry/rest/categories)
+            if [[ "$OUT" == *"categoryId"* ]]; then
+              echo "🟢 Registry pronto!"
               exit 0
             fi
-            
+            echo "Tentativa $i ainda sem categoria..."
             sleep 3
           done
-          echo "❌ WebUI não respondeu."
+          echo "❌ Registry não carregou categorias."
+          exit 1
+
+      # ------------------------------------------------------------
+      # 3) VALIDAÇÃO REAL DO WEBUI
+      #    Testa login → redirecionamento → home
+      # ------------------------------------------------------------
+      - name: Wait for WebUI FULL READY
+        run: |
+          echo "⏳ Validando WebUI real..."
+          for i in {1..60}; do
+            OUT=$(curl -s http://localhost:8080/tools.descartes.teastore.webui/home)
+            
+            if [[ "$OUT" == *"TeaStore"* ]] && [[ "$OUT" == *"Category"* ]]; then
+              echo "🟢 WebUI totalmente carregado!"
+              exit 0
+            fi
+
+            echo "Home ainda não carregada ($i)..."
+            sleep 3
+          done
+          echo "❌ WebUI não ficou pronta."
           exit 1
 
       # -------------------------- L O C U S T ------------------------
@@ -88,11 +112,13 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      # ------------------------------------------------------------
-      # 4) ENCERRAR
-      # ------------------------------------------------------------
+      - name: Debug – listar arquivos
+        run: |
+          echo "=== Locust Files ==="
+          find locust-teastore -maxdepth 2 -type f || true
+
       - name: Logs & Stop containers
         if: always()
         run: |
-          docker compose -f docker-compose.yml logs --no-color
-          docker compose -f docker-compose.yml down
+          docker compose logs --no-color
+          docker compose down
