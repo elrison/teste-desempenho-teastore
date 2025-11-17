@@ -9,10 +9,10 @@ class TeaStoreUser(HttpUser):
         self.login()
 
     def login(self):
-        # GET LOGIN PAGE
-        with self.client.get("/login", name="GET /login", catch_response=True) as res:
+        # GET LOGIN PAGE CORRETO
+        with self.client.get("/login_page", name="GET /login_page", catch_response=True) as res:
             if res.status_code != 200:
-                res.failure("Falha GET /login")
+                res.failure("Falha GET /login_page")
                 return
 
             soup = BeautifulSoup(res.text, "html.parser")
@@ -23,16 +23,16 @@ class TeaStoreUser(HttpUser):
 
             token = csrf.get("value")
 
-        # POST LOGIN
+        # POST LOGIN ACTION CORRETO
         payload = {
             "username": "user2",
             "password": "password",
             "_csrf": token
         }
 
-        with self.client.post("/login", data=payload, name="POST /login", catch_response=True) as res:
+        with self.client.post("/login_action", data=payload, name="POST /login_action", catch_response=True) as res:
             if res.status_code not in (200, 302):
-                res.failure("Falha ao fazer login (POST)")
+                res.failure("Falha no POST /login_action")
                 return
 
     @task
@@ -54,7 +54,7 @@ class TeaStoreUser(HttpUser):
             cat_link = cats[0].get("href")
 
         # CATEGORY
-        with self.client.get(cat_link, name="GET categoria", catch_response=True) as res:
+        with self.client.get(cat_link, name="GET /category", catch_response=True) as res:
             if res.status_code != 200:
                 res.failure("Falha ao acessar categoria")
                 return
@@ -69,13 +69,12 @@ class TeaStoreUser(HttpUser):
             prod_link = prods[0].get("href")
 
         # PRODUCT PAGE
-        with self.client.get(prod_link, name="GET produto", catch_response=True) as res:
+        with self.client.get(prod_link, name="GET /product", catch_response=True) as res:
             if res.status_code != 200:
                 res.failure("Falha ao acessar produto")
                 return
 
             soup = BeautifulSoup(res.text, "html.parser")
-
             pid_elem = soup.find("input", {"name": "productid"})
             pname_elem = soup.find("h2", {"class": "product-title"})
 
@@ -87,7 +86,7 @@ class TeaStoreUser(HttpUser):
             pname = pname_elem.text.strip()
 
         # GET CSRF FOR CART ACTION
-        with self.client.get("/cart", name="GET /cart para csrf", catch_response=True) as res:
+        with self.client.get("/cart", name="GET /cart", catch_response=True) as res:
             soup = BeautifulSoup(res.text, "html.parser")
             csrf = soup.find("input", {"name": "_csrf"})
             if not csrf:
@@ -104,13 +103,13 @@ class TeaStoreUser(HttpUser):
             "_csrf": token
         }
 
-        with self.client.post("/cartAction", data=payload, name="POST /cartAction", catch_response=True) as res:
+        with self.client.post("/cartAction", data=payload, name="POST /add_to_cart", catch_response=True) as res:
             if res.status_code not in (200, 302):
                 res.failure("Falha ao adicionar ao carrinho")
                 return
 
         # VERIFY CART
-        with self.client.get("/cart", name="GET /cart final", catch_response=True) as res:
+        with self.client.get("/cart", name="GET /cart_final", catch_response=True) as res:
             if pname.lower() in res.text.lower():
                 res.success()
             else:

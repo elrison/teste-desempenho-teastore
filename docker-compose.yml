@@ -1,26 +1,21 @@
 services:
   teastore-db:
     image: mysql:5.7
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: teadb
-      MYSQL_USER: teauser
-      MYSQL_PASSWORD: teapass
-    ports:
-      - "3306:3306"
-    command: --explicit_defaults_for_timestamp=1
-
-  teastore-persistence:
-    image: descartesresearch/teastore-persistence
-    depends_on:
-      - teastore-db
-    environment:
-      HOSTNAME_DB: teastore-db
-      PORT_DB: 3306
-      DB_USER: teauser
-      DB_PASSWORD: teapass       # <- DEVE SER IGUAL AO MYSQL_PASSWORD
-      DB_DB: teadb
-
+      MYSQL_ROOT_PASSWORD: "rootpass"
+      MYSQL_DATABASE: "teadb"
+      MYSQL_USER: "teauser"
+      MYSQL_PASSWORD: "teapass"
+    command: [--skip-ssl]
+    networks:
+      - teastore-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
 
   teastore-registry:
     image: descartesresearch/teastore-registry:latest
@@ -33,23 +28,23 @@ services:
     networks:
       - teastore-network
 
-  # teastore-persistence:
-  #   image: descartesresearch/teastore-persistence:latest
-  #   depends_on:
-  #     teastore-registry:
-  #       condition: service_started
-  #   environment:
-  #     REGISTRY_HOST: teastore-registry
-  #     REGISTRY_PORT: 8080
-  #     HOST_NAME: teastore-persistence
-  #     SERVICE_PORT: 8080
-  #     DB_HOST: teastore-db
-  #     DB_PORT: 3306
-  #     DB_NAME: teadb
-  #     DB_USER: teauser
-  #     DB_PASS: teapass
-  #   networks:
-  #     - teastore-network
+  teastore-persistence:
+    image: descartesresearch/teastore-persistence:latest
+    depends_on:
+      teastore-registry:
+        condition: service_started
+    environment:
+      REGISTRY_HOST: teastore-registry
+      REGISTRY_PORT: 8080
+      HOST_NAME: teastore-persistence
+      SERVICE_PORT: 8080
+      DB_HOST: teastore-db
+      DB_PORT: 3306
+      DB_NAME: teadb
+      DB_USER: teauser
+      DB_PASS: teapass
+    networks:
+      - teastore-network
 
   teastore-recommender:
     image: descartesresearch/teastore-recommender:latest
