@@ -17,12 +17,18 @@ def reset_database(environment, **kwargs):
 
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
+    
+    # --- INÍCIO DA CORREÇÃO (v17) ---
+    # Define o Header 'Referer' globalmente para todas as requisições
+    # que este usuário fará.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.base_url = "/tools.descartes.teastore.webui"
+        self.client.headers['Referer'] = self.host + self.base_url + "/"
+    # --- FIM DA CORREÇÃO (v17) ---
 
-    # --- INÍCIO DA CORREÇÃO (v16) ---
-    # Script reescrito para usar a sintaxe 'with' (exigida pelo Locust)
-    # e para incluir o campo 'referer' ausente no login.
     def on_start(self):
-        login_url = "/tools.descartes.teastore.webui/login"
+        login_url = self.base_url + "/login"
         
         # 1. FAZ O GET NA PÁGINA DE LOGIN
         with self.client.get(login_url, name="/login", catch_response=True) as response_get:
@@ -35,39 +41,30 @@ class TeaStoreUser(HttpUser):
             "username": "user1",
             "password": "password",
             "signin": "Sign in",
-            "referer": "" # Campo oculto que faltava
+            "referer": "" # Campo oculto
         }
         
-        headers = {
-            'Referer': self.host + login_url
-        }
-        
+        # O 'Referer' já está nos headers globais do self.client
         with self.client.post(
-            "/tools.descartes.teastore.webui/loginAction",
+            self.base_url + "/loginAction",
             data=payload, 
             name="/loginAction",
-            headers=headers,
             allow_redirects=True,
-            catch_response=True # Necessário para usar response.failure()
+            catch_response=True
         ) as response_post:
         
             # 3. VALIDAÇÃO
-            if response_post.status_code != 200:
-                response_post.failure(f"Falha no POST /loginAction (HTTP {response_post.status_code})")
-                return
-                
-            if 'name="logout"' not in response_post.text:
+            if response_post.status_code != 200 or 'name="logout"' not in response_post.text:
                 logging.error(">>> LOGIN FALHOU. 'name=\"logout\"' NÃO ENCONTRADO. <<<")
                 response_post.failure("Login falhou. 'Logout' não encontrado.")
                 return
             
-            logging.info("Login (v16) BEM-SUCEDIDO.")
-    # --- FIM DA CORREÇÃO (v16) ---
+            logging.info("Login (v17) BEM-SUCEDIDO.")
 
     @task
     def fluxo_completo(self):
         # Home Page (agora deve estar logado)
-        with self.client.get("/tools.descartes.teastore.webui/", name="/home", catch_response=True) as res:
+        with self.client.get(self.base_url + "/", name="/home", catch_response=True) as res:
             if res.status_code != 200:
                 res.failure(f"Falha ao acessar Home (HTTP {res.status_code})")
                 return
@@ -77,7 +74,7 @@ class TeaStoreUser(HttpUser):
             if not cats:
                 res.failure("Categoria não encontrada (usuário logado)")
                 return
-            cat_link = cats[0].get("href")
+            cat_link = cats[0].get("href") # Pega o primeiro
 
         # Categoria Page
         with self.client.get(cat_link, name="/categoria", catch_response=True) as res:
@@ -113,7 +110,7 @@ class TeaStoreUser(HttpUser):
         # Add to cart
         payload = {"productid": pid, "addToCart": "Add to Cart"}
         with self.client.post(
-            "/tools.descartes.teastore.webui/cartAction",
+            self.base_url + "/cartAction",
             data=payload, 
             name="/cartAction",
             catch_response=True
@@ -123,7 +120,7 @@ class TeaStoreUser(HttpUser):
                 return
 
         # Cart Page
-        with self.client.get("/tools.descartes.teastore.webui/cart", name="/cart", catch_response=True) as res:
+        with self.client.get(self.base_url + "/cart", name="/cart", catch_response=True) as res:
             if res.status_code != 200:
                 res.failure(f"Falha ao acessar Carrinho (HTTP {res.status_code})")
                 return
