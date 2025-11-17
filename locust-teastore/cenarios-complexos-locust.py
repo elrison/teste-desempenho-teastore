@@ -2,6 +2,8 @@ from locust import HttpUser, task, between, events
 from bs4 import BeautifulSoup
 import requests, logging
 
+# 1. Função de reset MANTIDA.
+# Ela é necessária para criar os usuários no banco de dados limpo.
 @events.test_start.add_listener
 def reset_database(environment, **kwargs):
     host = environment.host.rstrip('/')
@@ -25,24 +27,22 @@ class TeaStoreUser(HttpUser):
     def on_start(self):
         login_url = self.base_url + "/login"
         
-        # 1. FAZ O GET NA PÁGINA DE LOGIN
         with self.client.get(login_url, name="/login", catch_response=True) as response_get:
             if response_get.status_code != 200:
                 response_get.failure(f"Falha no GET /login (HTTP {response_get.status_code})")
                 return
 
-        # --- INÍCIO DA CORREÇÃO (v19) ---
-        # 2. FAZ O POST DO LOGIN
-        
-        # O usuário correto é 'user2', como visto no HTML
+        # --- INÍCIO DA CORREÇÃO (v23) ---
+        # 2. Usuário corrigido para 'user1' (o padrão do TeaStore)
         referer_value = self.host + self.base_url + "/"
         
         payload = {
-            "username": "user2", # <-- CORRIGIDO DE "user1"
+            "username": "user1", # <-- CORRIGIDO (voltando ao padrão)
             "password": "password",
             "signin": "Sign in",
             "referer": referer_value 
         }
+        # --- FIM DA CORREÇÃO (v23) ---
         
         headers = {
             'Referer': self.host + login_url
@@ -57,14 +57,12 @@ class TeaStoreUser(HttpUser):
             catch_response=True 
         ) as response_post:
         
-            # 3. VALIDAÇÃO
             if response_post.status_code != 200 or 'name="logout"' not in response_post.text:
-                logging.error(f">>> LOGIN FALHOU . 'name=\"logout\"' NÃO ENCONTRADO. <<<")
+                logging.error(f">>> LOGIN FALHOU (v23). 'name=\"logout\"' NÃO ENCONTRADO. <<<")
                 response_post.failure("Login falhou. 'Logout' não encontrado.")
                 return
             
-            logging.info("Login BEM-SUCEDIDO.")
-        # --- FIM DA CORREÇÃO (v19) ---
+            logging.info("Login (v23) BEM-SUCEDIDO.")
 
     @task
     def fluxo_completo(self):
