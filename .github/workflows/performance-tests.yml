@@ -7,6 +7,11 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      HOST: 'http://localhost'
+      HOSTNAME: 'localhost'
+      PORT: '8080'
+      BASE_PATH: '/tools.descartes.teastore.webui'
 
     steps:
       - name: Checkout repo
@@ -38,7 +43,7 @@ jobs:
           echo "⏳ Testando WebUI..."
           for i in {1..80}; do
             CODE=$(curl -o /dev/null -s -w "%{http_code}" \
-              http://localhost:8080/tools.descartes.teastore.webui/login)
+              ${HOST}:${PORT}${BASE_PATH}/login)
             echo "Tentativa $i: HTTP $CODE"
 
             if [ "$CODE" = "200" ]; then
@@ -77,17 +82,19 @@ jobs:
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
-            -l jmeter-teastore/results-simples.jtl \
+            -l jmeter-teastore/results-simples.csv \
+            -Jjmeter.save.saveservice.output_format=csv \
             -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
       - name: JMETER - Testes complexos
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
-            -l jmeter-teastore/results-complexos.jtl \
+            -l jmeter-teastore/results-complexos.csv \
+            -Jjmeter.save.saveservice.output_format=csv \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=8080 || true
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
       - name: Upload JMeter reports (completo)
         if: always()
@@ -139,14 +146,14 @@ jobs:
         run: |
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 15s \
-            --host http://localhost:8080 \
+            --host ${HOST}:${PORT}${BASE_PATH} \
             --html locust-teastore/simple.html || true
 
       - name: Locust - teste complexo
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 3 -t 30s \
-            --host http://localhost:8080 \
+            --host ${HOST}:${PORT}${BASE_PATH} \
             --html locust-teastore/complex.html || true
 
       - name: Upload Locust reports
@@ -172,7 +179,7 @@ jobs:
         run: |
           python3 generate_dashboard.py \
             --k6 k6-complex.json \
-            --jmeter jmeter-teastore/results-complexos.jtl \
+            --jmeter jmeter-teastore/results-complexos.csv \
             --locust locust-teastore/complex.html \
             --out dashboard.html \
             --pdf report.pdf
@@ -189,7 +196,7 @@ jobs:
       - name: Gerar gráficos extras JMeter
         run: |
           python3 scripts/unify_jmeter_graphs.py \
-            jmeter-teastore/results-complexos.jtl \
+            jmeter-teastore/results-complexos.csv \
             jmeter-teastore/graficos
 
       - name: PDF JMeter

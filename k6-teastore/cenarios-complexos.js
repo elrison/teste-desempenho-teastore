@@ -6,8 +6,12 @@ import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporte
 import { textSummary } from 'https://jslib.k6.io/k6-summary/0.1.0/index.js';
 
 
-const BASE_UI = "http://localhost:18081/tools.descartes.teastore.webui";
-const BASE_HOST = "http://localhost:18081";
+// Read host/port/base path from env for CI reproducibility
+const HOST = __ENV.HOST || 'http://localhost';
+const PORT = __ENV.PORT || '18081';
+const BASE_PATH = __ENV.BASE_PATH || '/tools.descartes.teastore.webui';
+const BASE_HOST = `${HOST}:${PORT}`;
+const BASE_UI = `${BASE_HOST}${BASE_PATH}`;
 
 export function setup() {
   console.log('--- Resetando base via API ---');

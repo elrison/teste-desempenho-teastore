@@ -6,5 +6,5 @@ class TeaStoreUser(HttpUser):
 
     @task
     def load_home_page(self):
-        # URL correta
-        self.client.get("/tools.descartes.teastore.webui/home", name="/home")
+        # Request relative to host (host set by CI to include base path)
+        self.client.get("/home", name="/home")

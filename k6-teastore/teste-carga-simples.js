@@ -3,8 +3,11 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-// CORREÇÃO: Usar localhost:18081
-const BASE_URL = 'http://localhost:18081/tools.descartes.teastore.webui';
+// Use environment variables to configure target host/port for CI reproducibility
+const HOST = __ENV.HOST || 'http://localhost';
+const PORT = __ENV.PORT || '18081';
+const BASE_PATH = __ENV.BASE_PATH || '/tools.descartes.teastore.webui';
+const BASE_UI = `${HOST}:${PORT}${BASE_PATH}`;
 
 export const options = {
   vus: 10,
@@ -12,7 +15,7 @@ export const options = {
 };
 
 export default function () {
-  const res = http.get(BASE_URL); // Acessa a URL corrigida
+  const res = http.get(BASE_UI);
   check(res, {
     'Homepage OK': (r) => r.status === 200,
   });

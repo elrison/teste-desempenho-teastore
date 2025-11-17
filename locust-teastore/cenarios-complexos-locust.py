@@ -1,16 +1,24 @@
+import os
 from locust import HttpUser, task, between
 from bs4 import BeautifulSoup
 
+
+# Configure host from environment for CI reproducibility
+BASE_HOST = os.getenv("HOST", "http://localhost")
+BASE_PORT = os.getenv("PORT", "8080")
+BASE_PATH = os.getenv("BASE_PATH", "/tools.descartes.teastore.webui")
+
+
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
-    host = "http://localhost:8080/tools.descartes.teastore.webui"
+    host = f"{BASE_HOST}:{BASE_PORT}{BASE_PATH}"
 
     def on_start(self):
         self.login()
 
     def login(self):
-        # GET LOGIN PAGE CORRETO
-        with self.client.get("/login_page", name="GET /login_page", catch_response=True) as res:
+        # GET LOGIN PAGE (aligned with JMeter/k6)
+        with self.client.get("/login", name="GET /login", catch_response=True) as res:
             if res.status_code != 200:
                 res.failure("Falha GET /login_page")
                 return
@@ -30,7 +38,7 @@ class TeaStoreUser(HttpUser):
             "_csrf": token
         }
 
-        with self.client.post("/login_action", data=payload, name="POST /login_action", catch_response=True) as res:
+        with self.client.post("/loginAction", data=payload, name="POST /loginAction", catch_response=True) as res:
             if res.status_code not in (200, 302):
                 res.failure("Falha no POST /login_action")
                 return
