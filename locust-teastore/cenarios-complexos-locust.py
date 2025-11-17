@@ -18,7 +18,6 @@ def reset_database(environment, **kwargs):
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
     
-    # Define caminhos base para reuso
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.base_url = "/tools.descartes.teastore.webui"
@@ -32,18 +31,17 @@ class TeaStoreUser(HttpUser):
                 response_get.failure(f"Falha no GET /login (HTTP {response_get.status_code})")
                 return
 
-        # --- INÍCIO DA CORREÇÃO (v18) ---
+        # --- INÍCIO DA CORREÇÃO (v19) ---
         # 2. FAZ O POST DO LOGIN
         
-        # O campo 'referer' precisa do valor da página inicial, 
-        # como visto no HTML.
+        # O usuário correto é 'user2', como visto no HTML
         referer_value = self.host + self.base_url + "/"
         
         payload = {
-            "username": "user1",
+            "username": "user2", # <-- CORRIGIDO DE "user1"
             "password": "password",
             "signin": "Sign in",
-            "referer": referer_value # Corrigido de "" para a URL correta
+            "referer": referer_value 
         }
         
         headers = {
@@ -61,12 +59,12 @@ class TeaStoreUser(HttpUser):
         
             # 3. VALIDAÇÃO
             if response_post.status_code != 200 or 'name="logout"' not in response_post.text:
-                logging.error(f">>> LOGIN FALHOU. 'name=\"logout\"' NÃO ENCONTRADO. Status: {response_post.status_code} <<<")
+                logging.error(f">>> LOGIN FALHOU (v19). 'name=\"logout\"' NÃO ENCONTRADO. <<<")
                 response_post.failure("Login falhou. 'Logout' não encontrado.")
                 return
             
-            logging.info("Login (v18) BEM-SUCEDIDO.")
-        # --- FIM DA CORREÇÃO (v18) ---
+            logging.info("Login (v19) BEM-SUCEDIDO.")
+        # --- FIM DA CORREÇÃO (v19) ---
 
     @task
     def fluxo_completo(self):
@@ -77,7 +75,6 @@ class TeaStoreUser(HttpUser):
                 return
             soup = BeautifulSoup(res.text, "html.parser")
             
-            # O seletor "a.menulink" está correto
             cats = soup.select("a.menulink")
             if not cats:
                 res.failure("Categoria não encontrada (usuário logado)")
