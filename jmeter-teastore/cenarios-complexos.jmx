@@ -41,7 +41,8 @@
 
       <hashTree>
 
-        <!-- ---------------- T01 LOGIN ---------------- -->
+         <!---------------- T01 LOGIN ---------------->
+ 
         <TransactionController testname="T01_Login" enabled="true">
           <boolProp name="TransactionController.includeTimers">false</boolProp>
         </TransactionController>
