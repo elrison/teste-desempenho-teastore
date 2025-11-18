@@ -59,15 +59,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: K6 - testes simples
+
+      - name: K6 - testes 100 VU's
         run: |
-          k6 run k6-teastore/teste-carga-simples.js \
+          k6 run k6-teastore/cenario-100-vus.js \
             --summary-export=k6-simple.json || true
 
-      - name: K6 - testes complexos
+      - name: K6 - testes 500 VU's
         run: |
-          k6 run k6-teastore/cenarios-complexos.js \
-            --summary-export=k6-complex.json || true
+          k6 run k6-teastore/cenario-500-vus.js \
+            --summary-export=k6-simple.json || true
+
+      - name: K6 - testes 1000 VU's
+        run: |
+          k6 run k6-teastore/cenario-1000-vus.js \
+            --summary-export=k6-simple.json || true
+      
+      
+      # - name: K6 - testes simples
+      #   run: |
+      #     k6 run k6-teastore/teste-carga-simples.js \
+      #       --summary-export=k6-simple.json || true
+
+      # - name: K6 - testes complexos
+      #   run: |
+      #     k6 run k6-teastore/cenarios-complexos.js \
+      #       --summary-export=k6-complex.json || true
 
       - name: Upload K6 summaries
         if: always()

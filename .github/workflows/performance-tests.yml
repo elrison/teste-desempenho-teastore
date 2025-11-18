@@ -131,20 +131,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: K6 - testes 100 VU's
-        run: |
-          k6 run k6-teastore/cenario-100-vus.js \
-            --summary-export=k6-simple.json || true
+      # - name: K6 - testes 100 VU's
+      #   run: |
+      #     k6 run k6-teastore/cenario-100-vus.js \
+      #       --summary-export=k6-simple.json || true
 
-      - name: K6 - testes 500 VU's
-        run: |
-          k6 run k6-teastore/cenario-500-vus.js \
-            --summary-export=k6-simple.json || true
+      # - name: K6 - testes 500 VU's
+      #   run: |
+      #     k6 run k6-teastore/cenario-500-vus.js \
+      #       --summary-export=k6-simple.json || true
 
-      - name: K6 - testes 1000 VU's
-        run: |
-          k6 run k6-teastore/cenario-1000-vus.js \
-            --summary-export=k6-simple.json || true
+      # - name: K6 - testes 1000 VU's
+      #   run: |
+      #     k6 run k6-teastore/cenario-1000-vus.js \
+      #       --summary-export=k6-simple.json || true
 
       - name: K6 - testes simples
         run: |
