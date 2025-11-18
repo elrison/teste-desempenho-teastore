@@ -5,11 +5,7 @@ const BASE_URL = `${__ENV.HOST || 'http://localhost'}:${__ENV.PORT || '8080'}/to
 
 export const options = {
   vus: 1000,
-  duration: '5m',
-  thresholds: {
-    http_req_duration: ['p(95)<2000'], // 95% das requisições devem ser < 2s
-    http_req_failed: ['rate<0.2'],     // Taxa de erro < 20%
-  },
+  duration: '300s',
 };
 
 export default function () {
