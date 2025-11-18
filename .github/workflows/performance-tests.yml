@@ -161,8 +161,10 @@ jobs:
         with:
           name: relatorios-jmeter
           path: |
-            jmeter-teastore/report-simples/**
-            jmeter-teastore/report-complexos/**
+            jmeter-teastore/report-simples/
+            jmeter-teastore/report-complexos/
+            jmeter-teastore/report-simples.html
+            jmeter-teastore/report-complexos.html
 
       # ---------------------------- K 6 ----------------------------
       - name: Install K6
