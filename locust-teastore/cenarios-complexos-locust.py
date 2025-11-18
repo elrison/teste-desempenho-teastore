@@ -200,3 +200,23 @@ class TeaStoreUser(HttpUser):
                 res.success()
             else:
                 res.failure("Falha ao deslogar")
+
+
+    @task
+    def test_flow(self):
+        # Login
+        with self.client.get("/login", name="GET /login") as response:
+            if response.status_code == 200:
+                self.client.post("/loginAction", name="POST /loginAction", data={
+                    "username": "user1",
+                    "password": "password",
+                })
+
+        # Navigate
+        with self.client.get("/", name="GET /") as response:
+            if response.status_code == 200:
+                self.client.get("/category", name="GET /category")
+                self.client.get("/product", name="GET /product")
+
+        # Logout
+        self.client.post("/loginAction?logout=", name="POST /logout")
