@@ -19,9 +19,9 @@ jobs:
             netcat-openbsd curl wget python3-bs4 python3-venv
 
       # ------------------------------------------------------------
-      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
+      # 1) SUBIDA DA STACK
       # ------------------------------------------------------------
-      - name: Start TeaStore stack (mesmo da versão que funciona)
+      - name: Start TeaStore stack (versão estável)
         run: |
           docker compose up -d teastore-db
           sleep 8
@@ -45,51 +45,50 @@ jobs:
               echo "🟢 WebUI ONLINE!"
               exit 0
             fi
-            
+
             sleep 3
           done
           echo "❌ WebUI não respondeu."
           exit 1
 
       # ------------------------------------------------------------
-      # 2) TESTES 100% SEPARADOS
+      # 2) JMETER - INSTALAÇÃO E DASHBOARD
       # ------------------------------------------------------------
-
-      # ------------------------ J M E T E R -----------------------
       - name: Install Java & JMeter
         run: |
           sudo apt-get install -y openjdk-11-jre-headless
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      # Garantir que os assets do template do JMeter estejam disponíveis
-      - name: Copiar assets do dashboard JMeter (content e sbadmin2)
+      # Apagar pastas para o JMeter não falhar na geração
+      - name: Preparar pastas do dashboard JMeter
         run: |
-          # Cria pastas alvo (caso não existam) e copia template do JMeter para dentro do projeto
+          rm -rf jmeter-teastore/report-simples
+          rm -rf jmeter-teastore/report-complexos
           mkdir -p jmeter-teastore/report-simples
           mkdir -p jmeter-teastore/report-complexos
-          # Copia os assets do report-template do JMeter para o diretório jmeter-teastore,
-          # isso garante que o index.html gerado terá os CSS/JS (sbadmin2/content)
-          cp -r apache-jmeter-5.6.2/bin/report-template/content jmeter-teastore/ 2>/dev/null || true
-          cp -r apache-jmeter-5.6.2/bin/report-template/sbadmin2-1.0.7 jmeter-teastore/ 2>/dev/null || true
 
+          cp -r apache-jmeter-5.6.2/bin/report-template/content jmeter-teastore/
+          cp -r apache-jmeter-5.6.2/bin/report-template/sbadmin2-1.0.7 jmeter-teastore/
+
+      # ------------------------ J M E T E R -----------------------
       - name: JMETER - testes simples
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=localhost -Jport=18081
 
-      - name: JMETER - Testes complexos
+      - name: JMETER - testes complexos
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=localhost -Jport=18081
 
-      - name: Upload JMeter reports (completo)
+      - name: Upload JMeter reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -97,7 +96,8 @@ jobs:
           path: |
             jmeter-teastore/report-simples/**
             jmeter-teastore/report-complexos/**
- # ------------------------------------------------------------
+
+      # ------------------------------------------------------------
       # 4) ENCERRAR
       # ------------------------------------------------------------
       - name: Logs & Stop containers
