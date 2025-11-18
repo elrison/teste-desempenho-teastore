@@ -207,7 +207,7 @@ jobs:
         run: |
           python3 generate_dashboard.py \
             --k6 k6-complex.json \
-            --jmeter jmeter-teastore/results-complexos.csv \
+            --jmeter jmeter-teastore/results-complexos.jtl \
             --locust locust-teastore/complex.html \
             --out dashboard.html \
             --pdf report.pdf
