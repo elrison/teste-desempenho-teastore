@@ -82,20 +82,16 @@ jobs:
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
-            -l jmeter-teastore/results-simples.csv \
-            -Jjmeter.save.saveservice.output_format=csv \
+            -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
-            -j jmeter-teastore/jmeter-simples.log \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
       - name: JMETER - Testes complexos
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
-            -l jmeter-teastore/results-complexos.csv \
-            -Jjmeter.save.saveservice.output_format=csv \
+            -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -j jmeter-teastore/jmeter-complex.log \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
       - name: "Debug: listar JMeter report directories"
