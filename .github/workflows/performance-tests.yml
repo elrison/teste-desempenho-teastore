@@ -83,38 +83,32 @@ jobs:
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
+            -e -o jmeter-teastore/report-simples \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
-          
-          # Generate report from JTL if it exists
-          if [ -f jmeter-teastore/results-simples.jtl ]; then
-            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl \
-              -o jmeter-teastore/report-simples || true
-          fi
 
       - name: JMETER - Testes complexos
         run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
+            -e -o jmeter-teastore/report-complexos \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
-          
-          # Generate report from JTL if it exists
-          if [ -f jmeter-teastore/results-complexos.jtl ]; then
-            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl \
-              -o jmeter-teastore/report-complexos || true
-          fi
 
       - name: "Debug: listar JMeter report directories"
         if: always()
         run: |
           echo "== list jmeter-teastore root =="
           ls -la jmeter-teastore || true
+          echo "== check JTL files =="
+          ls -lh jmeter-teastore/*.jtl || true
+          if [ -f jmeter-teastore/results-complexos.jtl ]; then
+            echo "== JTL content sample (first 20 lines) =="
+            head -20 jmeter-teastore/results-complexos.jtl || true
+          fi
           echo "== list report-simples (if exists) =="
           ls -la jmeter-teastore/report-simples || true
           echo "== list report-complexos (if exists) =="
           ls -la jmeter-teastore/report-complexos || true
-          echo "== check JTL files =="
-          ls -lh jmeter-teastore/*.jtl || true
 
       - name: "Compat: copiar index.html para arquivo único (se existir)"
         if: always()
