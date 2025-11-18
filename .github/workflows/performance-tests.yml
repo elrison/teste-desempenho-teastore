@@ -85,6 +85,7 @@ jobs:
             -l jmeter-teastore/results-simples.csv \
             -Jjmeter.save.saveservice.output_format=csv \
             -e -o jmeter-teastore/report-simples \
+            -j jmeter-teastore/jmeter-simples.log \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
       - name: JMETER - Testes complexos
@@ -94,9 +95,10 @@ jobs:
             -l jmeter-teastore/results-complexos.csv \
             -Jjmeter.save.saveservice.output_format=csv \
             -e -o jmeter-teastore/report-complexos \
+            -j jmeter-teastore/jmeter-complex.log \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
-      - name: Debug: listar JMeter report directories
+      - name: "Debug: listar JMeter report directories"
         if: always()
         run: |
           echo "== list jmeter-teastore root =="
@@ -106,7 +108,7 @@ jobs:
           echo "== list report-complexos (if exists) =="
           ls -la jmeter-teastore/report-complexos || true
 
-      - name: Compat: copiar index.html para arquivo único (se existir)
+      - name: "Compat: copiar index.html para arquivo único (se existir)"
         if: always()
         run: |
           # Copy complex report index.html to a single file for legacy consumers
