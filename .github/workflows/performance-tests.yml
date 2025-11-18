@@ -102,8 +102,8 @@ jobs:
         with:
           name: relatorios-jmeter
           path: |
-            jmeter-teastore/report-simples/**
-            jmeter-teastore/report-complexos/**
+            jmeter-teastore/report-simples.html
+            jmeter-teastore/report-complexos.html
 
       # ---------------------------- K 6 ----------------------------
       - name: Install K6
@@ -195,11 +195,11 @@ jobs:
             dashboard.html
             report.pdf
 
-      - name: Gerar gráficos extras JMeter
-        run: |
-          python3 scripts/unify_jmeter_graphs.py \
-            jmeter-teastore/results-complexos.csv \
-            jmeter-teastore/graficos
+      # - name: Gerar gráficos extras JMeter
+      #   run: |
+      #     python3 scripts/unify_jmeter_graphs.py \
+      #       jmeter-teastore/results-complexos.csv \
+      #       jmeter-teastore/graficos
 
       # - name: Extract JMeter failures
       #   if: always()
