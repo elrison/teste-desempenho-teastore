@@ -44,7 +44,7 @@
               <boolProp name="responseCode">true</boolProp>
             </value>
           </objProp>
-          <stringProp name="filename">jmeter-reports/simple.jtl</stringProp>
+          <stringProp name="filename"></stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>

@@ -69,19 +69,48 @@ jobs:
 
       - name: JMETER - testes simples
         run: |
+          echo "Executando teste simples..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || true
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste simples falhou"
+          
+          if [ -f jmeter-teastore/report-simples/index.html ]; then
+            echo "✅ Relatório simples gerado com sucesso"
+          else
+            echo "❌ Relatório simples NÃO foi gerado"
+          fi
 
       - name: JMETER - Testes complexos
         run: |
+          echo "Executando teste complexo..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || true
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste complexo falhou"
+          
+          if [ -f jmeter-teastore/report-complexos/index.html ]; then
+            echo "✅ Relatório complexo gerado com sucesso"
+          else
+            echo "❌ Relatório complexo NÃO foi gerado"
+          fi
+
+      - name: Verificar arquivos gerados
+        if: always()
+        run: |
+          echo "=== Conteúdo de jmeter-teastore/ ==="
+          ls -lah jmeter-teastore/ || true
+          echo ""
+          echo "=== Conteúdo de report-simples/ ==="
+          ls -lah jmeter-teastore/report-simples/ || true
+          echo ""
+          echo "=== Conteúdo de report-complexos/ ==="
+          ls -lah jmeter-teastore/report-complexos/ || true
+          echo ""
+          echo "=== Tamanho dos arquivos JTL ==="
+          du -h jmeter-teastore/*.jtl 2>/dev/null || echo "Nenhum JTL encontrado"
 
       - name: Upload JMeter reports
         if: always()
