@@ -94,6 +94,33 @@ jobs:
             -e -o jmeter-teastore/report-complexos \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
+      - name: "Garantir criação dos diretórios de relatório"
+        if: always()
+        run: |
+          # Se o JMeter falhou ao gerar o relatório mas criou o JTL, tenta gerar manualmente
+          if [ ! -d "jmeter-teastore/report-complexos" ] && [ -f "jmeter-teastore/results-complexos.jtl" ]; then
+            echo "Tentando gerar relatório complexo manualmente..."
+            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl \
+              -o jmeter-teastore/report-complexos || echo "Falhou ao gerar relatório complexo"
+          fi
+          
+          if [ ! -d "jmeter-teastore/report-simples" ] && [ -f "jmeter-teastore/results-simples.jtl" ]; then
+            echo "Tentando gerar relatório simples manualmente..."
+            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl \
+              -o jmeter-teastore/report-simples || echo "Falhou ao gerar relatório simples"
+          fi
+          
+          # Se ainda não existirem, cria diretórios vazios com index.html de fallback
+          mkdir -p jmeter-teastore/report-complexos jmeter-teastore/report-simples
+          
+          if [ ! -f "jmeter-teastore/report-complexos/index.html" ]; then
+            echo "<html><body><h1>Relatório JMeter - Testes Complexos</h1><p>Nenhum dado disponível. Verifique se os testes foram executados com sucesso.</p></body></html>" > jmeter-teastore/report-complexos/index.html
+          fi
+          
+          if [ ! -f "jmeter-teastore/report-simples/index.html" ]; then
+            echo "<html><body><h1>Relatório JMeter - Testes Simples</h1><p>Nenhum dado disponível. Verifique se os testes foram executados com sucesso.</p></body></html>" > jmeter-teastore/report-simples/index.html
+          fi
+
       - name: "Debug: listar JMeter report directories"
         if: always()
         run: |
