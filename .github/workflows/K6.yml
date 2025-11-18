@@ -55,7 +55,7 @@ jobs:
           done
           echo "❌ WebUI não respondeu."
           exit 1
-          
+
 # ---------------------------- K 6 ----------------------------
       - name: Install K6
         run: |
@@ -67,17 +67,17 @@ jobs:
       - name: K6 - testes 100 VU's
         run: |
           k6 run k6-teastore/cenario-100-vus.js \
-            --summary-export=k6-simple.json || true
+            --summary-export=k6-100.json || true
 
       - name: K6 - testes 500 VU's
         run: |
           k6 run k6-teastore/cenario-500-vus.js \
-            --summary-export=k6-simple.json || true
+            --summary-export=k6-500.json || true
 
       - name: K6 - testes 1000 VU's
         run: |
           k6 run k6-teastore/cenario-1000-vus.js \
-            --summary-export=k6-simple.json || true
+            --summary-export=k6-1000.json || true
 
       # - name: K6 - testes simples
       #   run: |
@@ -95,8 +95,11 @@ jobs:
         with:
           name: relatorios-k6
           path: |
-            k6-simple.json
-            k6-complex.json
+            # k6-simple.json
+            # k6-complex.json
+            k6-100.json
+            k6-500.json
+            k6-1000.json
 # ------------------------------------------------------------
       # 4) ENCERRAR
       # ------------------------------------------------------------
