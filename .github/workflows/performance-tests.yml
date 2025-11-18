@@ -96,13 +96,40 @@ jobs:
             -e -o jmeter-teastore/report-complexos \
             -Jhostname=${HOSTNAME} -Jport=${PORT} || true
 
+      - name: Debug: listar JMeter report directories
+        if: always()
+        run: |
+          echo "== list jmeter-teastore root =="
+          ls -la jmeter-teastore || true
+          echo "== list report-simples (if exists) =="
+          ls -la jmeter-teastore/report-simples || true
+          echo "== list report-complexos (if exists) =="
+          ls -la jmeter-teastore/report-complexos || true
+
+      - name: Compat: copiar index.html para arquivo único (se existir)
+        if: always()
+        run: |
+          # Copy complex report index.html to a single file for legacy consumers
+          if [ -f jmeter-teastore/report-complexos/index.html ]; then
+            cp -f jmeter-teastore/report-complexos/index.html jmeter-teastore/report-complexos.html || true
+            echo "Copied report-complexos/index.html -> report-complexos.html"
+          else
+            echo "No complex index.html to copy"
+          fi
+          # Copy simples report index.html as well
+          if [ -f jmeter-teastore/report-simples/index.html ]; then
+            cp -f jmeter-teastore/report-simples/index.html jmeter-teastore/report-simples.html || true
+            echo "Copied report-simples/index.html -> report-simples.html"
+          else
+            echo "No simples index.html to copy"
+          fi
+
       - name: Upload JMeter reports (completo)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
           path: |
-            # Upload the whole report directories (index.html + assets)
             jmeter-teastore/report-simples/**
             jmeter-teastore/report-complexos/**
 
