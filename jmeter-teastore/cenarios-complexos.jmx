@@ -24,30 +24,23 @@
         </collectionProp>
       </elementProp>
     </TestPlan>
-
     <hashTree>
-
-      <!-- THREAD GROUP -->
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Usuários - Fluxo Simplificado" enabled="true">
         <intProp name="ThreadGroup.num_threads">10</intProp>
         <intProp name="ThreadGroup.ramp_time">10</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" enabled="true">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
-
       <hashTree>
-
-        <!-- ---------------- T01 LOGIN ---------------- -->
-        <TransactionController testname="T01_Login" enabled="true">
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="T01_Login" enabled="true">
           <boolProp name="TransactionController.includeTimers">false</boolProp>
         </TransactionController>
-
         <hashTree>
-          <HTTPSamplerProxy testname="GET Login Page" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Login Page" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -55,14 +48,13 @@
             <stringProp name="HTTPSampler.method">GET</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           </HTTPSamplerProxy>
-
-          <HTTPSamplerProxy testname="POST Login Action" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Login Action" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">${basePath}/loginAction</stringProp>
             <stringProp name="HTTPSampler.method">POST</stringProp>
-            <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" enabled="true">
               <collectionProp name="Arguments.arguments">
                 <elementProp name="username" elementType="HTTPArgument">
                   <stringProp name="Argument.name">username</stringProp>
@@ -76,62 +68,60 @@
             </elementProp>
           </HTTPSamplerProxy>
         </hashTree>
-
-        <!-- ---------------- T02 NAVEGAR ---------------- -->
-        <TransactionController testname="T02_Navegar" enabled="true"/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="T02_Navegar" enabled="true">
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
         <hashTree>
-
-          <HTTPSamplerProxy testname="GET Home" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Home" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">${basePath}/</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
           </HTTPSamplerProxy>
-
-          <!-- EXTRAI CATEGORIA -->
           <hashTree>
-            <RegexExtractor testname="Extrair Categoria Link" enabled="true">
+            <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extrair Categoria Link" enabled="true">
+              <stringProp name="RegexExtractor.useHeaders">false</stringProp>
               <stringProp name="RegexExtractor.refname">category_link</stringProp>
               <stringProp name="RegexExtractor.regex">href=["'](${basePath}/category\?category=\d+)["']</stringProp>
-              <stringProp name="RegexExtractor.template">$1</stringProp>
+              <stringProp name="RegexExtractor.template">$1$</stringProp>
               <stringProp name="RegexExtractor.default">LINK_CAT_NOT_FOUND</stringProp>
               <stringProp name="RegexExtractor.match_number">1</stringProp>
             </RegexExtractor>
+            <hashTree/>
           </hashTree>
-
-          <HTTPSamplerProxy testname="GET Categoria" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Categoria" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">${category_link}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
           </HTTPSamplerProxy>
-
-          <!-- EXTRAI PRODUTO -->
           <hashTree>
-            <RegexExtractor testname="Extrair Produto Link" enabled="true">
+            <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="Extrair Produto Link" enabled="true">
+              <stringProp name="RegexExtractor.useHeaders">false</stringProp>
               <stringProp name="RegexExtractor.refname">product_link</stringProp>
               <stringProp name="RegexExtractor.regex">href=["'](${basePath}/product\?id=\d+)["']</stringProp>
-              <stringProp name="RegexExtractor.template">$1</stringProp>
+              <stringProp name="RegexExtractor.template">$1$</stringProp>
               <stringProp name="RegexExtractor.default">LINK_PROD_NOT_FOUND</stringProp>
               <stringProp name="RegexExtractor.match_number">1</stringProp>
             </RegexExtractor>
+            <hashTree/>
           </hashTree>
-
-          <HTTPSamplerProxy testname="GET Produto" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Produto" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
             <stringProp name="HTTPSampler.path">${product_link}</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
           </HTTPSamplerProxy>
+          <hashTree/>
         </hashTree>
-
-        <!-- ---------------- T03 LOGOUT ---------------- -->
-        <TransactionController testname="T03_Logout" enabled="true"/>
+        <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="T03_Logout" enabled="true">
+          <boolProp name="TransactionController.includeTimers">false</boolProp>
+        </TransactionController>
         <hashTree>
-          <HTTPSamplerProxy testname="POST Logout" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Logout" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -139,7 +129,81 @@
             <stringProp name="HTTPSampler.method">POST</stringProp>
           </HTTPSamplerProxy>
         </hashTree>
-
+        <!-- Coletores de resultados padrão do JMeter -->
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="Ver Árvore de Resultados" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Relatório de Sumário" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <dataType>true</dataType>
+              <encoding>false</encoding>
+              <assertions>true</assertions>
+              <subresults>true</subresults>
+              <responseData>false</responseData>
+              <samplerData>false</samplerData>
+              <xml>false</xml>
+              <fieldNames>true</fieldNames>
+              <responseHeaders>false</responseHeaders>
+              <requestHeaders>false</requestHeaders>
+              <responseDataOnError>false</responseDataOnError>
+              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+              <assertionsResultsToSave>0</assertionsResultsToSave>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
       </hashTree>
     </hashTree>
   </hashTree>
