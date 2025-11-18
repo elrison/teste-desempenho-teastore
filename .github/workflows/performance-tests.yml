@@ -238,23 +238,23 @@ jobs:
       # ------------------------------------------------------------
       # 3) DASHBOARD FINAL (SEM MEXER NO SEU SCRIPT)
       # ------------------------------------------------------------
-      - name: Generate Dashboard Consolidado
-        run: |
-          python3 generate_dashboard.py \
-            --k6 k6-complex.json \
-            --jmeter jmeter-teastore/results-complexos.jtl \
-            --locust locust-teastore/complex.html \
-            --out dashboard.html \
-            --pdf report.pdf
+      # - name: Generate Dashboard Consolidado
+      #   run: |
+      #     python3 generate_dashboard.py \
+      #       --k6 k6-complex.json \
+      #       --jmeter jmeter-teastore/results-complexos.jtl \
+      #       --locust locust-teastore/complex.html \
+      #       --out dashboard.html \
+      #       --pdf report.pdf
 
-      - name: Upload Dashboard
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dashboard-consolidado
-          path: |
-            dashboard.html
-            report.pdf
+      # - name: Upload Dashboard
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: dashboard-consolidado
+      #     path: |
+      #       dashboard.html
+      #       report.pdf
 
       - name: Upload debug artifacts
         if: always()
@@ -267,21 +267,21 @@ jobs:
             logs/**
             summary-unified.json
 
-      - name: PDF JMeter
-        run: |
-          python3 scripts/generate_jmeter_pdf.py \
-            jmeter-teastore/graficos \
-            jmeter-jtl.pdf
+      # - name: PDF JMeter
+      #   run: |
+      #     python3 scripts/generate_jmeter_pdf.py \
+      #       jmeter-teastore/graficos \
+      #       jmeter-jtl.pdf
 
-      - name: Dashboard HTML do K6
-        run: |
-          bash scripts/k6_dashboard.sh
+      # - name: Dashboard HTML do K6
+      #   run: |
+      #     bash scripts/k6_dashboard.sh
 
-      - name: PDF K6
-        run: |
-          python3 scripts/generate_k6_pdf.py \
-            k6-complex.json \
-            k6.pdf
+      # - name: PDF K6
+      #   run: |
+      #     python3 scripts/generate_k6_pdf.py \
+      #       k6-complex.json \
+      #       k6.pdf
 
       
       # ------------------------------------------------------------
