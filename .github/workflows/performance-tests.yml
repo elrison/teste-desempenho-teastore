@@ -102,8 +102,9 @@ jobs:
         with:
           name: relatorios-jmeter
           path: |
-            jmeter-teastore/report-simples.html
-            jmeter-teastore/report-complexos.html
+            # Upload the whole report directories (index.html + assets)
+            jmeter-teastore/report-simples/**
+            jmeter-teastore/report-complexos/**
 
       # ---------------------------- K 6 ----------------------------
       - name: Install K6
