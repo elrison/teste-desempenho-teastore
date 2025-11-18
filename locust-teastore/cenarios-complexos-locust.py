@@ -25,17 +25,18 @@ class TeaStoreUser(HttpUser):
                 return
 
             token = self._extract_csrf(res.text)
+            # If CSRF token is not present, proceed without it (some deployments don't use CSRF hidden input)
             if not token:
-                res.failure("CSRF não encontrado na tela de login")
+                # record debug page but don't abort the flow — we'll try login without token
                 self._dump_debug_page(res, "login_get_no_csrf")
-                return
 
         # POST LOGIN ACTION
         payload = {
             "username": "user2",
             "password": "password",
-            "_csrf": token
         }
+        if token:
+            payload["_csrf"] = token
 
         with self.client.post("/loginAction", data=payload, name="POST /loginAction", catch_response=True) as res:
             if res.status_code not in (200, 302):
@@ -108,6 +109,14 @@ class TeaStoreUser(HttpUser):
                 return
 
             cat_link = cats[0].get("href")
+            # If the link contains the full base path (site uses absolute paths that include BASE_PATH),
+            # convert it to a path relative to the configured host to avoid duplicating the base path.
+            try:
+                if cat_link.startswith(BASE_PATH):
+                    # keep leading slash
+                    cat_link = cat_link[len(BASE_PATH):] or '/'
+            except Exception:
+                pass
 
         # CATEGORY
         with self.client.get(cat_link, name="GET /category", catch_response=True) as res:
@@ -129,6 +138,11 @@ class TeaStoreUser(HttpUser):
                 return
 
             prod_link = prods[0].get("href")
+            try:
+                if prod_link.startswith(BASE_PATH):
+                    prod_link = prod_link[len(BASE_PATH):] or '/'
+            except Exception:
+                pass
 
         # PRODUCT PAGE
         with self.client.get(prod_link, name="GET /product", catch_response=True) as res:
@@ -138,13 +152,15 @@ class TeaStoreUser(HttpUser):
 
             soup = BeautifulSoup(res.text, "html.parser")
             pid_elem = soup.find("input", {"name": "productid"})
-            pname_elem = soup.find("h2", {"class": "product-title"})
+            # some TeaStore versions use h2.minipage-title instead of h2.product-title
+            pname_elem = soup.find("h2", {"class": "product-title"}) or soup.find("h2", {"class": "minipage-title"})
 
             if not pid_elem or not pname_elem:
                 res.failure("Dados do produto não encontrados")
+                self._dump_debug_page(res, "product_missing_data")
                 return
 
-            pid = pid_elem["value"]
+            pid = pid_elem.get("value")
             pname = pname_elem.text.strip()
 
         # GET CSRF FOR CART ACTION
@@ -152,18 +168,19 @@ class TeaStoreUser(HttpUser):
             soup = BeautifulSoup(res.text, "html.parser")
             csrf = soup.find("input", {"name": "_csrf"})
             if not csrf:
-                res.failure("CSRF não encontrado no carrinho")
-                return
-
-            token = csrf["value"]
+                # cart may not require CSRF token in this deployment; proceed without it
+                token = None
+            else:
+                token = csrf["value"]
 
         # ADD TO CART
         payload = {
             "productid": pid,
             "quantity": "1",
             "addToCart": "Add to Cart",
-            "_csrf": token
         }
+        if token:
+            payload["_csrf"] = token
 
         with self.client.post("/cartAction", data=payload, name="POST /add_to_cart", catch_response=True) as res:
             if res.status_code not in (200, 302):

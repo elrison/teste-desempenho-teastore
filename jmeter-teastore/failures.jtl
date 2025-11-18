@@ -1,0 +1,131 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,dataType,success,failureMessage,bytes,sentBytes,grpThreads,allThreads,URL,Latency,IdleTime,Connect
+1763410069960,129,GET Login Page,200,,Usuários - Fluxo de Compra 1-1,text,true,,10114,202,1,1,http://localhost:8080/tools.descartes.teastore.webui/login,124,0,16
+1763410070591,84,POST Login Action,200,,Usuários - Fluxo de Compra 1-1,text,true,,10448,1056,2,2,http://localhost:8080/tools.descartes.teastore.webui/,67,0,0
+1763410070591,67,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-1,,true,,803,261,2,2,http://localhost:8080/tools.descartes.teastore.webui/loginAction,67,0,0
+1763410070661,14,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-1,text,true,,9645,795,2,2,http://localhost:8080/tools.descartes.teastore.webui/,14,0,0
+1763410069405,213,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-1,,true,,20562,1258,2,2,null,191,1058,16
+1763410070901,27,GET Login Page,200,,Usuários - Fluxo de Compra 1-2,text,true,,10114,202,2,2,http://localhost:8080/tools.descartes.teastore.webui/login,27,0,1
+1763410071178,19,GET Home,200,,Usuários - Fluxo de Compra 1-1,text,true,,9645,795,2,2,http://localhost:8080/tools.descartes.teastore.webui/,19,0,0
+1763410071431,29,POST Login Action,200,,Usuários - Fluxo de Compra 1-2,text,true,,10447,1055,3,3,http://localhost:8080/tools.descartes.teastore.webui/,17,0,0
+1763410071431,17,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-2,,true,,802,261,3,3,http://localhost:8080/tools.descartes.teastore.webui/loginAction,17,0,0
+1763410071448,12,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-2,text,true,,9645,794,3,3,http://localhost:8080/tools.descartes.teastore.webui/,12,0,0
+1763410070396,56,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-2,,true,,20561,1257,3,3,null,44,1009,1
+1763410071700,8,GET Categoria,404,,Usuários - Fluxo de Compra 1-1,text,false,,977,184,3,3,http://localhost:8080/LINK_CAT_NOT_FOUND,8,0,0
+1763410071909,18,GET Login Page,200,,Usuários - Fluxo de Compra 1-3,text,true,,10114,202,3,3,http://localhost:8080/tools.descartes.teastore.webui/login,18,0,1
+1763410071962,17,GET Home,200,,Usuários - Fluxo de Compra 1-2,text,true,,9645,794,3,3,http://localhost:8080/tools.descartes.teastore.webui/,17,0,0
+1763410072211,4,GET Produto,404,,Usuários - Fluxo de Compra 1-1,text,false,,978,185,3,3,http://localhost:8080/LINK_PROD_NOT_FOUND,4,0,0
+1763410072429,24,POST Login Action,200,,Usuários - Fluxo de Compra 1-3,text,true,,10447,1055,4,4,http://localhost:8080/tools.descartes.teastore.webui/,15,0,0
+1763410072429,15,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-3,,true,,802,261,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,15,0,0
+1763410072444,9,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-3,text,true,,9645,794,4,4,http://localhost:8080/tools.descartes.teastore.webui/,9,0,0
+1763410071395,42,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-3,,true,,20561,1257,4,4,null,33,1016,1
+1763410072481,3,GET Categoria,404,,Usuários - Fluxo de Compra 1-2,text,false,,977,184,4,4,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410072902,12,GET Login Page,200,,Usuários - Fluxo de Compra 1-4,text,true,,10114,202,4,4,http://localhost:8080/tools.descartes.teastore.webui/login,12,0,1
+1763410072954,10,GET Home,200,,Usuários - Fluxo de Compra 1-3,text,true,,9645,794,4,4,http://localhost:8080/tools.descartes.teastore.webui/,10,0,0
+1763410072986,2,GET Produto,404,,Usuários - Fluxo de Compra 1-2,text,false,,978,185,4,4,http://localhost:8080/LINK_PROD_NOT_FOUND,2,0,0
+1763410072717,301,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-1,text,false,,6454,871,4,4,http://localhost:8080/tools.descartes.teastore.webui/cartAction,300,0,0
+1763410073429,29,POST Login Action,200,,Usuários - Fluxo de Compra 1-4,text,true,,10448,1056,5,5,http://localhost:8080/tools.descartes.teastore.webui/,20,0,0
+1763410073429,20,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-4,,true,,803,261,5,5,http://localhost:8080/tools.descartes.teastore.webui/loginAction,20,0,0
+1763410073449,9,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-4,text,true,,9645,795,5,5,http://localhost:8080/tools.descartes.teastore.webui/,9,0,0
+1763410072393,41,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-4,,true,,20562,1258,5,5,null,32,1024,1
+1763410073466,3,GET Categoria,404,,Usuários - Fluxo de Compra 1-3,text,false,,977,184,5,5,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410073490,6,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-2,text,false,,6454,870,5,5,http://localhost:8080/tools.descartes.teastore.webui/cartAction,6,0,0
+1763410073521,15,POST Logout,200,,Usuários - Fluxo de Compra 1-1,text,true,,10823,1618,5,5,http://localhost:8080/tools.descartes.teastore.webui/,7,0,2
+1763410073521,7,POST Logout-0,302,,Usuários - Fluxo de Compra 1-1,,true,,1392,833,5,5,http://localhost:8080/tools.descartes.teastore.webui/loginAction,7,0,2
+1763410073528,8,POST Logout-1,200,,Usuários - Fluxo de Compra 1-1,text,true,,9431,785,5,5,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410070676,347,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-1,,false,,28877,3653,5,5,null,338,2514,2
+1763410073897,26,GET Login Page,200,,Usuários - Fluxo de Compra 1-5,text,true,,10114,202,4,4,http://localhost:8080/tools.descartes.teastore.webui/login,26,0,1
+1763410073959,12,GET Home,200,,Usuários - Fluxo de Compra 1-4,text,true,,9645,795,4,4,http://localhost:8080/tools.descartes.teastore.webui/,12,0,0
+1763410073969,2,GET Produto,404,,Usuários - Fluxo de Compra 1-3,text,false,,978,185,4,4,http://localhost:8080/LINK_PROD_NOT_FOUND,2,0,0
+1763410073997,17,POST Logout,200,,Usuários - Fluxo de Compra 1-2,text,true,,10823,1617,4,4,http://localhost:8080/tools.descartes.teastore.webui/,7,0,1
+1763410073997,7,POST Logout-0,302,,Usuários - Fluxo de Compra 1-2,,true,,1392,832,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,7,0,1
+1763410074005,9,POST Logout-1,200,,Usuários - Fluxo de Compra 1-2,text,true,,9431,785,4,4,http://localhost:8080/tools.descartes.teastore.webui/,9,0,0
+1763410071461,45,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-2,,false,,28877,3650,4,4,null,35,2508,1
+1763410074430,24,POST Login Action,200,,Usuários - Fluxo de Compra 1-5,text,true,,10448,1056,4,4,http://localhost:8080/tools.descartes.teastore.webui/,13,0,0
+1763410074430,13,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-5,,true,,803,261,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,13,0,0
+1763410074445,9,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-5,text,true,,9645,795,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410073392,50,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-5,,true,,20562,1258,4,4,null,39,1011,1
+1763410074473,3,GET Categoria,404,,Usuários - Fluxo de Compra 1-4,text,false,,977,184,4,4,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410074473,4,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-3,text,false,,6454,870,4,4,http://localhost:8080/tools.descartes.teastore.webui/cartAction,4,0,0
+1763410074897,11,GET Login Page,200,,Usuários - Fluxo de Compra 1-6,text,true,,10114,202,4,4,http://localhost:8080/tools.descartes.teastore.webui/login,10,0,2
+1763410074955,9,GET Home,200,,Usuários - Fluxo de Compra 1-5,text,true,,9645,795,4,4,http://localhost:8080/tools.descartes.teastore.webui/,9,0,0
+1763410074977,2,GET Produto,404,,Usuários - Fluxo de Compra 1-4,text,false,,978,185,4,4,http://localhost:8080/LINK_PROD_NOT_FOUND,2,0,0
+1763410074979,16,POST Logout,200,,Usuários - Fluxo de Compra 1-3,text,true,,10823,1617,4,4,http://localhost:8080/tools.descartes.teastore.webui/,7,0,2
+1763410074979,7,POST Logout-0,302,,Usuários - Fluxo de Compra 1-3,,true,,1392,832,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,7,0,2
+1763410074987,8,POST Logout-1,200,,Usuários - Fluxo de Compra 1-3,text,true,,9431,785,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410072454,35,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-3,,false,,28877,3650,4,4,null,26,2506,2
+1763410075413,36,POST Login Action,200,,Usuários - Fluxo de Compra 1-6,text,true,,10449,1057,4,4,http://localhost:8080/tools.descartes.teastore.webui/,20,0,0
+1763410075413,20,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-6,,true,,804,261,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,20,0,0
+1763410075433,16,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-6,text,true,,9645,796,4,4,http://localhost:8080/tools.descartes.teastore.webui/,16,0,0
+1763410074392,47,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-6,,true,,20563,1259,4,4,null,30,1010,2
+1763410075467,3,GET Categoria,404,,Usuários - Fluxo de Compra 1-5,text,false,,977,184,4,4,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410075481,3,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-4,text,false,,6454,871,4,4,http://localhost:8080/tools.descartes.teastore.webui/cartAction,3,0,0
+1763410075899,18,GET Login Page,200,,Usuários - Fluxo de Compra 1-7,text,true,,10114,202,4,4,http://localhost:8080/tools.descartes.teastore.webui/login,18,0,2
+1763410075950,10,GET Home,200,,Usuários - Fluxo de Compra 1-6,text,true,,9645,796,4,4,http://localhost:8080/tools.descartes.teastore.webui/,10,0,0
+1763410075970,3,GET Produto,404,,Usuários - Fluxo de Compra 1-5,text,false,,978,185,4,4,http://localhost:8080/LINK_PROD_NOT_FOUND,3,0,0
+1763410075985,15,POST Logout,200,,Usuários - Fluxo de Compra 1-4,text,true,,10823,1618,4,4,http://localhost:8080/tools.descartes.teastore.webui/,7,0,2
+1763410075985,7,POST Logout-0,302,,Usuários - Fluxo de Compra 1-4,,true,,1392,833,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,7,0,2
+1763410075992,8,POST Logout-1,200,,Usuários - Fluxo de Compra 1-4,text,true,,9431,785,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410073458,35,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-4,,false,,28877,3653,4,4,null,27,2506,2
+1763410076462,3,GET Categoria,404,,Usuários - Fluxo de Compra 1-6,text,false,,977,184,4,4,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410076431,42,POST Login Action,200,,Usuários - Fluxo de Compra 1-7,text,true,,10448,1056,4,4,http://localhost:8080/tools.descartes.teastore.webui/,21,0,0
+1763410076431,21,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-7,,true,,803,261,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,21,0,0
+1763410076453,20,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-7,text,true,,9645,795,4,4,http://localhost:8080/tools.descartes.teastore.webui/,20,0,0
+1763410075391,60,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-7,,true,,20562,1258,4,4,null,39,1022,2
+1763410076474,3,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-5,text,false,,6454,871,4,4,http://localhost:8080/tools.descartes.teastore.webui/cartAction,3,0,0
+1763410076896,11,GET Login Page,200,,Usuários - Fluxo de Compra 1-8,text,true,,10114,202,4,4,http://localhost:8080/tools.descartes.teastore.webui/login,11,0,3
+1763410076968,6,GET Produto,404,,Usuários - Fluxo de Compra 1-6,text,false,,978,185,4,4,http://localhost:8080/LINK_PROD_NOT_FOUND,6,0,0
+1763410076975,11,GET Home,200,,Usuários - Fluxo de Compra 1-7,text,true,,9645,795,4,4,http://localhost:8080/tools.descartes.teastore.webui/,11,0,0
+1763410076978,16,POST Logout,200,,Usuários - Fluxo de Compra 1-5,text,true,,10823,1618,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,1
+1763410076978,8,POST Logout-0,302,,Usuários - Fluxo de Compra 1-5,,true,,1392,833,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,8,0,1
+1763410076986,8,POST Logout-1,200,,Usuários - Fluxo de Compra 1-5,text,true,,9431,785,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410074454,34,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-5,,false,,28877,3653,4,4,null,26,2506,1
+1763410077414,34,POST Login Action,200,,Usuários - Fluxo de Compra 1-8,text,true,,10448,1056,4,4,http://localhost:8080/tools.descartes.teastore.webui/,21,0,0
+1763410077414,21,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-8,,true,,803,261,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,21,0,0
+1763410077435,13,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-8,text,true,,9645,795,4,4,http://localhost:8080/tools.descartes.teastore.webui/,12,0,0
+1763410076390,45,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-8,,true,,20562,1258,4,4,null,32,1013,3
+1763410077475,9,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-6,text,false,,6454,872,4,4,http://localhost:8080/tools.descartes.teastore.webui/cartAction,8,0,0
+1763410077487,4,GET Categoria,404,,Usuários - Fluxo de Compra 1-7,text,false,,977,184,4,4,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410077896,10,GET Login Page,200,,Usuários - Fluxo de Compra 1-9,text,true,,10114,202,4,4,http://localhost:8080/tools.descartes.teastore.webui/login,10,0,2
+1763410077950,8,GET Home,200,,Usuários - Fluxo de Compra 1-8,text,true,,9645,795,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410077993,1,GET Produto,404,,Usuários - Fluxo de Compra 1-7,text,false,,978,185,4,4,http://localhost:8080/LINK_PROD_NOT_FOUND,1,0,0
+1763410077985,14,POST Logout,200,,Usuários - Fluxo de Compra 1-6,text,true,,10823,1619,4,4,http://localhost:8080/tools.descartes.teastore.webui/,6,0,1
+1763410077985,6,POST Logout-0,302,,Usuários - Fluxo de Compra 1-6,,true,,1392,834,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,6,0,1
+1763410077991,8,POST Logout-1,200,,Usuários - Fluxo de Compra 1-6,text,true,,9431,785,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410075450,42,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-6,,false,,28877,3656,4,4,null,33,2507,1
+1763410078415,23,POST Login Action,200,,Usuários - Fluxo de Compra 1-9,text,true,,10449,1057,4,4,http://localhost:8080/tools.descartes.teastore.webui/,14,0,0
+1763410078415,14,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-9,,true,,804,261,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,14,0,0
+1763410078429,9,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-9,text,true,,9645,796,4,4,http://localhost:8080/tools.descartes.teastore.webui/,9,0,0
+1763410077387,33,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-9,,true,,20563,1259,4,4,null,24,1018,2
+1763410078463,3,GET Categoria,404,,Usuários - Fluxo de Compra 1-8,text,false,,977,184,4,4,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410078496,6,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-7,text,false,,6454,871,4,4,http://localhost:8080/tools.descartes.teastore.webui/cartAction,6,0,0
+1763410078896,10,GET Login Page,200,,Usuários - Fluxo de Compra 1-10,text,true,,10114,202,4,4,http://localhost:8080/tools.descartes.teastore.webui/login,10,0,1
+1763410078944,9,GET Home,200,,Usuários - Fluxo de Compra 1-9,text,true,,9645,796,4,4,http://localhost:8080/tools.descartes.teastore.webui/,9,0,0
+1763410078977,2,GET Produto,404,,Usuários - Fluxo de Compra 1-8,text,false,,978,185,4,4,http://localhost:8080/LINK_PROD_NOT_FOUND,2,0,0
+1763410079013,16,POST Logout,200,,Usuários - Fluxo de Compra 1-7,text,true,,10823,1618,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,2
+1763410079013,8,POST Logout-0,302,,Usuários - Fluxo de Compra 1-7,,true,,1392,833,4,4,http://localhost:8080/tools.descartes.teastore.webui/loginAction,8,0,2
+1763410079021,8,POST Logout-1,200,,Usuários - Fluxo de Compra 1-7,text,true,,9431,785,4,4,http://localhost:8080/tools.descartes.teastore.webui/,8,0,0
+1763410076473,38,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-7,,false,,28877,3653,4,4,null,29,2518,2
+1763410079415,19,POST Login Action,200,,Usuários - Fluxo de Compra 1-10,text,true,,10449,1057,3,3,http://localhost:8080/tools.descartes.teastore.webui/,11,0,0
+1763410079415,11,POST Login Action-0,302,,Usuários - Fluxo de Compra 1-10,,true,,804,261,3,3,http://localhost:8080/tools.descartes.teastore.webui/loginAction,11,0,0
+1763410079427,7,POST Login Action-1,200,,Usuários - Fluxo de Compra 1-10,text,true,,9645,796,3,3,http://localhost:8080/tools.descartes.teastore.webui/,7,0,0
+1763410078390,29,T01_Login,200,"Number of samples in transaction : 2, number of failing samples : 0",Usuários - Fluxo de Compra 1-10,,true,,20563,1259,3,3,null,21,1016,1
+1763410079463,3,GET Categoria,404,,Usuários - Fluxo de Compra 1-9,text,false,,977,184,3,3,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410079497,5,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-8,text,false,,6454,871,3,3,http://localhost:8080/tools.descartes.teastore.webui/cartAction,5,0,0
+1763410079947,6,GET Home,200,,Usuários - Fluxo de Compra 1-10,text,true,,9645,796,3,3,http://localhost:8080/tools.descartes.teastore.webui/,6,0,0
+1763410079980,3,GET Produto,404,,Usuários - Fluxo de Compra 1-9,text,false,,978,185,3,3,http://localhost:8080/LINK_PROD_NOT_FOUND,3,0,0
+1763410080014,20,POST Logout,200,,Usuários - Fluxo de Compra 1-8,text,true,,10823,1618,3,3,http://localhost:8080/tools.descartes.teastore.webui/,10,0,3
+1763410080014,10,POST Logout-0,302,,Usuários - Fluxo de Compra 1-8,,true,,1392,833,3,3,http://localhost:8080/tools.descartes.teastore.webui/loginAction,10,0,3
+1763410080024,10,POST Logout-1,200,,Usuários - Fluxo de Compra 1-8,text,true,,9431,785,3,3,http://localhost:8080/tools.descartes.teastore.webui/,10,0,0
+1763410077449,38,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-8,,false,,28877,3653,3,3,null,28,2549,3
+1763410080463,4,GET Categoria,404,,Usuários - Fluxo de Compra 1-10,text,false,,977,184,2,2,http://localhost:8080/LINK_CAT_NOT_FOUND,3,0,0
+1763410080497,3,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-9,text,false,,6454,872,2,2,http://localhost:8080/tools.descartes.teastore.webui/cartAction,3,0,0
+1763410080980,3,GET Produto,404,,Usuários - Fluxo de Compra 1-10,text,false,,978,185,2,2,http://localhost:8080/LINK_PROD_NOT_FOUND,3,0,0
+1763410081014,23,POST Logout,200,,Usuários - Fluxo de Compra 1-9,text,true,,10823,1619,2,2,http://localhost:8080/tools.descartes.teastore.webui/,10,0,1
+1763410081014,10,POST Logout-0,302,,Usuários - Fluxo de Compra 1-9,,true,,1392,834,2,2,http://localhost:8080/tools.descartes.teastore.webui/loginAction,10,0,1
+1763410081025,12,POST Logout-1,200,,Usuários - Fluxo de Compra 1-9,text,true,,9431,785,2,2,http://localhost:8080/tools.descartes.teastore.webui/,12,0,0
+1763410078438,41,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-9,,false,,28877,3656,2,2,null,28,2558,1
+1763410081496,6,POST Add to Cart,500,,Usuários - Fluxo de Compra 1-10,text,false,,6454,872,1,1,http://localhost:8080/tools.descartes.teastore.webui/cartAction,6,0,0
+1763410082014,18,POST Logout,200,,Usuários - Fluxo de Compra 1-10,text,true,,10823,1619,1,1,http://localhost:8080/tools.descartes.teastore.webui/,8,0,1
+1763410082014,8,POST Logout-0,302,,Usuários - Fluxo de Compra 1-10,,true,,1392,834,1,1,http://localhost:8080/tools.descartes.teastore.webui/loginAction,8,0,1
+1763410082023,9,POST Logout-1,200,,Usuários - Fluxo de Compra 1-10,text,true,,9431,785,1,1,http://localhost:8080/tools.descartes.teastore.webui/,9,0,0
+1763410079435,37,T02_Navegar_e_Comprar,,"Number of samples in transaction : 5, number of failing samples : 3",Usuários - Fluxo de Compra 1-10,,false,,28877,3656,1,1,null,26,2561,1

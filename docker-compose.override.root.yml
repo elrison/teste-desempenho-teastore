@@ -1,0 +1,7 @@
+version: "2.4"
+services:
+  teastore-persistence:
+    environment:
+      # Temporarily override JVM system properties to use root credentials so
+      # the initial data generation can run if the DB user hasn't been created yet.
+      JAVA_TOOL_OPTIONS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=root -Djavax.persistence.jdbc.password=rootpass -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=root -Djakarta.persistence.jdbc.password=rootpass"

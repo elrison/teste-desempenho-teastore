@@ -1,0 +1,870 @@
+﻿
+> teastore-persistence-logs-full.txt:25:teastore-persistence-1  | 18-Nov-2025 00:50:01.256 INFO [main] 
+org.apache.catalina.startup.VersionLoggerListener.log Command line argument: 
+-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false
+  teastore-persistence-logs-full.txt:26:teastore-persistence-1  | 18-Nov-2025 00:50:01.256 INFO [main] 
+org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dignore.endorsed.dirs=
+  teastore-persistence-logs-full.txt:27:teastore-persistence-1  | 18-Nov-2025 00:50:01.256 INFO [main] 
+org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=/usr/local/tomcat
+  teastore-persistence-logs-full.txt:28:teastore-persistence-1  | 18-Nov-2025 00:50:01.256 INFO [main] 
+org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=/usr/local/tomcat
+> teastore-persistence-logs-full.txt:40:teastore-persistence-1  | [main] INFO 
+tools.descartes.teastore.persistence.repository.EMFManager - Using MySQL/MariaDB database.
+> teastore-persistence-logs-full.txt:41:teastore-persistence-1  | [main] INFO 
+tools.descartes.teastore.persistence.repository.EMFManager - Setting jdbc url to "jdbc:mysql://teastore-db:3306/teadb".
+> teastore-persistence-logs-full.txt:42:teastore-persistence-1  | Tue Nov 18 00:50:04 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:43:teastore-persistence-1  | Tue Nov 18 00:50:04 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:44:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:45:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:46:teastore-persistence-1  | Tue Nov 18 00:50:06 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:47:teastore-persistence-1  | Tue Nov 18 00:50:06 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:48:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:49:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:50:teastore-persistence-1  | Tue Nov 18 00:50:08 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:51:teastore-persistence-1  | Tue Nov 18 00:50:08 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:52:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:53:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:54:teastore-persistence-1  | Tue Nov 18 00:50:10 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:55:teastore-persistence-1  | Tue Nov 18 00:50:10 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:56:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:57:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:58:teastore-persistence-1  | Tue Nov 18 00:50:12 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:59:teastore-persistence-1  | Tue Nov 18 00:50:12 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:60:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:61:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:62:teastore-persistence-1  | Tue Nov 18 00:50:14 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:63:teastore-persistence-1  | Tue Nov 18 00:50:14 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:64:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:65:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:66:teastore-persistence-1  | Tue Nov 18 00:50:16 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:67:teastore-persistence-1  | Tue Nov 18 00:50:16 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:68:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:69:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:70:teastore-persistence-1  | Tue Nov 18 00:50:18 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:71:teastore-persistence-1  | Tue Nov 18 00:50:18 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:72:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:73:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:74:teastore-persistence-1  | Tue Nov 18 00:50:20 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:75:teastore-persistence-1  | Tue Nov 18 00:50:20 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:76:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:77:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:78:teastore-persistence-1  | Tue Nov 18 00:50:22 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:79:teastore-persistence-1  | Tue Nov 18 00:50:22 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:80:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:81:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:82:teastore-persistence-1  | Tue Nov 18 00:50:24 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:83:teastore-persistence-1  | Tue Nov 18 00:50:24 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:84:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:85:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:86:teastore-persistence-1  | Tue Nov 18 00:50:26 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:87:teastore-persistence-1  | Tue Nov 18 00:50:26 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:88:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:89:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:90:teastore-persistence-1  | Tue Nov 18 00:50:28 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:91:teastore-persistence-1  | Tue Nov 18 00:50:28 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:92:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:93:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:94:teastore-persistence-1  | Tue Nov 18 00:50:30 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:95:teastore-persistence-1  | Tue Nov 18 00:50:30 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:96:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:97:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:98:teastore-persistence-1  | Tue Nov 18 00:50:32 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:99:teastore-persistence-1  | Tue Nov 18 00:50:32 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:100:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:101:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:102:teastore-persistence-1  | Tue Nov 18 00:50:34 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:103:teastore-persistence-1  | Tue Nov 18 00:50:34 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:104:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:105:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:106:teastore-persistence-1  | Tue Nov 18 00:50:36 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:107:teastore-persistence-1  | Tue Nov 18 00:50:36 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:108:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:109:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:110:teastore-persistence-1  | Tue Nov 18 00:50:38 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:111:teastore-persistence-1  | Tue Nov 18 00:50:38 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:112:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:113:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:114:teastore-persistence-1  | Tue Nov 18 00:50:40 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:115:teastore-persistence-1  | Tue Nov 18 00:50:40 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:116:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:117:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:118:teastore-persistence-1  | Tue Nov 18 00:50:42 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:119:teastore-persistence-1  | Tue Nov 18 00:50:42 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:120:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:121:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:122:teastore-persistence-1  | Tue Nov 18 00:50:44 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:123:teastore-persistence-1  | Tue Nov 18 00:50:44 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:124:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:125:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:126:teastore-persistence-1  | Tue Nov 18 00:50:46 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:127:teastore-persistence-1  | Tue Nov 18 00:50:46 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:128:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:129:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:130:teastore-persistence-1  | Tue Nov 18 00:50:48 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:131:teastore-persistence-1  | Tue Nov 18 00:50:48 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:132:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:133:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:134:teastore-persistence-1  | Tue Nov 18 00:50:50 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:135:teastore-persistence-1  | Tue Nov 18 00:50:50 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:136:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:137:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:138:teastore-persistence-1  | Tue Nov 18 00:50:52 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:139:teastore-persistence-1  | Tue Nov 18 00:50:52 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:140:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:141:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:142:teastore-persistence-1  | Tue Nov 18 00:50:54 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:143:teastore-persistence-1  | Tue Nov 18 00:50:54 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:144:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:145:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:146:teastore-persistence-1  | Tue Nov 18 00:50:56 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:147:teastore-persistence-1  | Tue Nov 18 00:50:56 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:148:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:149:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:150:teastore-persistence-1  | Tue Nov 18 00:50:58 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:151:teastore-persistence-1  | Tue Nov 18 00:50:58 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:152:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:153:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:154:teastore-persistence-1  | Tue Nov 18 00:51:00 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:155:teastore-persistence-1  | Tue Nov 18 00:51:00 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:156:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:157:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:158:teastore-persistence-1  | Tue Nov 18 00:51:02 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:159:teastore-persistence-1  | Tue Nov 18 00:51:02 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:160:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:161:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:162:teastore-persistence-1  | Tue Nov 18 00:51:04 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:163:teastore-persistence-1  | Tue Nov 18 00:51:04 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:164:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:165:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:166:teastore-persistence-1  | Tue Nov 18 00:51:06 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:167:teastore-persistence-1  | Tue Nov 18 00:51:06 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:168:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:169:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:170:teastore-persistence-1  | Tue Nov 18 00:51:08 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:171:teastore-persistence-1  | Tue Nov 18 00:51:08 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:172:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:173:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:174:teastore-persistence-1  | Tue Nov 18 00:51:10 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:175:teastore-persistence-1  | Tue Nov 18 00:51:10 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:176:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:177:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:178:teastore-persistence-1  | Tue Nov 18 00:51:12 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:179:teastore-persistence-1  | Tue Nov 18 00:51:12 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:180:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:181:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:182:teastore-persistence-1  | Tue Nov 18 00:51:14 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:183:teastore-persistence-1  | Tue Nov 18 00:51:14 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:184:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:185:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:186:teastore-persistence-1  | Tue Nov 18 00:51:16 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:187:teastore-persistence-1  | Tue Nov 18 00:51:16 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:188:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:189:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:190:teastore-persistence-1  | Tue Nov 18 00:51:18 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:191:teastore-persistence-1  | Tue Nov 18 00:51:18 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:192:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:193:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:194:teastore-persistence-1  | Tue Nov 18 00:51:20 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:195:teastore-persistence-1  | Tue Nov 18 00:51:20 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:196:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:197:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:198:teastore-persistence-1  | Tue Nov 18 00:51:22 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:199:teastore-persistence-1  | Tue Nov 18 00:51:22 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:200:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:201:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:202:teastore-persistence-1  | Tue Nov 18 00:51:24 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:203:teastore-persistence-1  | Tue Nov 18 00:51:24 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:204:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:205:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:206:teastore-persistence-1  | Tue Nov 18 00:51:26 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:207:teastore-persistence-1  | Tue Nov 18 00:51:26 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:208:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:209:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:210:teastore-persistence-1  | Tue Nov 18 00:51:28 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:211:teastore-persistence-1  | Tue Nov 18 00:51:28 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:212:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:213:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:214:teastore-persistence-1  | Tue Nov 18 00:51:30 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:215:teastore-persistence-1  | Tue Nov 18 00:51:30 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:216:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:217:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:218:teastore-persistence-1  | Tue Nov 18 00:51:32 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:219:teastore-persistence-1  | Tue Nov 18 00:51:32 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:220:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:221:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:222:teastore-persistence-1  | Tue Nov 18 00:51:34 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:223:teastore-persistence-1  | Tue Nov 18 00:51:34 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:224:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:225:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:226:teastore-persistence-1  | Tue Nov 18 00:51:36 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:227:teastore-persistence-1  | Tue Nov 18 00:51:36 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:228:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:229:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:230:teastore-persistence-1  | Tue Nov 18 00:51:38 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:231:teastore-persistence-1  | Tue Nov 18 00:51:38 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:232:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:233:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:234:teastore-persistence-1  | Tue Nov 18 00:51:40 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:235:teastore-persistence-1  | Tue Nov 18 00:51:40 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:236:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:237:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:238:teastore-persistence-1  | Tue Nov 18 00:51:42 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:239:teastore-persistence-1  | Tue Nov 18 00:51:42 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:240:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:241:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:242:teastore-persistence-1  | Tue Nov 18 00:51:44 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:243:teastore-persistence-1  | Tue Nov 18 00:51:44 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:244:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:245:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:246:teastore-persistence-1  | Tue Nov 18 00:51:46 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:247:teastore-persistence-1  | Tue Nov 18 00:51:46 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:248:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:249:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:250:teastore-persistence-1  | Tue Nov 18 00:51:48 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:251:teastore-persistence-1  | Tue Nov 18 00:51:48 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:252:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:253:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:254:teastore-persistence-1  | Tue Nov 18 00:51:50 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:255:teastore-persistence-1  | Tue Nov 18 00:51:50 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:256:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:257:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:258:teastore-persistence-1  | Tue Nov 18 00:51:52 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:259:teastore-persistence-1  | Tue Nov 18 00:51:52 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:260:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:261:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:262:teastore-persistence-1  | Tue Nov 18 00:51:54 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:263:teastore-persistence-1  | Tue Nov 18 00:51:54 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:264:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:265:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:266:teastore-persistence-1  | Tue Nov 18 00:51:56 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:267:teastore-persistence-1  | Tue Nov 18 00:51:56 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:268:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:269:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:270:teastore-persistence-1  | Tue Nov 18 00:51:58 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:271:teastore-persistence-1  | Tue Nov 18 00:51:58 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:272:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:273:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:274:teastore-persistence-1  | Tue Nov 18 00:52:00 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:275:teastore-persistence-1  | Tue Nov 18 00:52:00 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:276:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:277:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+> teastore-persistence-logs-full.txt:278:teastore-persistence-1  | Tue Nov 18 00:52:02 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:279:teastore-persistence-1  | Tue Nov 18 00:52:02 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:280:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+  teastore-persistence-logs-full.txt:281:teastore-persistence-1  | TEST
+> teastore-persistence-logs-full.txt:282:teastore-persistence-1  | Tue Nov 18 00:52:04 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+> teastore-persistence-logs-full.txt:283:teastore-persistence-1  | Tue Nov 18 00:52:04 UTC 2025 WARN: Establishing SSL connection 
+without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL 
+connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL 
+the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set 
+useSSL=true and provide truststore for server certificate verification.
+  teastore-persistence-logs-full.txt:284:teastore-persistence-1  | TEST
+  teastore-persistence-logs-full.txt:285:teastore-persistence-1  | [main] WARN 
+tools.descartes.teastore.persistence.daemons.InitialDataGenerationDaemon - Exception connecting to database. Is database offline? 
+Wating for 2000 ms.
+
+

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence" version="2.1">
+  <persistence-unit name="teastorePersistence" transaction-type="RESOURCE_LOCAL">
+    <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+    <properties>
+      <!-- Ensure JDBC URL explicitly disables SSL and points to the teastore-db service -->
+      <property name="javax.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
+  <property name="javax.persistence.jdbc.url" value="jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false"/>
+  <property name="javax.persistence.jdbc.user" value="teauser"/>
+  <property name="javax.persistence.jdbc.password" value="teapass"/>
+
+      <!-- Jakarta equivalents for newer containers that might read these -->
+      <property name="jakarta.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
+  <property name="jakarta.persistence.jdbc.url" value="jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false"/>
+  <property name="jakarta.persistence.jdbc.user" value="teauser"/>
+  <property name="jakarta.persistence.jdbc.password" value="teapass"/>
+    </properties>
+  </persistence-unit>
+</persistence>

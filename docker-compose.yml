@@ -1,3 +1,4 @@
+version: "2.4"
 services:
   teastore-db:
     image: mysql:5.7
@@ -7,11 +8,15 @@ services:
       MYSQL_DATABASE: "teadb"
       MYSQL_USER: "teauser"
       MYSQL_PASSWORD: "teapass"
+    volumes:
+      - ./docker-overrides/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     command: [--skip-ssl]
     networks:
       - teastore-network
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass --silent"]
+      # Use the application user for healthcheck so dependent services
+      # only start once the app credentials are usable.
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uteauser -pteapass --silent"]
       interval: 5s
       timeout: 5s
       retries: 15
@@ -31,6 +36,8 @@ services:
   teastore-persistence:
     image: descartesresearch/teastore-persistence:latest
     depends_on:
+      teastore-db:
+        condition: service_healthy
       teastore-registry:
         condition: service_started
     environment:
@@ -39,10 +46,24 @@ services:
       HOST_NAME: teastore-persistence
       SERVICE_PORT: 8080
       DB_HOST: teastore-db
-      DB_PORT: 3306
+      DB_PORT: "3306"
       DB_NAME: teadb
-      DB_USER: teauser
-      DB_PASS: teapass
+      # Application DB credentials (ensure match with init.sql)
+      DB_USER: "teauser"
+      DB_PASS: "teapass"
+      JDBC_URL: "jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false"
+      # Also set explicit user/password system properties so the persistence image
+      # which reads JDBC properties from system props picks them up reliably.
+      JAVA_OPTS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
+      CATALINA_OPTS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
+      # Ensure JVM always sees these system properties (some images/entrypoints ignore JAVA_OPTS/CATALINA_OPTS)
+      JAVA_TOOL_OPTIONS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
+    # Print environment at container start to help debug which JAVA_TOOL_OPTIONS
+    # and DB credentials the container actually sees. Then start Tomcat.
+    entrypoint: ["sh", "-c", "echo 'Container environment:' && env && echo '--- JAVA_TOOL_OPTIONS ---' && echo \"$JAVA_TOOL_OPTIONS\" && echo '--- end env ---' && /usr/local/tomcat/bin/catalina.sh run"]
+    volumes:
+      - ./docker-overrides/persistence/persistence.xml:/usr/local/tomcat/webapps/tools.descartes.teastore.persistence/WEB-INF/classes/META-INF/persistence.xml:ro
+      - ./docker-overrides/persistence/logging.properties:/usr/local/tomcat/conf/logging.properties:ro
     networks:
       - teastore-network
 

@@ -1,0 +1,2 @@
+﻿USER()	CURRENT_USER()
+root@172.21.0.9	root@%

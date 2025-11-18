@@ -1,0 +1,34 @@
+﻿PATH=/usr/local/tomcat/bin:/usr/local/openjdk-11/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOSTNAME=27da04571a1c
+DB_PASS=rootpass
+DB_NAME=teadb
+JAVA_OPTS=-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false -Djavax.persistence.jdbc.user=root -Djavax.persistence.jdbc.password=rootpass -Djdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false
+JDBC_URL=jdbc:mysql://teastore-db:3306/teadb?useSSL=false
+DB_HOST=teastore-db
+DB_PORT=3306
+HOST_NAME=teastore-persistence
+REGISTRY_PORT=8080
+SERVICE_PORT=8080
+REGISTRY_HOST=teastore-registry
+DB_USER=root
+CATALINA_OPTS=-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false -Djavax.persistence.jdbc.user=root -Djavax.persistence.jdbc.password=rootpass
+JAVA_HOME=/usr/local/openjdk-11
+LANG=C.UTF-8
+JAVA_VERSION=11.0.11+9
+CATALINA_HOME=/usr/local/tomcat
+TOMCAT_NATIVE_LIBDIR=/usr/local/tomcat/native-jni-lib
+LD_LIBRARY_PATH=/usr/local/tomcat/native-jni-lib
+GPG_KEYS=A9C5DF4D22E99998D9875A5110C01C5A2F6059E7
+TOMCAT_MAJOR=10
+TOMCAT_VERSION=10.0.7
+TOMCAT_SHA512=aee019d70807b6fe25e6f4e2a36a495337c8010992af7bdeedce1bc7f6affa12899257265ecb71a46e86c20f4bd6635d4dd4c014deb3e80c518c041b3e53376b
+USE_POD_IP=false
+RECOMMENDER_RETRAIN_LOOP_TIME=0
+RECOMMENDER_ALGORITHM=SlopeOne
+PROXY_NAME=unset
+PROXY_PORT=unset
+TOMCAT_HEAP_MEM_PERCENTAGE=50
+LOG_TO_FILE=false
+RABBITMQ_HOST=unset
+USE_HTTPS=false
+HOME=/root

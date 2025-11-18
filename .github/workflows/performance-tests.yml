@@ -223,9 +223,9 @@ jobs:
       #       jmeter-teastore/graficos \
       #       jmeter-jtl.pdf
 
-      - name: Dashboard HTML do K6
-        run: |
-          bash scripts/k6_dashboard.sh
+      # - name: Dashboard HTML do K6
+      #   run: |
+      #     bash scripts/k6_dashboard.sh
 
       # - name: PDF K6
       #   run: |
