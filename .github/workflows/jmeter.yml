@@ -38,14 +38,14 @@ jobs:
           echo "⏳ Testando WebUI..."
           for i in {1..80}; do
             CODE=$(curl -o /dev/null -s -w "%{http_code}" \
-              http://localhost:18081/tools.descartes.teastore.webui/login)
+              ${HOST}:${PORT}${BASE_PATH}/login)
             echo "Tentativa $i: HTTP $CODE"
 
             if [ "$CODE" = "200" ]; then
               echo "🟢 WebUI ONLINE!"
               exit 0
             fi
-
+            
             sleep 3
           done
           echo "❌ WebUI não respondeu."
