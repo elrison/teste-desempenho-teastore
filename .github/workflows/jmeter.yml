@@ -9,7 +9,8 @@ jobs:
     timeout-minutes: 40
     env:
       HOST: 'http://localhost'
-      PORT: '18081'
+      HOSTNAME: 'localhost'
+      PORT: '8080'
       BASE_PATH: '/tools.descartes.teastore.webui'
 
     steps:
