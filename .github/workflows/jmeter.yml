@@ -7,6 +7,10 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      HOST: 'http://localhost'
+      PORT: '18081'
+      BASE_PATH: '/tools.descartes.teastore.webui'
 
     steps:
       - name: Checkout repo
