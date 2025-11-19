@@ -20,14 +20,14 @@ class TeaStoreUser(HttpUser):
             else:
                 response.failure(f"GET /login falhou: {response.status_code}")
 
-        login_resp = self.client.post("/loginAction", name="POST /loginAction", data={
+        with self.client.post("/loginAction", name="POST /loginAction", data={
             "username": "user1",
             "password": "password",
-        }, catch_response=True)
-        if login_resp.status_code in (200, 302):
-            login_resp.success()
-        else:
-            login_resp.failure(f"Login falhou: {login_resp.status_code}")
+        }, catch_response=True) as login_resp:
+            if login_resp.status_code in (200, 302):
+                login_resp.success()
+            else:
+                login_resp.failure(f"Login falhou: {login_resp.status_code}")
 
         # Home
         with self.client.get("/", name="GET /", catch_response=True) as home_resp:
@@ -51,8 +51,8 @@ class TeaStoreUser(HttpUser):
                 prod_resp.failure(f"GET /produto falhou: {prod_resp.status_code}")
 
         # Logout
-        logout_resp = self.client.post("/loginAction?logout=", name="POST /logout", catch_response=True)
-        if logout_resp.status_code in (200, 302):
-            logout_resp.success()
-        else:
-            logout_resp.failure(f"Logout falhou: {logout_resp.status_code}")
+        with self.client.post("/loginAction?logout=", name="POST /logout", catch_response=True) as logout_resp:
+            if logout_resp.status_code in (200, 302):
+                logout_resp.success()
+            else:
+                logout_resp.failure(f"Logout falhou: {logout_resp.status_code}")
