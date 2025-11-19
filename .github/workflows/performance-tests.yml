@@ -222,14 +222,14 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      - name: Debug – listar arquivos
-        run: |
-          echo "=== K6 Files ==="
-          find . -name "k6*" -maxdepth 3 || true
-          echo "=== Locust Files ==="
-          find locust-teastore -maxdepth 2 -type f || true
-          echo "=== JMeter Files ==="
-          find jmeter-teastore -maxdepth 4 -type f || true
+      # - name: Debug – listar arquivos
+      #   run: |
+      #     echo "=== K6 Files ==="
+      #     find . -name "k6*" -maxdepth 3 || true
+      #     echo "=== Locust Files ==="
+      #     find locust-teastore -maxdepth 2 -type f || true
+      #     echo "=== JMeter Files ==="
+      #     find jmeter-teastore -maxdepth 4 -type f || true
 
       - name: Upload debug artifacts
         if: always()
