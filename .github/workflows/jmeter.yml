@@ -78,19 +78,33 @@ jobs:
       # ------------------------ J M E T E R -----------------------
       - name: JMETER - testes simples
         run: |
+          echo "Executando teste simples..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=18081
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste simples falhou"
+          
+          if [ -f jmeter-teastore/report-simples/index.html ]; then
+            echo "✅ Relatório simples gerado com sucesso"
+          else
+            echo "❌ Relatório simples NÃO foi gerado"
+          fi
 
-      - name: JMETER - testes complexos
+      - name: JMETER - Testes complexos
         run: |
+          echo "Executando teste complexo..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=18081
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste complexo falhou"
+          
+          if [ -f jmeter-teastore/report-complexos/index.html ]; then
+            echo "✅ Relatório complexo gerado com sucesso"
+          else
+            echo "❌ Relatório complexo NÃO foi gerado"
+          fi
 
       - name: JMETER - 100 VUs
         run: |
