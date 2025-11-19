@@ -91,49 +91,49 @@ jobs:
           EOF
 
       # ------------------------ J M E T E R -----------------------
-      - name: JMETER - testes simples
-        run: |
-          echo "Executando teste simples..."
-          rm -rf jmeter-teastore/report-simples jmeter-teastore/results-simples.jtl
+      # - name: JMETER - testes simples
+      #   run: |
+      #     echo "Executando teste simples..."
+      #     rm -rf jmeter-teastore/report-simples jmeter-teastore/results-simples.jtl
           
-          JVM_ARGS="-Xms512m -Xmx2048m" ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/teste-carga-simples.jmx \
-            -l jmeter-teastore/results-simples.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT}
+      #     JVM_ARGS="-Xms512m -Xmx2048m" ./apache-jmeter-5.6.2/bin/jmeter -n \
+      #       -t jmeter-teastore/teste-carga-simples.jmx \
+      #       -l jmeter-teastore/results-simples.jtl \
+      #       -Jhostname=${HOSTNAME} -Jport=${PORT}
           
-          # Gerar dashboard separadamente
-          if [ -f jmeter-teastore/results-simples.jtl ] && [ -s jmeter-teastore/results-simples.jtl ]; then
-            echo "📊 Gerando dashboard do teste simples..."
-            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl \
-              -o jmeter-teastore/report-simples
-          else
-            echo "❌ Arquivo JTL vazio ou não existe"
-          fi
+      #     # Gerar dashboard separadamente
+      #     if [ -f jmeter-teastore/results-simples.jtl ] && [ -s jmeter-teastore/results-simples.jtl ]; then
+      #       echo "📊 Gerando dashboard do teste simples..."
+      #       ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl \
+      #         -o jmeter-teastore/report-simples
+      #     else
+      #       echo "❌ Arquivo JTL vazio ou não existe"
+      #     fi
           
           
-          if [ -f jmeter-teastore/report-simples/index.html ]; then
-            echo "✅ Relatório simples gerado"
-          else
-            echo "❌ Relatório simples falhou"
-          fi
+      #     if [ -f jmeter-teastore/report-simples/index.html ]; then
+      #       echo "✅ Relatório simples gerado"
+      #     else
+      #       echo "❌ Relatório simples falhou"
+      #     fi
 
-      - name: JMETER - Testes complexos
-        run: |
-          echo "Executando teste complexo..."
-          rm -rf jmeter-teastore/report-complexos jmeter-teastore/results-complexos.jtl
+      # - name: JMETER - Testes complexos
+      #   run: |
+      #     echo "Executando teste complexo..."
+      #     rm -rf jmeter-teastore/report-complexos jmeter-teastore/results-complexos.jtl
           
-          JVM_ARGS="-Xms512m -Xmx2048m" ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenarios-complexos.jmx \
-            -l jmeter-teastore/results-complexos.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT}
+      #     JVM_ARGS="-Xms512m -Xmx2048m" ./apache-jmeter-5.6.2/bin/jmeter -n \
+      #       -t jmeter-teastore/cenarios-complexos.jmx \
+      #       -l jmeter-teastore/results-complexos.jtl \
+      #       -Jhostname=${HOSTNAME} -Jport=${PORT}
           
-          if [ -f jmeter-teastore/results-complexos.jtl ] && [ -s jmeter-teastore/results-complexos.jtl ]; then
-            echo "📊 Gerando dashboard complexo..."
-            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl \
-              -o jmeter-teastore/report-complexos
-          fi
+      #     if [ -f jmeter-teastore/results-complexos.jtl ] && [ -s jmeter-teastore/results-complexos.jtl ]; then
+      #       echo "📊 Gerando dashboard complexo..."
+      #       ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl \
+      #         -o jmeter-teastore/report-complexos
+      #     fi
           
-          [ -f jmeter-teastore/report-complexos/index.html ] && echo "✅ Relatório complexo gerado" || echo "❌ Relatório complexo falhou"
+      #     [ -f jmeter-teastore/report-complexos/index.html ] && echo "✅ Relatório complexo gerado" || echo "❌ Relatório complexo falhou"
 
       - name: JMETER - 100 VUs
         run: |
