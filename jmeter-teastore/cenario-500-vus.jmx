@@ -49,7 +49,7 @@
         </TransactionController>
 
         <hashTree>
-          <HTTPSamplerProxy testname="GET Login Page" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET Categoria" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -58,7 +58,7 @@
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           </HTTPSamplerProxy>
 
-          <HTTPSamplerProxy testname="POST Login Action" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Login Action" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
@@ -133,7 +133,7 @@
         <!-- T03 LOGOUT -->
         <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="T03_Logout" enabled="true"/>
         <hashTree>
-          <HTTPSamplerProxy testname="POST Logout" enabled="true">
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST Logout" enabled="true">
             <stringProp name="HTTPSampler.domain">${hostname}</stringProp>
             <stringProp name="HTTPSampler.port">${port}</stringProp>
             <stringProp name="HTTPSampler.protocol">http</stringProp>
