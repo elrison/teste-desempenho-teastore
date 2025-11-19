@@ -180,40 +180,35 @@ jobs:
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 15s \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/simple.html \
-            --csv=locust-teastore/locust || true
+            --html locust-teastore/simple.html || true
 
       - name: Locust - teste complexo
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 3 -t 30s \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/complex.html \
-            --csv=locust-teastore/locust || true
-      
-      - name: Locust - teste 100 VUs
+            --html locust-teastore/complex.html || true
+
+      - name: Locust - 100 VUs
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless -u 100 -r 3 -t 300s \
+          locust -f locust-teastore/cenario-100-vus.py \
+            --headless -u 100 -r 10 -t 2m \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/complex.html \
-            --csv=locust-teastore/locust || true
-            
-      - name: Locust - teste 500 VUs
+            --html locust-teastore/report-100-vus.html || true
+
+      - name: Locust - 500 VUs
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless -u 500 -r 3 -t 300s \
+          locust -f locust-teastore/cenario-500-vus.py \
+            --headless -u 500 -r 20 -t 3m \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/complex.html \
-            --csv=locust-teastore/locust || true
-      
-      - name: Locust - teste 1000 VUs
+            --html locust-teastore/report-500-vus.html || true
+
+      - name: Locust - 1000 VUs
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless -u 10 -r 3 -t 300s \
+          locust -f locust-teastore/cenario-1000-vus.py \
+            --headless -u 1000 -r 30 -t 5m \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/complex.html \
-            --csv=locust-teastore/locust || true
+            --html locust-teastore/report-1000-vus.html || true
 
       - name: Upload Locust reports
         if: always()
