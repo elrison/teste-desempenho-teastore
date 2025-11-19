@@ -42,7 +42,7 @@
 
       <hashTree>
 
-         <!---------------- T01 LOGIN ---------------->
+         <!-- T01 LOGIN -->
  
         <TransactionController testname="T01_Login" enabled="true">
           <boolProp name="TransactionController.includeTimers">false</boolProp>
@@ -79,7 +79,7 @@
           </HTTPSamplerProxy>
         </hashTree>
 
-        <!-- ---------------- T02 NAVEGAR ---------------- -->
+        <!-- T02 NAVEGAR -->
         <TransactionController testname="T02_Navegar" enabled="true"/>
         <hashTree>
 
@@ -130,7 +130,7 @@
           </HTTPSamplerProxy>
         </hashTree>
 
-        <!-- ---------------- T03 LOGOUT ---------------- -->
+        <!-- T03 LOGOUT -->
         <TransactionController testname="T03_Logout" enabled="true"/>
         <hashTree>
           <HTTPSamplerProxy testname="POST Logout" enabled="true">
