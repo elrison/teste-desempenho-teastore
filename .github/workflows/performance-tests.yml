@@ -190,6 +190,30 @@ jobs:
             --host ${HOST}:${PORT}${BASE_PATH} \
             --html locust-teastore/complex.html \
             --csv=locust-teastore/locust || true
+      
+      - name: Locust - teste 100 VUs
+        run: |
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 100 -r 3 -t 300s \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/complex.html \
+            --csv=locust-teastore/locust || true
+            
+      - name: Locust - teste 500 VUs
+        run: |
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 500 -r 3 -t 300s \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/complex.html \
+            --csv=locust-teastore/locust || true
+      
+      - name: Locust - teste 1000 VUs
+        run: |
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 3 -t 300s \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/complex.html \
+            --csv=locust-teastore/locust || true
 
       - name: Upload Locust reports
         if: always()

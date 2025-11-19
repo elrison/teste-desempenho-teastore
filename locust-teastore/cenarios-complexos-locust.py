@@ -10,6 +10,9 @@ BASE_PATH = os.getenv("BASE_PATH", "/tools.descartes.teastore.webui")
 class TeaStoreUser(HttpUser):
     wait_time = between(1, 2)
     host = f"{BASE_HOST}:{BASE_PORT}{BASE_PATH}"
+    
+    # Configuração de carga (opcional, pode ser sobrescrito por CLI)
+    # fixed_count = 10  # Mantém exatamente 10 usuários
 
     @task
     def test_flow(self):
