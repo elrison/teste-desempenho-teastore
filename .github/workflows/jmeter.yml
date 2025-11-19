@@ -63,13 +63,12 @@ jobs:
       # Apagar pastas para o JMeter não falhar na geração
       - name: Preparar pastas do dashboard JMeter
         run: |
-          rm -rf jmeter-teastore/report-simples
-          rm -rf jmeter-teastore/report-complexos
+          rm -rf jmeter-teastore/report-*
           mkdir -p jmeter-teastore/report-simples
           mkdir -p jmeter-teastore/report-complexos
-
-          cp -r apache-jmeter-5.6.2/bin/report-template/content jmeter-teastore/
-          cp -r apache-jmeter-5.6.2/bin/report-template/sbadmin2-1.0.7 jmeter-teastore/
+          mkdir -p jmeter-teastore/report-100-vus
+          mkdir -p jmeter-teastore/report-500-vus
+          mkdir -p jmeter-teastore/report-1000-vus
 
       # ------------------------ J M E T E R -----------------------
       - name: JMETER - testes simples
@@ -88,14 +87,42 @@ jobs:
             -e -o jmeter-teastore/report-complexos \
             -Jhostname=localhost -Jport=18081
 
+      - name: JMETER - 100 VUs
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenario-100-vus.jmx \
+            -l jmeter-teastore/results-100-vus.jtl \
+            -e -o jmeter-teastore/report-100-vus \
+            -Jhostname=localhost -Jport=18081
+
+      - name: JMETER - 500 VUs
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenario-500-vus.jmx \
+            -l jmeter-teastore/results-500-vus.jtl \
+            -e -o jmeter-teastore/report-500-vus \
+            -Jhostname=localhost -Jport=18081
+
+      - name: JMETER - 1000 VUs
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenario-1000-vus.jmx \
+            -l jmeter-teastore/results-1000-vus.jtl \
+            -e -o jmeter-teastore/report-1000-vus \
+            -Jhostname=localhost -Jport=18081
+
       - name: Upload JMeter reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
           path: |
-            jmeter-teastore/report-simples/**
-            jmeter-teastore/report-complexos/**
+            jmeter-teastore/report-simples/
+            jmeter-teastore/report-complexos/
+            jmeter-teastore/report-100-vus/
+            jmeter-teastore/report-500-vus/
+            jmeter-teastore/report-1000-vus/
+            jmeter-teastore/*.jtl
 
       # ------------------------------------------------------------
       # 4) ENCERRAR
