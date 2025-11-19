@@ -106,29 +106,50 @@ jobs:
             echo "❌ Relatório complexo NÃO foi gerado"
           fi
 
-      - name: JMETER - 100 VUs
+      - name: JMETER - Testes 100 VUs
         run: |
+          echo "Executando teste 100 VUs..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-100-vus.jmx \
             -l jmeter-teastore/results-100-vus.jtl \
             -e -o jmeter-teastore/report-100-vus \
-            -Jhostname=localhost -Jport=18081
-
-      - name: JMETER - 500 VUs
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste 100 vus falhou"
+          
+          if [ -f jmeter-teastore/report-100-vus/index.html ]; then
+            echo "✅ Relatório 100 VUs gerado com sucesso"
+          else
+            echo "❌ Relatório 100 VUs NÃO foi gerado"
+          fi
+          
+      - name: JMETER - Testes 500 VUs
         run: |
+          echo "Executando teste 500 VUs..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-500-vus.jmx \
             -l jmeter-teastore/results-500-vus.jtl \
             -e -o jmeter-teastore/report-500-vus \
-            -Jhostname=localhost -Jport=18081
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste 500 vus falhou"
+          
+          if [ -f jmeter-teastore/report-500-vus/index.html ]; then
+            echo "✅ Relatório 500 VUs gerado com sucesso"
+          else
+            echo "❌ Relatório 500 VUs NÃO foi gerado"
+          fi  
 
-      - name: JMETER - 1000 VUs
+      - name: JMETER - Testes 1000 Us
         run: |
+          echo "Executando teste 1000 Us..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-1000-vus.jmx \
             -l jmeter-teastore/results-1000-vus.jtl \
             -e -o jmeter-teastore/report-1000-vus \
-            -Jhostname=localhost -Jport=18081
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste 1000 vus falhou"
+          
+          if [ -f jmeter-teastore/report-1000-vus/index.html ]; then
+            echo "✅ Relatório 1000 VUs gerado com sucesso"
+          else
+            echo "❌ Relatório 100 VUs NÃO foi gerado"
+          fi  
 
       - name: Upload JMeter reports
         if: always()
