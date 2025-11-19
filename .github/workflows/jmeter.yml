@@ -65,91 +65,129 @@ jobs:
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      # Apagar pastas para o JMeter não falhar na geração
-      - name: Preparar pastas do dashboard JMeter
+      # Configurar JMeter para geração de relatórios
+      - name: Configurar JMeter properties
         run: |
-          rm -rf jmeter-teastore/report-*
-          mkdir -p jmeter-teastore/report-simples
-          mkdir -p jmeter-teastore/report-complexos
-          mkdir -p jmeter-teastore/report-100-vus
-          mkdir -p jmeter-teastore/report-500-vus
-          mkdir -p jmeter-teastore/report-1000-vus
+          cat >> apache-jmeter-5.6.2/bin/user.properties <<EOF
+          # Configurações para dashboard
+          jmeter.save.saveservice.output_format=csv
+          jmeter.save.saveservice.response_data=false
+          jmeter.save.saveservice.samplerData=false
+          jmeter.save.saveservice.requestHeaders=false
+          jmeter.save.saveservice.url=true
+          jmeter.save.saveservice.responseHeaders=false
+          jmeter.save.saveservice.thread_name=true
+          jmeter.save.saveservice.time=true
+          jmeter.save.saveservice.label=true
+          jmeter.save.saveservice.latency=true
+          jmeter.save.saveservice.response_code=true
+          jmeter.save.saveservice.response_message=true
+          jmeter.save.saveservice.successful=true
+          jmeter.save.saveservice.bytes=true
+          jmeter.save.saveservice.sent_bytes=true
+          jmeter.save.saveservice.thread_counts=true
+          jmeter.save.saveservice.timestamp_format=ms
+          jmeter.save.saveservice.assertion_results_failure_message=true
+          EOF
 
       # ------------------------ J M E T E R -----------------------
       - name: JMETER - testes simples
         run: |
           echo "Executando teste simples..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          rm -rf jmeter-teastore/report-simples jmeter-teastore/results-simples.jtl
+          
+          JVM_ARGS="-Xms512m -Xmx2048m" ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
-            -e -o jmeter-teastore/report-simples \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste simples falhou"
+            -Jhostname=${HOSTNAME} -Jport=${PORT}
+          
+          # Gerar dashboard separadamente
+          if [ -f jmeter-teastore/results-simples.jtl ] && [ -s jmeter-teastore/results-simples.jtl ]; then
+            echo "📊 Gerando dashboard do teste simples..."
+            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl \
+              -o jmeter-teastore/report-simples
+          else
+            echo "❌ Arquivo JTL vazio ou não existe"
+          fi
+          
           
           if [ -f jmeter-teastore/report-simples/index.html ]; then
-            echo "✅ Relatório simples gerado com sucesso"
+            echo "✅ Relatório simples gerado"
           else
-            echo "❌ Relatório simples NÃO foi gerado"
+            echo "❌ Relatório simples falhou"
           fi
 
       - name: JMETER - Testes complexos
         run: |
           echo "Executando teste complexo..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          rm -rf jmeter-teastore/report-complexos jmeter-teastore/results-complexos.jtl
+          
+          JVM_ARGS="-Xms512m -Xmx2048m" ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
-            -e -o jmeter-teastore/report-complexos \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste complexo falhou"
+            -Jhostname=${HOSTNAME} -Jport=${PORT}
           
-          if [ -f jmeter-teastore/report-complexos/index.html ]; then
-            echo "✅ Relatório complexo gerado com sucesso"
-          else
-            echo "❌ Relatório complexo NÃO foi gerado"
+          if [ -f jmeter-teastore/results-complexos.jtl ] && [ -s jmeter-teastore/results-complexos.jtl ]; then
+            echo "📊 Gerando dashboard complexo..."
+            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl \
+              -o jmeter-teastore/report-complexos
           fi
+          
+          [ -f jmeter-teastore/report-complexos/index.html ] && echo "✅ Relatório complexo gerado" || echo "❌ Relatório complexo falhou"
 
-      - name: JMETER - Testes 100 VUs
+      - name: JMETER - 100 VUs
         run: |
           echo "Executando teste 100 VUs..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          rm -rf jmeter-teastore/report-100-vus jmeter-teastore/results-100-vus.jtl
+          
+          JVM_ARGS="-Xms1024m -Xmx3072m" ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-100-vus.jmx \
             -l jmeter-teastore/results-100-vus.jtl \
-            -e -o jmeter-teastore/report-100-vus \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste 100 vus falhou"
+            -Jhostname=${HOSTNAME} -Jport=${PORT}
           
-          if [ -f jmeter-teastore/report-100-vus/index.html ]; then
-            echo "✅ Relatório 100 VUs gerado com sucesso"
-          else
-            echo "❌ Relatório 100 VUs NÃO foi gerado"
+          if [ -f jmeter-teastore/results-100-vus.jtl ] && [ -s jmeter-teastore/results-100-vus.jtl ]; then
+            echo "📊 Gerando dashboard 100 VUs..."
+            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-100-vus.jtl \
+              -o jmeter-teastore/report-100-vus
           fi
           
-      - name: JMETER - Testes 500 VUs
+          [ -f jmeter-teastore/report-100-vus/index.html ] && echo "✅ Relatório 100 VUs gerado" || echo "❌ Relatório 100 VUs falhou"
+          
+      - name: JMETER - 500 VUs
         run: |
           echo "Executando teste 500 VUs..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          rm -rf jmeter-teastore/report-500-vus jmeter-teastore/results-500-vus.jtl
+          
+          JVM_ARGS="-Xms2048m -Xmx4096m" ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-500-vus.jmx \
             -l jmeter-teastore/results-500-vus.jtl \
-            -e -o jmeter-teastore/report-500-vus \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste 500 vus falhou"
+            -Jhostname=${HOSTNAME} -Jport=${PORT}
           
-          if [ -f jmeter-teastore/report-500-vus/index.html ]; then
-            echo "✅ Relatório 500 VUs gerado com sucesso"
-          else
-            echo "❌ Relatório 500 VUs NÃO foi gerado"
-          fi  
+          if [ -f jmeter-teastore/results-500-vus.jtl ] && [ -s jmeter-teastore/results-500-vus.jtl ]; then
+            echo "📊 Gerando dashboard 500 VUs..."
+            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-500-vus.jtl \
+              -o jmeter-teastore/report-500-vus
+          fi
+          
+          [ -f jmeter-teastore/report-500-vus/index.html ] && echo "✅ Relatório 500 VUs gerado" || echo "❌ Relatório 500 VUs falhou"
 
-      - name: JMETER - Testes 1000 Us
+      - name: JMETER - 1000 VUs
         run: |
-          echo "Executando teste 1000 Us..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          echo "Executando teste 1000 VUs..."
+          rm -rf jmeter-teastore/report-1000-vus jmeter-teastore/results-1000-vus.jtl
+          
+          JVM_ARGS="-Xms2048m -Xmx4096m" ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-1000-vus.jmx \
             -l jmeter-teastore/results-1000-vus.jtl \
-            -e -o jmeter-teastore/report-1000-vus \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste 1000 vus falhou"
+            -Jhostname=${HOSTNAME} -Jport=${PORT}
           
-          if [ -f jmeter-teastore/report-1000-vus/index.html ]; then
-            echo "✅ Relatório 1000 VUs gerado com sucesso"
-          else
-            echo "❌ Relatório 100 VUs NÃO foi gerado"
-          fi  
+          if [ -f jmeter-teastore/results-1000-vus.jtl ] && [ -s jmeter-teastore/results-1000-vus.jtl ]; then
+            echo "📊 Gerando dashboard 1000 VUs..."
+            ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-1000-vus.jtl \
+              -o jmeter-teastore/report-1000-vus
+          fi
+          
+          [ -f jmeter-teastore/report-1000-vus/index.html ] && echo "✅ Relatório 1000 VUs gerado" || echo "❌ Relatório 1000 VUs falhou"  
 
       - name: Upload JMeter reports
         if: always()
