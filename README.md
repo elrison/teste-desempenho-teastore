@@ -6,6 +6,40 @@ A aplicação alvo para os testes é o **TeaStore**, uma aplicação de e-commer
 
 ---
 
+## 📊 Mix de Endpoints e Cenários de Teste
+
+Os testes implementados simulam o comportamento real de usuários navegando na loja online TeaStore. Cada cenário segue um fluxo simplificado que representa as ações mais comuns de um cliente.
+
+### Tabela 1. Mix de Endpoints Testados
+
+| Mix | % | Endpoints TeaStore | Observações |
+|-----|---|-------------------|-------------|
+| A - Login | 20% | /login | Autenticação do usuário |
+| B - Home | 20% | /home, /products | Página inicial e listagem de produtos |
+| C - Categoria | 20% | /category?{id} | Navegação por categoria (link extraído dinamicamente) |
+| D - Produto | 20% | /product?{id} | Visualização de produto específico (link extraído dinamicamente) |
+| E - Logout | 20% | /loginAction?logout | Encerramento da sessão |
+
+**Fluxo do Teste:** Login → Home → Categoria → Produto → Logout
+
+**Características Técnicas:**
+- Extração dinâmica de links para categorias e produtos (RegexExtractor no JMeter, BeautifulSoup no Locust, response.html() no k6)
+- Cada usuário virtual executa o fluxo completo uma vez por iteração
+- Medição de tempo de resposta, taxa de sucesso, throughput e detecção de erros
+
+### Tabela 2. Cenários de Carga Implementados
+
+| Cenário | Usuários Virtuais (VUs) | Duração | Ramp-up | Thresholds | Ferramentas |
+|---------|-------------------------|---------|---------|------------|-------------|
+| **Baixa Carga** | 100 | 2 minutos | 30s | p(95) < 500ms | k6, Locust, JMeter |
+| **Média Carga** | 500 | 3 minutos | 60s | p(95) < 1s | k6, Locust, JMeter |
+| **Alta Carga** | 1000 | 5 minutos | 90s | p(95) < 2s | k6, Locust, JMeter |
+
+**Total de Testes:** 9 cenários (3 por ferramenta)
+**Total de Relatórios HTML:** 15 (5 JMeter + 5 Locust + 5 k6)
+
+---
+
 ## 🚀 Ferramentas e Tecnologias Utilizadas
 
 | Tecnologia | Finalidade |
