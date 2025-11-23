@@ -1,0 +1,217 @@
+name: Pipeline de Performance (v33 - Final com Relatório JMeter)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
+
+      # -----------------------------------------------------------------
+      # INICIALIZAÇÃO DA STACK
+      # -----------------------------------------------------------------
+      - name: Start TeaStore stack
+        run: |
+          echo "🚀 Iniciando toda a stack com 'docker compose up -d'..."
+          docker compose up -d
+          
+          echo "⏳ A 'Grande Espera'..."
+          echo "Aguardando 300 SEGUNDOS (5 Minutos) para o Java/Tomcat subir completamente."
+          sleep 300
+          
+          echo "✅ Tempo de espera concluído. Verificando serviços..."
+
+      # -----------------------------------------------------------------
+      # POPULAÇÃO E VERIFICAÇÃO (O passo que garante que a loja funciona)
+      # -----------------------------------------------------------------
+      - name: Populate & Wait for Products
+        run: |
+          GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
+          HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
+          
+          echo "🚀 Iniciando verificação da API..."
+          
+          # Loop 1: Esperar API responder 200 OK (sem redirect)
+          MAX_WAIT_API=120
+          COUNT=0
+          API_READY=false
+          
+          while [ $COUNT -lt $MAX_WAIT_API ]; do
+            # Curl sem -L para pegar o código real (evitar falso positivo 302)
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
+
+            if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
+              echo "✅ API respondeu $HTTP_CODE! Backend online."
+              API_READY=true
+              break
+            fi
+            
+            echo "⏳ ($COUNT/${MAX_WAIT_API}s) API HTTP $HTTP_CODE - Aguardando..."
+            sleep 5
+            COUNT=$((COUNT + 5))
+          done
+
+          if [ "$API_READY" == "false" ]; then
+            echo "❌ Erro: API de persistência não ficou pronta."
+            docker compose logs teastore-persistence
+            exit 1
+          fi
+
+          # Loop 2: Esperar produtos aparecerem na Home
+          echo "⏳ Aguardando produtos na Home Page..."
+          for i in {1..12}; do
+            HOME_HTML=$(curl -L -s "$HOME_URL")
+            if echo "$HOME_HTML" | grep -q "category?id="; then
+               # Pega o link da primeira categoria
+               CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
+               FULL_URL="${HOME_URL}${CAT_LINK}"
+               
+               # Verifica se a categoria tem produtos
+               CAT_HTML=$(curl -L -s "$FULL_URL")
+               if echo "$CAT_HTML" | grep -q "product?id="; then
+                 echo "✅ SUCESSO! Produtos encontrados."
+                 exit 0
+               fi
+            fi
+            echo "⏳ Aguardando propagação de dados..."
+            sleep 5
+          done
+          
+          echo "❌ Timeout: Produtos não apareceram."
+          exit 1
+
+      - name: Check containers (Debug)
+        run: docker ps -a
+
+      # -----------------------------------------------------------------
+      # JMETER (Configurado para gerar Relatório HTML)
+      # -----------------------------------------------------------------
+      - name: Install Java & JMeter
+        run: |
+          sudo apt-get install -y openjdk-11-jre-headless
+          wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
+          tar -xzf apache-jmeter-5.6.2.tgz
+
+      - name: Run JMeter Simples
+        run: |
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl \
+            -e -o jmeter-teastore/report-simples \
+            -Jhostname=localhost -Jport=18081 || true
+
+      - name: Run JMeter Complexos
+        run: |
+          # O comando abaixo gera:
+          # 1. O arquivo de log bruto (.jtl)
+          # 2. A pasta com o dashboard HTML (-e -o path)
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl \
+            -e -o jmeter-teastore/report-complexos \
+            -Jhostname=localhost -Jport=18081 || true
+
+      - name: Upload JMeter reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-jmeter
+          # Faz o upload de tudo que começa com 'report' dentro da pasta jmeter
+          path: jmeter-teastore/report*
+
+      # -----------------------
+      # K6
+      # -----------------------
+      - name: Install K6
+        run: |
+          curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run K6 Simples
+        run: |
+          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
+
+      - name: Run K6 Complexos
+        run: |
+          # Seu script JS já deve ter o handleSummary para gerar HTML
+          k6 run k6-teastore/cenarios-complexos.js || true
+
+      - name: Upload K6 summaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-k6
+          path: |
+            k6-*.json
+            k6*.html
+
+      # -----------------------
+      # LOCUST
+      # -----------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install locust beautifulsoup4 requests pandas matplotlib lxml reportlab
+
+      - name: Run Locust Simples
+        run: |
+          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s \
+            --host http://localhost:18081 \
+            --html locust-teastore/simple.html \
+            --csv locust-teastore/simple || true
+
+      - name: Run Locust Complexos
+        run: |
+          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s \
+            --host http://localhost:18081 \
+            --html locust-teastore/complex.html \
+            --csv locust-teastore/complex || true
+
+      - name: Upload Locust HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-locust
+          path: locust-teastore/*.html
+
+      # -----------------------
+      # CONSOLIDATED DASHBOARD
+      # -----------------------
+      - name: Generate consolidated dashboard & PDF
+        run: |
+          # Certifique-se que os caminhos aqui batem com os arquivos gerados acima
+          python3 generate_dashboard.py \
+            --k6 k6-complex.json \
+            --jmeter jmeter-teastore/results-complexos.jtl \
+            --locust locust-teastore/complex_stats.csv \
+            --pdf report.pdf \
+            --out dashboard.html || true
+
+      - name: Upload consolidated
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-consolidado
+          path: |
+            dashboard.html
+            report.pdf
+            charts/
+        if: always()
+
+      - name: Logs & Stop containers
+        if: always()
+        run: |
+          docker compose logs --no-color
+          docker compose down
