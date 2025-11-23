@@ -1,4 +1,4 @@
-name: Pipeline de Performance Atualizado
+name: Pipeline de Performance Atualizado (Fix JMeter Report)
 
 on:
   workflow_dispatch:
@@ -24,9 +24,9 @@ jobs:
             netcat-openbsd curl wget python3-bs4 python3-venv
 
       # ------------------------------------------------------------
-      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
+      # 1) SUBIDA DA STACK
       # ------------------------------------------------------------
-      - name: Start TeaStore stack (mesmo da versão que funciona)
+      - name: Start TeaStore stack
         run: |
           docker compose up -d teastore-db
           sleep 8
@@ -67,50 +67,71 @@ jobs:
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: JMETER - testes simples
+      - name: JMETER - 100 VUs (Execução + Relatório)
         run: |
-          echo "Executando teste simples..."
+          echo "1. Limpando relatórios antigos..."
+          rm -rf jmeter-teastore/results-100-vus.jtl jmeter-teastore/report-100-vus
+
+          echo "2. Executando teste 100 VUs (Gerando apenas JTL)..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/teste-carga-simples.jmx \
-            -l jmeter-teastore/results-simples.jtl \
-            -e -o jmeter-teastore/report-simples \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste simples falhou"
+            -t jmeter-teastore/cenario-100-vus.jmx \
+            -l jmeter-teastore/results-100-vus.jtl \
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
           
-          if [ -f jmeter-teastore/report-simples/index.html ]; then
-            echo "✅ Relatório simples gerado com sucesso"
+          echo "3. Gerando Relatório HTML a partir do JTL..."
+          if [ -s jmeter-teastore/results-100-vus.jtl ]; then
+             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-100-vus.jtl -o jmeter-teastore/report-100-vus
+             echo "✅ Relatório 100 VUs gerado!"
           else
-            echo "❌ Relatório simples NÃO foi gerado"
+             echo "❌ Arquivo JTL vazio ou não existe."
           fi
 
-      - name: JMETER - Testes complexos
+      - name: JMETER - 500 VUs (Execução + Relatório)
         run: |
-          echo "Executando teste complexo..."
+          echo "1. Limpando relatórios antigos..."
+          rm -rf jmeter-teastore/results-500-vus.jtl jmeter-teastore/report-500-vus
+
+          echo "2. Executando teste 500 VUs (Gerando apenas JTL)..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenarios-complexos.jmx \
-            -l jmeter-teastore/results-complexos.jtl \
-            -e -o jmeter-teastore/report-complexos \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ Teste complexo falhou"
+            -t jmeter-teastore/cenario-500-vus.jmx \
+            -l jmeter-teastore/results-500-vus.jtl \
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
           
-          if [ -f jmeter-teastore/report-complexos/index.html ]; then
-            echo "✅ Relatório complexo gerado com sucesso"
+          echo "3. Gerando Relatório HTML a partir do JTL..."
+          if [ -s jmeter-teastore/results-500-vus.jtl ]; then
+             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-500-vus.jtl -o jmeter-teastore/report-500-vus
+             echo "✅ Relatório 500 VUs gerado!"
           else
-            echo "❌ Relatório complexo NÃO foi gerado"
+             echo "❌ Arquivo JTL vazio ou não existe."
           fi
 
-      - name: Verificar arquivos gerados
+      - name: JMETER - 1000 VUs (Execução + Relatório)
+        run: |
+          echo "1. Limpando relatórios antigos..."
+          rm -rf jmeter-teastore/results-1000-vus.jtl jmeter-teastore/report-1000-vus
+
+          echo "2. Executando teste 1000 VUs (Gerando apenas JTL)..."
+          ./apache-jmeter-5.6.2/bin/jmeter -n \
+            -t jmeter-teastore/cenario-1000-vus.jmx \
+            -l jmeter-teastore/results-1000-vus.jtl \
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
+          
+          echo "3. Gerando Relatório HTML a partir do JTL..."
+          if [ -s jmeter-teastore/results-1000-vus.jtl ]; then
+             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-1000-vus.jtl -o jmeter-teastore/report-1000-vus
+             echo "✅ Relatório 1000 VUs gerado!"
+          else
+             echo "❌ Arquivo JTL vazio ou não existe."
+          fi
+
+      - name: Verificar arquivos gerados e Logs
         if: always()
         run: |
-          echo "=== Conteúdo de jmeter-teastore/ ==="
-          ls -lah jmeter-teastore/ || true
-          echo ""
-          echo "=== Conteúdo de report-simples/ ==="
-          ls -lah jmeter-teastore/report-simples/ || true
-          echo ""
-          echo "=== Conteúdo de report-complexos/ ==="
-          ls -lah jmeter-teastore/report-complexos/ || true
-          echo ""
-          echo "=== Tamanho dos arquivos JTL ==="
-          du -h jmeter-teastore/*.jtl 2>/dev/null || echo "Nenhum JTL encontrado"
+          echo "=== Listando pasta JMeter ==="
+          ls -R jmeter-teastore/
+          
+          echo "=== Log do JMeter (se existir) ==="
+          cat jmeter.log || echo "Sem log do JMeter na raiz"
 
       - name: Upload JMeter reports
         if: always()
@@ -118,10 +139,13 @@ jobs:
         with:
           name: relatorios-jmeter
           path: |
-            jmeter-teastore/report-simples/
-            jmeter-teastore/report-complexos/
-            jmeter-teastore/results-simples.jtl
-            jmeter-teastore/results-complexos.jtl
+            jmeter-teastore/report-100-vus/
+            jmeter-teastore/report-500-vus/
+            jmeter-teastore/report-1000-vus/
+            jmeter-teastore/results-100-vus.jtl
+            jmeter-teastore/results-500-vus.jtl
+            jmeter-teastore/results-1000-vus.jtl
+            jmeter.log
 
       # ---------------------------- K 6 ----------------------------
       - name: Install K6
@@ -131,30 +155,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      # - name: K6 - testes 100 VU's
-      #   run: |
-      #     k6 run k6-teastore/cenario-100-vus.js \
-      #       --summary-export=k6-simple.json || true
-
-      # - name: K6 - testes 500 VU's
-      #   run: |
-      #     k6 run k6-teastore/cenario-500-vus.js \
-      #       --summary-export=k6-simple.json || true
-
-      # - name: K6 - testes 1000 VU's
-      #   run: |
-      #     k6 run k6-teastore/cenario-1000-vus.js \
-      #       --summary-export=k6-simple.json || true
-
-      - name: K6 - testes simples
+      - name: K6 - 100 VUs
         run: |
-          k6 run k6-teastore/teste-carga-simples.js \
-            --summary-export=k6-simple.json || true
+          k6 run k6-teastore/cenario-100-vus.js \
+            --summary-export=k6-100-vus.json || true
 
-      - name: K6 - testes complexos
+      - name: K6 - 500 VUs
         run: |
-          k6 run k6-teastore/cenarios-complexos.js \
-            --summary-export=k6-complex.json || true
+          k6 run k6-teastore/cenario-500-vus.js \
+            --summary-export=k6-500-vus.json || true
+
+      - name: K6 - 1000 VUs
+        run: |
+          k6 run k6-teastore/cenario-1000-vus.js \
+            --summary-export=k6-1000-vus.json || true
 
       - name: Upload K6 summaries
         if: always()
@@ -162,8 +176,9 @@ jobs:
         with:
           name: relatorios-k6
           path: |
-            k6-simple.json
-            k6-complex.json
+            k6-100-vus.json
+            k6-500-vus.json
+            k6-1000-vus.json
 
       # -------------------------- L O C U S T ------------------------
       - name: Setup Python
@@ -175,20 +190,6 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Locust - teste simples
-        run: |
-          locust -f locust-teastore/locustfile.py \
-            --headless -u 5 -r 2 -t 15s \
-            --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/simple.html || true
-
-      - name: Locust - teste complexo
-        run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py \
-            --headless -u 10 -r 3 -t 30s \
-            --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/complex.html || true
-
       - name: Locust - 100 VUs
         run: |
           locust -f locust-teastore/cenario-100-vus.py \
@@ -199,14 +200,14 @@ jobs:
       - name: Locust - 500 VUs
         run: |
           locust -f locust-teastore/cenario-500-vus.py \
-            --headless -u 500 -r 20 -t 3m \
+            --headless -u 500 -r 50 -t 3m \
             --host ${HOST}:${PORT}${BASE_PATH} \
             --html locust-teastore/report-500-vus.html || true
 
       - name: Locust - 1000 VUs
         run: |
           locust -f locust-teastore/cenario-1000-vus.py \
-            --headless -u 1000 -r 30 -t 5m \
+            --headless -u 1000 -r 100 -t 5m \
             --host ${HOST}:${PORT}${BASE_PATH} \
             --html locust-teastore/report-1000-vus.html || true
 
@@ -216,15 +217,6 @@ jobs:
         with:
           name: relatorios-locust
           path: locust-teastore/*.html
-
-      # - name: Debug – listar arquivos
-      #   run: |
-      #     echo "=== K6 Files ==="
-      #     find . -name "k6*" -maxdepth 3 || true
-      #     echo "=== Locust Files ==="
-      #     find locust-teastore -maxdepth 2 -type f || true
-      #     echo "=== JMeter Files ==="
-      #     find jmeter-teastore -maxdepth 4 -type f || true
 
       - name: Upload debug artifacts
         if: always()
@@ -236,7 +228,7 @@ jobs:
             jmeter-teastore/failures.jtl
             logs/**
             summary-unified.json
-     
+      
       # ------------------------------------------------------------
       # 4) ENCERRAR
       # ------------------------------------------------------------
