@@ -1,4 +1,4 @@
-name: Pipeline de Performance (Final - Sem Healthcheck Nativo)
+name: Pipeline de Performance (v36 - Fix Environment Syntax)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 jobs:
   performance:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Checkout repo
@@ -18,18 +18,20 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # PASSO 1: PREPARAR ARQUIVOS E DOCKER COMPOSE (MODIFICADO)
-      # Removemos o healthcheck nativo para evitar que o Docker mate o DB
+      # PASSO 1: PREPARAR ARQUIVOS E DOCKER COMPOSE
       # -----------------------------------------------------------------
       - name: Setup Docker Configuration
         run: |
+          # 1. Criar diretórios para os volumes
           mkdir -p docker-overrides/mysql
           mkdir -p docker-overrides/persistence
+
+          # 2. Criar arquivos vazios para evitar erros de mount
           touch docker-overrides/mysql/init.sql
           touch docker-overrides/persistence/persistence.xml
           touch docker-overrides/persistence/logging.properties
 
-          # REESCREVENDO O DOCKER COMPOSE SEM HEALTHCHECK RESTRITIVO
+          # 3. ESCREVER O DOCKER COMPOSE (SEM AS VARIÁVEIS QUE QUEBRAM O SHELL)
           cat <<EOF > docker-compose.yml
           version: "2.4"
           services:
@@ -46,12 +48,12 @@ jobs:
               command: [--skip-ssl]
               networks:
                 - teastore-network
-              # HEALTHCHECK REMOVIDO: Vamos controlar isso via script no pipeline
+              # Healthcheck removido para evitar morte prematura pelo Docker
 
             teastore-registry:
               image: descartesresearch/teastore-registry:latest
               depends_on:
-                - teastore-db # Dependência simples, sem esperar health
+                - teastore-db
               environment:
                 HOST_NAME: teastore-registry
                 SERVICE_PORT: 8080
@@ -73,11 +75,8 @@ jobs:
                 DB_NAME: teadb
                 DB_USER: "teauser"
                 DB_PASS: "teapass"
-                JDBC_URL: "jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false"
-                JAVA_OPTS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
-                CATALINA_OPTS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
-                JAVA_TOOL_OPTIONS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
-              entrypoint: ["sh", "-c", "echo 'Container environment:' && env && echo '--- JAVA_TOOL_OPTIONS ---' && echo \"\$JAVA_TOOL_OPTIONS\" && echo '--- end env ---' && /usr/local/tomcat/bin/catalina.sh run"]
+                # REMOVIDO: JAVA_OPTS e CATALINA_OPTS manuais que continham '&' e quebravam o script.
+                # A imagem do TeaStore constrói a conexão automaticamente com as variáveis acima.
               volumes:
                 - ./docker-overrides/persistence/persistence.xml:/usr/local/tomcat/webapps/tools.descartes.teastore.persistence/WEB-INF/classes/META-INF/persistence.xml:ro
                 - ./docker-overrides/persistence/logging.properties:/usr/local/tomcat/conf/logging.properties:ro
@@ -140,23 +139,22 @@ jobs:
           EOF
 
       # -----------------------------------------------------------------
-      # PASSO 2: START MANUAL COM VERIFICAÇÃO DE DB EXTERNA
+      # PASSO 2: START & WAIT
       # -----------------------------------------------------------------
       - name: Start Stack & Wait for DB
         run: |
           echo "🚀 Iniciando stack..."
           docker compose up -d
 
-          echo "⏳ Aguardando MySQL ficar pronto (Verificação Manual)..."
-          # Loop manual para checar o banco. Isso substitui o healthcheck do docker.
+          echo "⏳ Aguardando MySQL (Verificação Manual)..."
           MAX_RETRIES=60
           COUNT=0
           DB_READY=false
           
           while [ $COUNT -lt $MAX_RETRIES ]; do
-            # Executa comando DENTRO do container para ver se o mysql responde
+            # Verifica se o MySQL responde dentro do container
             if docker compose exec -T teastore-db mysqladmin ping -h localhost -uteauser -pteapass --silent; then
-              echo "✅ MySQL está respondendo!"
+              echo "✅ MySQL está vivo!"
               DB_READY=true
               break
             fi
@@ -171,8 +169,8 @@ jobs:
             exit 1
           fi
 
-          echo "⏳ MySQL pronto. Aguardando 120s para o Java/Tomcat terminar de subir..."
-          sleep 120 
+          echo "⏳ MySQL pronto. Aguardando 180s para o Java/Tomcat subir..."
+          sleep 180
 
       # -----------------------------------------------------------------
       # PASSO 3: POPULAR E VERIFICAR (Porta 8080)
@@ -189,6 +187,7 @@ jobs:
           API_READY=false
           
           while [ $COUNT -lt $MAX_WAIT_API ]; do
+            # Curl silencioso pegando apenas o código HTTP
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
 
             if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
@@ -208,23 +207,22 @@ jobs:
             exit 1
           fi
 
-          echo "⏳ Aguardando propagação..."
-          sleep 10
+          echo "⏳ Aguardando 15s para propagação..."
+          sleep 15
 
-          # Check Final
           echo "⏳ Verificando Home Page..."
           HOME_HTML=$(curl -L -s "$HOME_URL")
           if echo "$HOME_HTML" | grep -q "category?id="; then
-             echo "✅ SUCESSO! Categorias encontradas. Loja pronta para testes."
+             echo "✅ SUCESSO! Categorias encontradas. Loja pronta."
           else
-             echo "⚠️ Aviso: Home carregou mas categorias não apareceram. Prosseguindo mesmo assim para debug."
+             echo "⚠️ Aviso: Categorias não apareceram na Home, mas API respondeu OK. Prosseguindo para testes."
           fi
 
       - name: Check containers (Debug)
         run: docker ps -a
 
       # -----------------------------------------------------------------
-      # TESTES DE CARGA
+      # TESTES DE CARGA (JMeter, K6, Locust)
       # -----------------------------------------------------------------
       - name: Install Java & JMeter
         run: |
