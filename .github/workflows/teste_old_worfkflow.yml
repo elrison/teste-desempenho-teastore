@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v33 - Final com Relatório JMeter)
+name: Pipeline de Performance (v35 - Docker Customizado)
 
 on:
   workflow_dispatch:
@@ -18,36 +18,173 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # INICIALIZAÇÃO DA STACK
+      # PASSO 1: CRIAR ARQUIVOS NECESSÁRIOS PARA O DOCKER
+      # -----------------------------------------------------------------
+      - name: Setup Docker Configuration
+        run: |
+          # 1. Criar diretórios para os volumes (evita erro de mount)
+          mkdir -p docker-overrides/mysql
+          mkdir -p docker-overrides/persistence
+
+          # 2. Criar arquivos placeholder vazios para os volumes
+          # (Se você já tiver esses arquivos no repo, este passo não fará mal,
+          # mas garante que o docker up não falhe se eles não existirem)
+          touch docker-overrides/mysql/init.sql
+          touch docker-overrides/persistence/persistence.xml
+          touch docker-overrides/persistence/logging.properties
+
+          # 3. ESCREVER O SEU DOCKER COMPOSE NO DISCO
+          cat <<EOF > docker-compose.yml
+          version: "2.4"
+          services:
+            teastore-db:
+              image: mysql:5.7
+              restart: always
+              environment:
+                MYSQL_ROOT_PASSWORD: "rootpass"
+                MYSQL_DATABASE: "teadb"
+                MYSQL_USER: "teauser"
+                MYSQL_PASSWORD: "teapass"
+              volumes:
+                - ./docker-overrides/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+              command: [--skip-ssl]
+              networks:
+                - teastore-network
+              healthcheck:
+                test: ["CMD-SHELL", "mysqladmin ping -h localhost -uteauser -pteapass --silent"]
+                interval: 5s
+                timeout: 5s
+                retries: 15
+                start_period: 10s
+
+            teastore-registry:
+              image: descartesresearch/teastore-registry:latest
+              depends_on:
+                teastore-db:
+                  condition: service_healthy
+              environment:
+                HOST_NAME: teastore-registry
+                SERVICE_PORT: 8080
+              networks:
+                - teastore-network
+
+            teastore-persistence:
+              image: descartesresearch/teastore-persistence:latest
+              depends_on:
+                teastore-db:
+                  condition: service_healthy
+                teastore-registry:
+                  condition: service_started
+              environment:
+                REGISTRY_HOST: teastore-registry
+                REGISTRY_PORT: 8080
+                HOST_NAME: teastore-persistence
+                SERVICE_PORT: 8080
+                DB_HOST: teastore-db
+                DB_PORT: "3306"
+                DB_NAME: teadb
+                DB_USER: "teauser"
+                DB_PASS: "teapass"
+                JDBC_URL: "jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false"
+                JAVA_OPTS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
+                CATALINA_OPTS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
+                JAVA_TOOL_OPTIONS: "-Djavax.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djavax.persistence.jdbc.user=teauser -Djavax.persistence.jdbc.password=teapass -Djakarta.persistence.jdbc.url=jdbc:mysql://teastore-db:3306/teadb?useSSL=false&allowPublicKeyRetrieval=true&verifyServerCertificate=false -Djakarta.persistence.jdbc.user=teauser -Djakarta.persistence.jdbc.password=teapass"
+              entrypoint: ["sh", "-c", "echo 'Container environment:' && env && echo '--- JAVA_TOOL_OPTIONS ---' && echo \"\$JAVA_TOOL_OPTIONS\" && echo '--- end env ---' && /usr/local/tomcat/bin/catalina.sh run"]
+              volumes:
+                - ./docker-overrides/persistence/persistence.xml:/usr/local/tomcat/webapps/tools.descartes.teastore.persistence/WEB-INF/classes/META-INF/persistence.xml:ro
+                - ./docker-overrides/persistence/logging.properties:/usr/local/tomcat/conf/logging.properties:ro
+              networks:
+                - teastore-network
+
+            teastore-recommender:
+              image: descartesresearch/teastore-recommender:latest
+              depends_on:
+                teastore-registry:
+                  condition: service_started
+              environment:
+                REGISTRY_HOST: teastore-registry
+                REGISTRY_PORT: 8080
+                HOST_NAME: teastore-recommender
+                SERVICE_PORT: 8080
+              networks:
+                - teastore-network
+
+            teastore-auth:
+              image: descartesresearch/teastore-auth:latest
+              depends_on:
+                teastore-registry:
+                  condition: service_started
+              environment:
+                REGISTRY_HOST: teastore-registry
+                REGISTRY_PORT: 8080
+                HOST_NAME: teastore-auth
+                SERVICE_PORT: 8080
+              networks:
+                - teastore-network
+
+            teastore-image:
+              image: descartesresearch/teastore-image:latest
+              depends_on:
+                teastore-registry:
+                  condition: service_started
+              environment:
+                REGISTRY_HOST: teastore-registry
+                REGISTRY_PORT: 8080
+                HOST_NAME: teastore-image
+                SERVICE_PORT: 8080
+              networks:
+                - teastore-network
+
+            teastore-webui:
+              image: descartesresearch/teastore-webui:latest
+              ports:
+                - "8080:8080"
+              depends_on:
+                teastore-registry:
+                  condition: service_started
+              environment:
+                REGISTRY_HOST: teastore-registry
+                REGISTRY_PORT: 8080
+                HOST_NAME: teastore-webui
+                SERVICE_PORT: 8080
+              networks:
+                - teastore-network
+
+          networks:
+            teastore-network:
+              driver: bridge
+          EOF
+
+      # -----------------------------------------------------------------
+      # PASSO 2: SUBIR STACK E ESPERAR
       # -----------------------------------------------------------------
       - name: Start TeaStore stack
         run: |
-          echo "🚀 Iniciando toda a stack com 'docker compose up -d'..."
+          echo "🚀 Iniciando stack com seu Docker customizado..."
           docker compose up -d
           
-          echo "⏳ A 'Grande Espera'..."
-          echo "Aguardando 300 SEGUNDOS (5 Minutos) para o Java/Tomcat subir completamente."
+          echo "⏳ Aguardando 300 SEGUNDOS (5 Minutos) para inicialização do Java..."
           sleep 300
           
           echo "✅ Tempo de espera concluído. Verificando serviços..."
 
       # -----------------------------------------------------------------
-      # POPULAÇÃO E VERIFICAÇÃO (O passo que garante que a loja funciona)
+      # PASSO 3: POPULAR E VERIFICAR (Porta atualizada para 8080)
       # -----------------------------------------------------------------
       - name: Populate & Wait for Products
         run: |
-          GEN_URL="http://localhost:18081/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
-          HOME_URL="http://localhost:18081/tools.descartes.teastore.webui/"
+          # ATENÇÃO: Porta alterada para 8080 conforme seu Dockerfile
+          GEN_URL="http://localhost:8080/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
+          HOME_URL="http://localhost:8080/tools.descartes.teastore.webui/"
           
-          echo "🚀 Iniciando verificação da API..."
+          echo "🚀 Iniciando verificação da API na porta 8080..."
           
-          # Loop 1: Esperar API responder 200 OK (sem redirect)
+          # Loop 1: Esperar API responder 200 OK
           MAX_WAIT_API=120
           COUNT=0
           API_READY=false
           
           while [ $COUNT -lt $MAX_WAIT_API ]; do
-            # Curl sem -L para pegar o código real (evitar falso positivo 302)
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
 
             if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
@@ -72,11 +209,9 @@ jobs:
           for i in {1..12}; do
             HOME_HTML=$(curl -L -s "$HOME_URL")
             if echo "$HOME_HTML" | grep -q "category?id="; then
-               # Pega o link da primeira categoria
                CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
                FULL_URL="${HOME_URL}${CAT_LINK}"
                
-               # Verifica se a categoria tem produtos
                CAT_HTML=$(curl -L -s "$FULL_URL")
                if echo "$CAT_HTML" | grep -q "product?id="; then
                  echo "✅ SUCESSO! Produtos encontrados."
@@ -94,7 +229,7 @@ jobs:
         run: docker ps -a
 
       # -----------------------------------------------------------------
-      # JMETER (Configurado para gerar Relatório HTML)
+      # TESTES DE CARGA (Porta atualizada para 8080)
       # -----------------------------------------------------------------
       - name: Install Java & JMeter
         run: |
@@ -108,29 +243,22 @@ jobs:
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
             -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=localhost -Jport=8080 || true
 
       - name: Run JMeter Complexos
         run: |
-          # O comando abaixo gera:
-          # 1. O arquivo de log bruto (.jtl)
-          # 2. A pasta com o dashboard HTML (-e -o path)
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
             -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=18081 || true
+            -Jhostname=localhost -Jport=8080 || true
 
       - name: Upload JMeter reports
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
-          # Faz o upload de tudo que começa com 'report' dentro da pasta jmeter
           path: jmeter-teastore/report*
 
-      # -----------------------
-      # K6
-      # -----------------------
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -138,14 +266,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
+      # Nota: Seus scripts K6 precisam usar a variável de ambiente ou serem editados para porta 8080
+      # Vou passar via variável de ambiente para o K6 pegar, mas verifique seus scripts .js
       - name: Run K6 Simples
         run: |
           k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
+        env:
+          BASE_URL: http://localhost:8080
 
       - name: Run K6 Complexos
         run: |
-          # Seu script JS já deve ter o handleSummary para gerar HTML
           k6 run k6-teastore/cenarios-complexos.js || true
+        env:
+          BASE_URL: http://localhost:8080
 
       - name: Upload K6 summaries
         uses: actions/upload-artifact@v4
@@ -155,9 +288,6 @@ jobs:
             k6-*.json
             k6*.html
 
-      # -----------------------
-      # LOCUST
-      # -----------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -170,14 +300,14 @@ jobs:
       - name: Run Locust Simples
         run: |
           locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s \
-            --host http://localhost:18081 \
+            --host http://localhost:8080 \
             --html locust-teastore/simple.html \
             --csv locust-teastore/simple || true
 
       - name: Run Locust Complexos
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s \
-            --host http://localhost:18081 \
+            --host http://localhost:8080 \
             --html locust-teastore/complex.html \
             --csv locust-teastore/complex || true
 
@@ -187,12 +317,8 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      # -----------------------
-      # CONSOLIDATED DASHBOARD
-      # -----------------------
       - name: Generate consolidated dashboard & PDF
         run: |
-          # Certifique-se que os caminhos aqui batem com os arquivos gerados acima
           python3 generate_dashboard.py \
             --k6 k6-complex.json \
             --jmeter jmeter-teastore/results-complexos.jtl \
