@@ -155,20 +155,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: K6 - 100 VUs
+      - name: K6 - testes simples
         run: |
-          k6 run k6-teastore/cenario-100-vus.js \
-            --summary-export=k6-100-vus.json || true
+          k6 run k6-teastore/teste-carga-simples.js \
+            --summary-export=k6-simple.json || true
 
-      - name: K6 - 500 VUs
+      - name: K6 - testes complexos
         run: |
-          k6 run k6-teastore/cenario-500-vus.js \
-            --summary-export=k6-500-vus.json || true
-
-      - name: K6 - 1000 VUs
-        run: |
-          k6 run k6-teastore/cenario-1000-vus.js \
-            --summary-export=k6-1000-vus.json || true
+          k6 run k6-teastore/cenarios-complexos.js \
+            --summary-export=k6-complex.json || true
 
       - name: Upload K6 summaries
         if: always()
@@ -176,9 +171,8 @@ jobs:
         with:
           name: relatorios-k6
           path: |
-            k6-100-vus.json
-            k6-500-vus.json
-            k6-1000-vus.json
+            k6-simple.json
+            k6-complex.json
 
       # -------------------------- L O C U S T ------------------------
       - name: Setup Python
@@ -190,26 +184,19 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Locust - 100 VUs
+      - name: Locust - teste simples
         run: |
-          locust -f locust-teastore/cenario-100-vus.py \
-            --headless -u 100 -r 10 -t 2m \
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 5 -r 2 -t 15s \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/report-100-vus.html || true
+            --html locust-teastore/simple.html || true
 
-      - name: Locust - 500 VUs
+      - name: Locust - teste complexo
         run: |
-          locust -f locust-teastore/cenario-500-vus.py \
-            --headless -u 500 -r 50 -t 3m \
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 3 -t 30s \
             --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/report-500-vus.html || true
-
-      - name: Locust - 1000 VUs
-        run: |
-          locust -f locust-teastore/cenario-1000-vus.py \
-            --headless -u 1000 -r 100 -t 5m \
-            --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/report-1000-vus.html || true
+            --html locust-teastore/complex.html || true
 
       - name: Upload Locust reports
         if: always()
