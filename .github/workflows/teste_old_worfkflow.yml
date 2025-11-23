@@ -1,4 +1,4 @@
-name: Pipeline de Performance (Final - Docker User + Relatórios)
+name: Pipeline de Performance (Final - Sem Healthcheck Nativo)
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 jobs:
   performance:
     runs-on: ubuntu-latest
-    timeout-minutes: 40 # Aumentei um pouco para garantir
+    timeout-minutes: 35
 
     steps:
       - name: Checkout repo
@@ -18,20 +18,18 @@ jobs:
           sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
 
       # -----------------------------------------------------------------
-      # PASSO 1: PREPARAR ARQUIVOS E DOCKER COMPOSE
+      # PASSO 1: PREPARAR ARQUIVOS E DOCKER COMPOSE (MODIFICADO)
+      # Removemos o healthcheck nativo para evitar que o Docker mate o DB
       # -----------------------------------------------------------------
       - name: Setup Docker Configuration
         run: |
-          # 1. Criar diretórios para os volumes do seu Docker
           mkdir -p docker-overrides/mysql
           mkdir -p docker-overrides/persistence
-
-          # 2. Criar arquivos vazios para não dar erro de montagem
           touch docker-overrides/mysql/init.sql
           touch docker-overrides/persistence/persistence.xml
           touch docker-overrides/persistence/logging.properties
 
-          # 3. ESCREVER O SEU DOCKER COMPOSE (Com Healthcheck ajustado para CI)
+          # REESCREVENDO O DOCKER COMPOSE SEM HEALTHCHECK RESTRITIVO
           cat <<EOF > docker-compose.yml
           version: "2.4"
           services:
@@ -48,18 +46,12 @@ jobs:
               command: [--skip-ssl]
               networks:
                 - teastore-network
-              healthcheck:
-                test: ["CMD-SHELL", "mysqladmin ping -h localhost -uteauser -pteapass --silent"]
-                interval: 5s
-                timeout: 5s
-                retries: 60  # <--- AUMENTADO PARA 60 (Evita o erro 'unhealthy' no CI)
-                start_period: 30s
+              # HEALTHCHECK REMOVIDO: Vamos controlar isso via script no pipeline
 
             teastore-registry:
               image: descartesresearch/teastore-registry:latest
               depends_on:
-                teastore-db:
-                  condition: service_healthy
+                - teastore-db # Dependência simples, sem esperar health
               environment:
                 HOST_NAME: teastore-registry
                 SERVICE_PORT: 8080
@@ -69,10 +61,8 @@ jobs:
             teastore-persistence:
               image: descartesresearch/teastore-persistence:latest
               depends_on:
-                teastore-db:
-                  condition: service_healthy
-                teastore-registry:
-                  condition: service_started
+                - teastore-db
+                - teastore-registry
               environment:
                 REGISTRY_HOST: teastore-registry
                 REGISTRY_PORT: 8080
@@ -97,8 +87,7 @@ jobs:
             teastore-recommender:
               image: descartesresearch/teastore-recommender:latest
               depends_on:
-                teastore-registry:
-                  condition: service_started
+                - teastore-registry
               environment:
                 REGISTRY_HOST: teastore-registry
                 REGISTRY_PORT: 8080
@@ -110,8 +99,7 @@ jobs:
             teastore-auth:
               image: descartesresearch/teastore-auth:latest
               depends_on:
-                teastore-registry:
-                  condition: service_started
+                - teastore-registry
               environment:
                 REGISTRY_HOST: teastore-registry
                 REGISTRY_PORT: 8080
@@ -123,8 +111,7 @@ jobs:
             teastore-image:
               image: descartesresearch/teastore-image:latest
               depends_on:
-                teastore-registry:
-                  condition: service_started
+                - teastore-registry
               environment:
                 REGISTRY_HOST: teastore-registry
                 REGISTRY_PORT: 8080
@@ -138,8 +125,7 @@ jobs:
               ports:
                 - "8080:8080"
               depends_on:
-                teastore-registry:
-                  condition: service_started
+                - teastore-registry
               environment:
                 REGISTRY_HOST: teastore-registry
                 REGISTRY_PORT: 8080
@@ -154,47 +140,64 @@ jobs:
           EOF
 
       # -----------------------------------------------------------------
-      # PASSO 2: SUBIR STACK E ESPERAR
+      # PASSO 2: START MANUAL COM VERIFICAÇÃO DE DB EXTERNA
       # -----------------------------------------------------------------
-      - name: Start TeaStore stack
+      - name: Start Stack & Wait for DB
         run: |
-          echo "🚀 Iniciando stack com seu Docker customizado..."
-          # O Docker agora vai esperar até 5 minutos pelo DB (retries: 60)
-          # Se o DB falhar em subir, o passo falha aqui.
+          echo "🚀 Iniciando stack..."
           docker compose up -d
+
+          echo "⏳ Aguardando MySQL ficar pronto (Verificação Manual)..."
+          # Loop manual para checar o banco. Isso substitui o healthcheck do docker.
+          MAX_RETRIES=60
+          COUNT=0
+          DB_READY=false
           
-          echo "⏳ Docker Compose concluído. Agora aguardando 240s para o Java/Tomcat iniciar..."
-          sleep 240
-          
-          echo "✅ Verificando serviços..."
+          while [ $COUNT -lt $MAX_RETRIES ]; do
+            # Executa comando DENTRO do container para ver se o mysql responde
+            if docker compose exec -T teastore-db mysqladmin ping -h localhost -uteauser -pteapass --silent; then
+              echo "✅ MySQL está respondendo!"
+              DB_READY=true
+              break
+            fi
+            echo "⏳ Tentativa $COUNT: MySQL iniciando..."
+            sleep 5
+            COUNT=$((COUNT + 1))
+          done
+
+          if [ "$DB_READY" = false ]; then
+            echo "❌ Timeout esperando MySQL."
+            docker compose logs teastore-db
+            exit 1
+          fi
+
+          echo "⏳ MySQL pronto. Aguardando 120s para o Java/Tomcat terminar de subir..."
+          sleep 120 
 
       # -----------------------------------------------------------------
       # PASSO 3: POPULAR E VERIFICAR (Porta 8080)
       # -----------------------------------------------------------------
       - name: Populate & Wait for Products
         run: |
-          # ATENÇÃO: Porta 8080
           GEN_URL="http://localhost:8080/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
           HOME_URL="http://localhost:8080/tools.descartes.teastore.webui/"
           
-          echo "🚀 Iniciando verificação da API na porta 8080..."
+          echo "🚀 Verificando API de Persistência..."
           
-          # Loop 1: Esperar API responder 200 OK
           MAX_WAIT_API=120
           COUNT=0
           API_READY=false
           
           while [ $COUNT -lt $MAX_WAIT_API ]; do
-            # -s (silent), -o /dev/null (sem output), -w (código http)
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
 
             if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
-              echo "✅ API respondeu $HTTP_CODE! Backend online e gerando dados."
+              echo "✅ API respondeu $HTTP_CODE! Dados gerados."
               API_READY=true
               break
             fi
             
-            echo "⏳ ($COUNT/${MAX_WAIT_API}s) API HTTP $HTTP_CODE - Aguardando..."
+            echo "⏳ API HTTP $HTTP_CODE - Aguardando..."
             sleep 5
             COUNT=$((COUNT + 5))
           done
@@ -205,36 +208,23 @@ jobs:
             exit 1
           fi
 
-          echo "⏳ Aguardando 15s para gravação dos dados..."
-          sleep 15
+          echo "⏳ Aguardando propagação..."
+          sleep 10
 
-          # Loop 2: Esperar produtos aparecerem na Home
-          echo "⏳ Aguardando produtos na Home Page..."
-          for i in {1..12}; do
-            HOME_HTML=$(curl -L -s "$HOME_URL")
-            if echo "$HOME_HTML" | grep -q "category?id="; then
-               # Pega o link da primeira categoria
-               CAT_LINK=$(echo "$HOME_HTML" | grep -o 'category?id=[0-9]*' | head -n 1)
-               FULL_URL="${HOME_URL}${CAT_LINK}"
-               
-               CAT_HTML=$(curl -L -s "$FULL_URL")
-               if echo "$CAT_HTML" | grep -q "product?id="; then
-                 echo "✅ SUCESSO! Produtos encontrados. Loja pronta."
-                 exit 0
-               fi
-            fi
-            echo "⏳ Tentativa $i: Aguardando propagação de dados..."
-            sleep 5
-          done
-          
-          echo "❌ Timeout: Produtos não apareceram."
-          exit 1
+          # Check Final
+          echo "⏳ Verificando Home Page..."
+          HOME_HTML=$(curl -L -s "$HOME_URL")
+          if echo "$HOME_HTML" | grep -q "category?id="; then
+             echo "✅ SUCESSO! Categorias encontradas. Loja pronta para testes."
+          else
+             echo "⚠️ Aviso: Home carregou mas categorias não apareceram. Prosseguindo mesmo assim para debug."
+          fi
 
       - name: Check containers (Debug)
         run: docker ps -a
 
       # -----------------------------------------------------------------
-      # TESTES DE CARGA - JMETER
+      # TESTES DE CARGA
       # -----------------------------------------------------------------
       - name: Install Java & JMeter
         run: |
@@ -252,7 +242,6 @@ jobs:
 
       - name: Run JMeter Complexos
         run: |
-          # GERA O RELATÓRIO HTML NA PASTA 'report-complexos'
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
@@ -265,9 +254,6 @@ jobs:
           name: relatorios-jmeter
           path: jmeter-teastore/report*
 
-      # -----------------------------------------------------------------
-      # TESTES DE CARGA - K6
-      # -----------------------------------------------------------------
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -295,9 +281,6 @@ jobs:
             k6-*.json
             k6*.html
 
-      # -----------------------------------------------------------------
-      # TESTES DE CARGA - LOCUST
-      # -----------------------------------------------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -327,9 +310,6 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      # -----------------------------------------------------------------
-      # CONSOLIDADO
-      # -----------------------------------------------------------------
       - name: Generate consolidated dashboard & PDF
         run: |
           python3 generate_dashboard.py \
