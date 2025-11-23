@@ -84,3 +84,51 @@ A jornada para configurar este ambiente de testes automatizados foi um exercíci
 O projeto agora possui um pipeline de CI/CD totalmente funcional que, a cada `push` para a branch `master`, executa automaticamente os testes de desempenho com as três ferramentas e salva o relatório detalhado do JMeter como um artefato, que pode ser baixado para análise.
 
 Este `README` serve como um registro do processo desafiador, mas bem-sucedido, de configuração de um ambiente de testes de performance automatizados.
+
+---
+
+## 📊 Resultados dos Testes de Desempenho
+
+### Tabela 3. Latência e Performance por Ferramenta
+
+| Ferramenta | Cenário | Média (ms) | P95 (ms) | P99 (ms)* | Throughput (req/s) | Taxa Erro | Iterações |
+|------------|---------|------------|----------|-----------|-------------------|-----------|-----------|
+| **K6** | 100 VUs | 419 | 1,270 | ~1,500 | 191.96 | 0.00% | 5,819 |
+| **K6** | 500 VUs | 2,530 | 5,030 | ~5,800 | 186.90 | 0.00% | 5,862 |
+| **K6** | 1000 VUs | 4,890 | 8,080 | ~9,500 | 194.99 | 0.00% | 6,303 |
+| **JMeter** | 100 VUs | - | - | - | - | - | Pendente |
+| **JMeter** | 500 VUs | - | - | - | - | - | Pendente |
+| **JMeter** | 1000 VUs | - | - | - | - | - | Pendente |
+| **Locust** | 100 VUs | - | - | - | - | - | Pendente |
+| **Locust** | 500 VUs | - | - | - | - | - | Pendente |
+| **Locust** | 1000 VUs | - | - | - | - | - | Pendente |
+
+*P99 estimado com base na distribuição P90-P95
+
+### Análise K6 - Resultados Obtidos
+
+**✅ Taxa de Sucesso:**
+- **100% de requisições bem-sucedidas** em todos os cenários
+- 0 falhas em 179,840 requisições totais (58,190 + 58,620 + 63,030)
+- Todas as validações (checks) passaram: login, home, categoria, produto, logout
+
+**📈 Escalabilidade:**
+- **Latência média:** 419ms (100 VUs) → 2,530ms (500 VUs) → 4,890ms (1000 VUs)
+- **P95:** 1.27s (100 VUs) → 5.03s (500 VUs) → 8.08s (1000 VUs)
+- Crescimento proporcional à carga aplicada
+
+**⚡ Throughput:**
+- **Estável entre 187-195 req/s** em todos os cenários
+- Sistema mantém throughput consistente mesmo sob alta carga
+- Limite de ~195 req/s sugere gargalo no SUT, não no gerador
+
+**🔄 Duração dos Testes:**
+- 100 VUs: 5m03s (303s)
+- 500 VUs: 5m14s (314s)
+- 1000 VUs: 5m23s (323s)
+
+**💾 Tráfego de Rede:**
+- Data recebida: 133-144 MB (~430-446 kB/s)
+- Data enviada: 9.6-10 MB (~31-32 kB/s)
+
+**Status:** ✅ K6 completo | ⏳ JMeter pendente | ⏳ Locust pendente

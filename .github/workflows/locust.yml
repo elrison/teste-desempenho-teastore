@@ -1,4 +1,4 @@
-name: Pipeline de Performance LOCUST
+name: Pipeline de Performance LOCUST ATUALIZADO
 
 on:
   workflow_dispatch:
