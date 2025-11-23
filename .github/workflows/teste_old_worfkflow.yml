@@ -1,4 +1,4 @@
-name: Pipeline de Performance (v36 - Fix Environment Syntax)
+name: Pipeline de Performance Atualizado (Fix JMeter Report)
 
 on:
   workflow_dispatch:
@@ -7,251 +7,127 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      HOST: 'http://localhost'
+      HOSTNAME: 'localhost'
+      PORT: '8080'
+      BASE_PATH: '/tools.descartes.teastore.webui'
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install system packages
+      - name: Instalar dependências básicas
         run: |
           sudo apt-get update
-          sudo apt-get install -y docker-compose netcat-openbsd curl wget python3-pip python3-bs4
+          sudo apt-get install -y docker-compose \
+            netcat-openbsd curl wget python3-bs4 python3-venv
 
-      # -----------------------------------------------------------------
-      # PASSO 1: PREPARAR ARQUIVOS E DOCKER COMPOSE
-      # -----------------------------------------------------------------
-      - name: Setup Docker Configuration
+      # ------------------------------------------------------------
+      # 1) SUBIDA DA STACK
+      # ------------------------------------------------------------
+      - name: Start TeaStore stack
         run: |
-          # 1. Criar diretórios para os volumes
-          mkdir -p docker-overrides/mysql
-          mkdir -p docker-overrides/persistence
+          docker compose up -d teastore-db
+          sleep 8
+          docker compose up -d teastore-registry
+          sleep 20
+          docker compose up -d teastore-persistence teastore-auth \
+            teastore-image teastore-recommender
+          sleep 20
+          docker compose up -d teastore-webui
+          sleep 10
 
-          # 2. Criar arquivos vazios para evitar erros de mount
-          touch docker-overrides/mysql/init.sql
-          touch docker-overrides/persistence/persistence.xml
-          touch docker-overrides/persistence/logging.properties
-
-          # 3. ESCREVER O DOCKER COMPOSE (SEM AS VARIÁVEIS QUE QUEBRAM O SHELL)
-          cat <<EOF > docker-compose.yml
-          version: "2.4"
-          services:
-            teastore-db:
-              image: mysql:5.7
-              restart: always
-              environment:
-                MYSQL_ROOT_PASSWORD: "rootpass"
-                MYSQL_DATABASE: "teadb"
-                MYSQL_USER: "teauser"
-                MYSQL_PASSWORD: "teapass"
-              volumes:
-                - ./docker-overrides/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-              command: [--skip-ssl]
-              networks:
-                - teastore-network
-              # Healthcheck removido para evitar morte prematura pelo Docker
-
-            teastore-registry:
-              image: descartesresearch/teastore-registry:latest
-              depends_on:
-                - teastore-db
-              environment:
-                HOST_NAME: teastore-registry
-                SERVICE_PORT: 8080
-              networks:
-                - teastore-network
-
-            teastore-persistence:
-              image: descartesresearch/teastore-persistence:latest
-              depends_on:
-                - teastore-db
-                - teastore-registry
-              environment:
-                REGISTRY_HOST: teastore-registry
-                REGISTRY_PORT: 8080
-                HOST_NAME: teastore-persistence
-                SERVICE_PORT: 8080
-                DB_HOST: teastore-db
-                DB_PORT: "3306"
-                DB_NAME: teadb
-                DB_USER: "teauser"
-                DB_PASS: "teapass"
-                # REMOVIDO: JAVA_OPTS e CATALINA_OPTS manuais que continham '&' e quebravam o script.
-                # A imagem do TeaStore constrói a conexão automaticamente com as variáveis acima.
-              volumes:
-                - ./docker-overrides/persistence/persistence.xml:/usr/local/tomcat/webapps/tools.descartes.teastore.persistence/WEB-INF/classes/META-INF/persistence.xml:ro
-                - ./docker-overrides/persistence/logging.properties:/usr/local/tomcat/conf/logging.properties:ro
-              networks:
-                - teastore-network
-
-            teastore-recommender:
-              image: descartesresearch/teastore-recommender:latest
-              depends_on:
-                - teastore-registry
-              environment:
-                REGISTRY_HOST: teastore-registry
-                REGISTRY_PORT: 8080
-                HOST_NAME: teastore-recommender
-                SERVICE_PORT: 8080
-              networks:
-                - teastore-network
-
-            teastore-auth:
-              image: descartesresearch/teastore-auth:latest
-              depends_on:
-                - teastore-registry
-              environment:
-                REGISTRY_HOST: teastore-registry
-                REGISTRY_PORT: 8080
-                HOST_NAME: teastore-auth
-                SERVICE_PORT: 8080
-              networks:
-                - teastore-network
-
-            teastore-image:
-              image: descartesresearch/teastore-image:latest
-              depends_on:
-                - teastore-registry
-              environment:
-                REGISTRY_HOST: teastore-registry
-                REGISTRY_PORT: 8080
-                HOST_NAME: teastore-image
-                SERVICE_PORT: 8080
-              networks:
-                - teastore-network
-
-            teastore-webui:
-              image: descartesresearch/teastore-webui:latest
-              ports:
-                - "8080:8080"
-              depends_on:
-                - teastore-registry
-              environment:
-                REGISTRY_HOST: teastore-registry
-                REGISTRY_PORT: 8080
-                HOST_NAME: teastore-webui
-                SERVICE_PORT: 8080
-              networks:
-                - teastore-network
-
-          networks:
-            teastore-network:
-              driver: bridge
-          EOF
-
-      # -----------------------------------------------------------------
-      # PASSO 2: START & WAIT
-      # -----------------------------------------------------------------
-      - name: Start Stack & Wait for DB
+      - name: Wait for WebUI login (HTTP 200)
         run: |
-          echo "🚀 Iniciando stack..."
-          docker compose up -d
+          echo "⏳ Testando WebUI..."
+          for i in {1..80}; do
+            CODE=$(curl -o /dev/null -s -w "%{http_code}" \
+              ${HOST}:${PORT}${BASE_PATH}/login)
+            echo "Tentativa $i: HTTP $CODE"
 
-          echo "⏳ Aguardando MySQL (Verificação Manual)..."
-          MAX_RETRIES=60
-          COUNT=0
-          DB_READY=false
-          
-          while [ $COUNT -lt $MAX_RETRIES ]; do
-            # Verifica se o MySQL responde dentro do container
-            if docker compose exec -T teastore-db mysqladmin ping -h localhost -uteauser -pteapass --silent; then
-              echo "✅ MySQL está vivo!"
-              DB_READY=true
-              break
-            fi
-            echo "⏳ Tentativa $COUNT: MySQL iniciando..."
-            sleep 5
-            COUNT=$((COUNT + 1))
-          done
-
-          if [ "$DB_READY" = false ]; then
-            echo "❌ Timeout esperando MySQL."
-            docker compose logs teastore-db
-            exit 1
-          fi
-
-          echo "⏳ MySQL pronto. Aguardando 180s para o Java/Tomcat subir..."
-          sleep 180
-
-      # -----------------------------------------------------------------
-      # PASSO 3: POPULAR E VERIFICAR (Porta 8080)
-      # -----------------------------------------------------------------
-      - name: Populate & Wait for Products
-        run: |
-          GEN_URL="http://localhost:8080/tools.descartes.teastore.webui/services/rest/persistence/generateDatabase?products=500&clients=20&categories=50&orders=20"
-          HOME_URL="http://localhost:8080/tools.descartes.teastore.webui/"
-          
-          echo "🚀 Verificando API de Persistência..."
-          
-          MAX_WAIT_API=120
-          COUNT=0
-          API_READY=false
-          
-          while [ $COUNT -lt $MAX_WAIT_API ]; do
-            # Curl silencioso pegando apenas o código HTTP
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$GEN_URL")
-
-            if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "204" ]; then
-              echo "✅ API respondeu $HTTP_CODE! Dados gerados."
-              API_READY=true
-              break
+            if [ "$CODE" = "200" ]; then
+              echo "🟢 WebUI ONLINE!"
+              exit 0
             fi
             
-            echo "⏳ API HTTP $HTTP_CODE - Aguardando..."
-            sleep 5
-            COUNT=$((COUNT + 5))
+            sleep 3
           done
+          echo "❌ WebUI não respondeu."
+          exit 1
 
-          if [ "$API_READY" == "false" ]; then
-            echo "❌ Erro: API de persistência não ficou pronta."
-            docker compose logs teastore-persistence
-            exit 1
-          fi
+      # ------------------------------------------------------------
+      # 2) TESTES 100% SEPARADOS
+      # ------------------------------------------------------------
 
-          echo "⏳ Aguardando 15s para propagação..."
-          sleep 15
-
-          echo "⏳ Verificando Home Page..."
-          HOME_HTML=$(curl -L -s "$HOME_URL")
-          if echo "$HOME_HTML" | grep -q "category?id="; then
-             echo "✅ SUCESSO! Categorias encontradas. Loja pronta."
-          else
-             echo "⚠️ Aviso: Categorias não apareceram na Home, mas API respondeu OK. Prosseguindo para testes."
-          fi
-
-      - name: Check containers (Debug)
-        run: docker ps -a
-
-      # -----------------------------------------------------------------
-      # TESTES DE CARGA (JMeter, K6, Locust)
-      # -----------------------------------------------------------------
+      # ------------------------ J M E T E R -----------------------
       - name: Install Java & JMeter
         run: |
           sudo apt-get install -y openjdk-11-jre-headless
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: Run JMeter Simples
+      - name: JMETER - testes simples (Execução + Relatório Separado)
         run: |
+          echo "1. Limpando relatórios antigos..."
+          rm -rf jmeter-teastore/results-simples.jtl jmeter-teastore/report-simples
+
+          echo "2. Executando teste simples (Gerando apenas JTL)..."
+          # Removemos o -e -o daqui para evitar falha na geração se houver erro no teste
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/teste-carga-simples.jmx \
             -l jmeter-teastore/results-simples.jtl \
-            -e -o jmeter-teastore/report-simples \
-            -Jhostname=localhost -Jport=8080 || true
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros (isso é esperado em testes de carga)"
+          
+          echo "3. Gerando Relatório HTML a partir do JTL..."
+          if [ -s jmeter-teastore/results-simples.jtl ]; then
+             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-simples.jtl -o jmeter-teastore/report-simples
+             echo "✅ Relatório simples gerado!"
+          else
+             echo "❌ Arquivo JTL vazio ou não existe. O teste falhou drasticamente."
+          fi
 
-      - name: Run JMeter Complexos
+      - name: JMETER - Testes complexos (Execução + Relatório Separado)
         run: |
+          echo "1. Limpando relatórios antigos..."
+          rm -rf jmeter-teastore/results-complexos.jtl jmeter-teastore/report-complexos
+
+          echo "2. Executando teste complexo (Gerando apenas JTL)..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenarios-complexos.jmx \
             -l jmeter-teastore/results-complexos.jtl \
-            -e -o jmeter-teastore/report-complexos \
-            -Jhostname=localhost -Jport=8080 || true
+            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
+          
+          echo "3. Gerando Relatório HTML a partir do JTL..."
+          if [ -s jmeter-teastore/results-complexos.jtl ]; then
+             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-complexos.jtl -o jmeter-teastore/report-complexos
+             echo "✅ Relatório complexo gerado!"
+          else
+             echo "❌ Arquivo JTL vazio ou não existe."
+          fi
+
+      - name: Verificar arquivos gerados e Logs
+        if: always()
+        run: |
+          echo "=== Listando pasta JMeter ==="
+          ls -R jmeter-teastore/
+          
+          echo "=== Log do JMeter (se existir) ==="
+          cat jmeter.log || echo "Sem log do JMeter na raiz"
 
       - name: Upload JMeter reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
-          path: jmeter-teastore/report*
+          path: |
+            jmeter-teastore/report-simples/
+            jmeter-teastore/report-complexos/
+            jmeter-teastore/results-simples.jtl
+            jmeter-teastore/results-complexos.jtl
+            jmeter.log
 
+      # ---------------------------- K 6 ----------------------------
       - name: Install K6
         run: |
           curl -s https://dl.k6.io/key.gpg | sudo apt-key add -
@@ -259,74 +135,91 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y k6
 
-      - name: Run K6 Simples
+      - name: K6 - testes simples
         run: |
-          k6 run k6-teastore/teste-carga-simples.js --summary-export=k6-simple.json || true
-        env:
-          BASE_URL: http://localhost:8080
+          k6 run k6-teastore/teste-carga-simples.js \
+            --summary-export=k6-simple.json || true
 
-      - name: Run K6 Complexos
+      - name: K6 - testes complexos
         run: |
-          k6 run k6-teastore/cenarios-complexos.js || true
-        env:
-          BASE_URL: http://localhost:8080
+          k6 run k6-teastore/cenarios-complexos.js \
+            --summary-export=k6-complex.json || true
 
       - name: Upload K6 summaries
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-k6
           path: |
-            k6-*.json
-            k6*.html
+            k6-simple.json
+            k6-complex.json
 
+      # -------------------------- L O C U S T ------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
-          pip install locust beautifulsoup4 requests pandas matplotlib lxml reportlab
+          pip install -r requirements.txt
 
-      - name: Run Locust Simples
+      - name: Locust - teste simples
         run: |
-          locust -f locust-teastore/locustfile.py --headless -u 5 -r 2 -t 15s \
-            --host http://localhost:8080 \
-            --html locust-teastore/simple.html \
-            --csv locust-teastore/simple || true
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 5 -r 2 -t 15s \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/simple.html || true
 
-      - name: Run Locust Complexos
+      - name: Locust - teste complexo
         run: |
-          locust -f locust-teastore/cenarios-complexos-locust.py --headless -u 10 -r 3 -t 30s \
-            --host http://localhost:8080 \
-            --html locust-teastore/complex.html \
-            --csv locust-teastore/complex || true
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 3 -t 30s \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/complex.html || true
 
-      - name: Upload Locust HTML
+      - name: Locust - 100 VUs
+        run: |
+          locust -f locust-teastore/cenario-100-vus.py \
+            --headless -u 100 -r 10 -t 2m \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/report-100-vus.html || true
+
+      - name: Locust - 500 VUs
+        run: |
+          locust -f locust-teastore/cenario-500-vus.py \
+            --headless -u 500 -r 20 -t 3m \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/report-500-vus.html || true
+
+      - name: Locust - 1000 VUs
+        run: |
+          locust -f locust-teastore/cenario-1000-vus.py \
+            --headless -u 1000 -r 30 -t 5m \
+            --host ${HOST}:${PORT}${BASE_PATH} \
+            --html locust-teastore/report-1000-vus.html || true
+
+      - name: Upload Locust reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      - name: Generate consolidated dashboard & PDF
-        run: |
-          python3 generate_dashboard.py \
-            --k6 k6-complex.json \
-            --jmeter jmeter-teastore/results-complexos.jtl \
-            --locust locust-teastore/complex_stats.csv \
-            --pdf report.pdf \
-            --out dashboard.html || true
-
-      - name: Upload consolidated
+      - name: Upload debug artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: relatorio-consolidado
+          name: debug-artifacts
           path: |
-            dashboard.html
-            report.pdf
-            charts/
-        if: always()
-
+            jmeter-teastore/failures/**
+            jmeter-teastore/failures.jtl
+            logs/**
+            summary-unified.json
+      
+      # ------------------------------------------------------------
+      # 4) ENCERRAR
+      # ------------------------------------------------------------
       - name: Logs & Stop containers
         if: always()
         run: |
