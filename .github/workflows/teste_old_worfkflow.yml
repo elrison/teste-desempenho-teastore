@@ -105,26 +105,26 @@ jobs:
       #     else
       #        echo "❌ Arquivo JTL vazio ou não existe."
           
-      - name: JMETER - Testes 100VUS
-        run: |
-          echo "1. Limpando relatórios antigos..."
-          rm -rf jmeter-teastore/results-100-vus.jtl jmeter-teastore/report-100-vus
+      # - name: JMETER - Testes 100VUS
+      #   run: |
+      #     echo "1. Limpando relatórios antigos..."
+      #     rm -rf jmeter-teastore/results-100-vus.jtl jmeter-teastore/report-100-vus
 
-          echo "2. Executando teste complexo (Gerando apenas JTL)..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenario-100-vus.jmx \
-            -l jmeter-teastore/results-100-vus.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
+      #     echo "2. Executando teste complexo (Gerando apenas JTL)..."
+      #     ./apache-jmeter-5.6.2/bin/jmeter -n \
+      #       -t jmeter-teastore/cenario-100-vus.jmx \
+      #       -l jmeter-teastore/results-100-vus.jtl \
+      #       -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
           
-          echo "3. Gerando Relatório HTML a partir do JTL..."
-          if [ -s jmeter-teastore/results-100-vus.jtl ]; then
-             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-100-vus.jtl -o jmeter-teastore/report-100-vus
-             echo "✅ Relatório complexo gerado!"
-          else
-             echo "❌ Arquivo JTL vazio ou não existe."
-          fi
+      #     echo "3. Gerando Relatório HTML a partir do JTL..."
+      #     if [ -s jmeter-teastore/results-100-vus.jtl ]; then
+      #        ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-100-vus.jtl -o jmeter-teastore/report-100-vus
+      #        echo "✅ Relatório complexo gerado!"
+      #     else
+      #        echo "❌ Arquivo JTL vazio ou não existe."
+      #     fi
       
-      - name: JMETER - Testes 100VUS
+      - name: JMETER - Testes 500VUS
         run: |
           echo "1. Limpando relatórios antigos..."
           rm -rf jmeter-teastore/results-500-vus.jtl jmeter-teastore/report-500-vus
@@ -143,24 +143,24 @@ jobs:
              echo "❌ Arquivo JTL vazio ou não existe."
           fi
         
-      - name: JMETER - Testes 100VUS
-        run: |
-          echo "1. Limpando relatórios antigos..."
-          rm -rf jmeter-teastore/results-1000-vus.jtl jmeter-teastore/report-1000-vus
+      # - name: JMETER - Testes 1000VUS
+      #   run: |
+      #     echo "1. Limpando relatórios antigos..."
+      #     rm -rf jmeter-teastore/results-1000-vus.jtl jmeter-teastore/report-1000-vus
 
-          echo "2. Executando teste complexo (Gerando apenas JTL)..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenario-1000-vus.jmx \
-            -l jmeter-teastore/results-1000-vus.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
+      #     echo "2. Executando teste complexo (Gerando apenas JTL)..."
+      #     ./apache-jmeter-5.6.2/bin/jmeter -n \
+      #       -t jmeter-teastore/cenario-1000-vus.jmx \
+      #       -l jmeter-teastore/results-1000-vus.jtl \
+      #       -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
           
-          echo "3. Gerando Relatório HTML a partir do JTL..."
-          if [ -s jmeter-teastore/results-1000-vus.jtl ]; then
-             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-1000-vus.jtl -o jmeter-teastore/report-1000-vus
-             echo "✅ Relatório complexo gerado!"
-          else
-             echo "❌ Arquivo JTL vazio ou não existe."
-          fi
+      #     echo "3. Gerando Relatório HTML a partir do JTL..."
+      #     if [ -s jmeter-teastore/results-1000-vus.jtl ]; then
+      #        ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-1000-vus.jtl -o jmeter-teastore/report-1000-vus
+      #        echo "✅ Relatório complexo gerado!"
+      #     else
+      #        echo "❌ Arquivo JTL vazio ou não existe."
+      #     fi
 
       - name: Verificar arquivos gerados e Logs
         if: always()
