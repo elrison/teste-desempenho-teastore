@@ -129,10 +129,8 @@ jobs:
           echo "1. Limpando relatórios antigos..."
           rm -rf jmeter-teastore/results-500-vus.jtl jmeter-teastore/report-500-vus
 
-          echo "2. Ajustando HEAP do JMeter e executando teste (500 VUs)"
-          export JVM_ARGS="-Xms2g -Xmx3g"
-
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
+          echo "2. Executando teste 500 VUs com heap correto"
+          JVM_ARGS="-Xms2g -Xmx3g" ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-500-vus.jmx \
             -l jmeter-teastore/results-500-vus.jtl \
             -Jhostname=${HOSTNAME} \
@@ -155,6 +153,7 @@ jobs:
           else
              echo "❌ Arquivo JTL vazio ou não existe. O teste falhou drasticamente."
           fi
+
 
 
   
