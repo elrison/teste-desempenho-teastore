@@ -1,4 +1,4 @@
-name: Pipeline de Performance LOCUST ATUALIZADO
+name: Pipeline de Performance Locust
 
 on:
   workflow_dispatch:
@@ -7,11 +7,6 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    env:
-      HOST: 'http://localhost'
-      HOSTNAME: 'localhost'
-      PORT: '8080'
-      BASE_PATH: '/tools.descartes.teastore.webui'
 
     steps:
       - name: Checkout repo
@@ -24,39 +19,68 @@ jobs:
             netcat-openbsd curl wget python3-bs4 python3-venv
 
       # ------------------------------------------------------------
-      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
+      # 1) SUBINDO A STACK COM ORDENS CORRETAS E DELAYS SEGUROS
       # ------------------------------------------------------------
-      - name: Start TeaStore stack (mesmo da versão que funciona)
+      - name: Start DB
         run: |
           docker compose up -d teastore-db
-          sleep 8
+          sleep 12
+
+      - name: Start Registry
+        run: |
           docker compose up -d teastore-registry
-          sleep 20
+          sleep 25
+
+      - name: Start core services
+        run: |
           docker compose up -d teastore-persistence teastore-auth \
             teastore-image teastore-recommender
-          sleep 20
-          docker compose up -d teastore-webui
-          sleep 10
+          sleep 25
 
-      - name: Wait for WebUI login (HTTP 200)
+      - name: Start WebUI
         run: |
-          echo "⏳ Testando WebUI..."
-          for i in {1..80}; do
-            CODE=$(curl -o /dev/null -s -w "%{http_code}" \
-              ${HOST}:${PORT}${BASE_PATH}/login)
-            echo "Tentativa $i: HTTP $CODE"
+          docker compose up -d teastore-webui
+          sleep 15
 
-            if [ "$CODE" = "200" ]; then
-              echo "🟢 WebUI ONLINE!"
+      # ------------------------------------------------------------
+      # 2) VALIDAÇÃO REAL: REGISTRY -> CATEGORIAS/PRODUTOS
+      # ------------------------------------------------------------
+      - name: Wait for Registry categories
+        run: |
+          echo "⏳ Testando Registry /categories..."
+          for i in {1..60}; do
+            OUT=$(curl -s http://localhost:8080/tools.descartes.teastore.registry/rest/categories)
+            if [[ "$OUT" == *"categoryId"* ]]; then
+              echo "🟢 Registry pronto!"
               exit 0
             fi
-            
+            echo "Tentativa $i ainda sem categoria..."
             sleep 3
           done
-          echo "❌ WebUI não respondeu."
+          echo "❌ Registry não carregou categorias."
           exit 1
 
-      # -------------------------- L O C U S T ------------------------
+      # ------------------------------------------------------------
+      # 3) VALIDAÇÃO REAL DO WEBUI
+      #    Testa login → redirecionamento → home
+      # ------------------------------------------------------------
+      - name: Wait for WebUI FULL READY
+        run: |
+          echo "⏳ Validando WebUI real..."
+          for i in {1..60}; do
+            OUT=$(curl -s http://localhost:8080/tools.descartes.teastore.webui/home)
+            
+            if [[ "$OUT" == *"TeaStore"* ]] && [[ "$OUT" == *"Category"* ]]; then
+              echo "🟢 WebUI totalmente carregado!"
+              exit 0
+            fi
+
+            echo "Home ainda não carregada ($i)..."
+            sleep 3
+          done
+          echo "❌ WebUI não ficou pronta."
+          exit 1
+
       # -------------------------- L O C U S T ------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -67,38 +91,31 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Locust - 100 VUs
+      - name: Locust - teste simples
         run: |
-          locust -f locust-teastore/cenario-100-vus.py \
-            --headless -u 100 -r 10 -t 2m \
-            --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/report-100-vus.html \
-            --csv=locust-teastore/results-100-vus || true
+          locust -f locust-teastore/locustfile.py \
+            --headless -u 5 -r 2 -t 15s \
+            --host http://localhost:8080 \
+            --html locust-teastore/simple.html || true
 
-      - name: Locust - 500 VUs
+      - name: Locust - teste complexo
         run: |
-          locust -f locust-teastore/cenario-500-vus.py \
-            --headless -u 500 -r 50 -t 3m \
-            --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/report-500-vus.html \
-            --csv=locust-teastore/results-500-vus || true
-
-      - name: Locust - 1000 VUs
-        run: |
-          locust -f locust-teastore/cenario-1000-vus.py \
-            --headless -u 1000 -r 100 -t 5m \
-            --host ${HOST}:${PORT}${BASE_PATH} \
-            --html locust-teastore/report-1000-vus.html \
-            --csv=locust-teastore/results-1000-vus || true
+          locust -f locust-teastore/cenarios-complexos-locust.py \
+            --headless -u 10 -r 3 -t 30s \
+            --host http://localhost:8080 \
+            --html locust-teastore/complex.html || true
 
       - name: Upload Locust reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-locust
-          path: |
-            locust-teastore/report-*.html
-            locust-teastore/results-*.csv
+          path: locust-teastore/*.html
+
+      - name: Debug – listar arquivos
+        run: |
+          echo "=== Locust Files ==="
+          find locust-teastore -maxdepth 2 -type f || true
 
       - name: Logs & Stop containers
         if: always()

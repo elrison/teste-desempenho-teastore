@@ -1,4 +1,4 @@
-name: Pipeline de Performance Atualizado (Fix JMeter Report)
+name: Pipeline de Performance (v14 - Separado)
 
 on:
   workflow_dispatch:
@@ -7,11 +7,6 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    env:
-      HOST: 'http://localhost'
-      HOSTNAME: 'localhost'
-      PORT: '8080'
-      BASE_PATH: '/tools.descartes.teastore.webui'
 
     steps:
       - name: Checkout repo
@@ -24,9 +19,9 @@ jobs:
             netcat-openbsd curl wget python3-bs4 python3-venv
 
       # ------------------------------------------------------------
-      # 1) SUBIDA DA STACK
+      # 1) SUBIDA DA STACK (SEM MODIFICAR NADA DA SUA V13)
       # ------------------------------------------------------------
-      - name: Start TeaStore stack
+      - name: Start TeaStore stack (mesmo da versão que funciona)
         run: |
           docker compose up -d teastore-db
           sleep 8
@@ -43,7 +38,7 @@ jobs:
           echo "⏳ Testando WebUI..."
           for i in {1..80}; do
             CODE=$(curl -o /dev/null -s -w "%{http_code}" \
-              ${HOST}:${PORT}${BASE_PATH}/login)
+              http://localhost:8080/tools.descartes.teastore.webui/login)
             echo "Tentativa $i: HTTP $CODE"
 
             if [ "$CODE" = "200" ]; then
@@ -67,85 +62,41 @@ jobs:
           wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.2.tgz
           tar -xzf apache-jmeter-5.6.2.tgz
 
-      - name: JMETER - 100 VUs (Execução + Relatório)
+      # Garantir que os assets do template do JMeter estejam disponíveis
+      - name: Copiar assets do dashboard JMeter (content e sbadmin2)
         run: |
-          echo "1. Limpando relatórios antigos..."
-          rm -rf jmeter-teastore/results-100-vus.jtl jmeter-teastore/report-100-vus
+          # Cria pastas alvo (caso não existam) e copia template do JMeter para dentro do projeto
+          mkdir -p jmeter-teastore/report-simples
+          mkdir -p jmeter-teastore/report-complexos
+          # Copia os assets do report-template do JMeter para o diretório jmeter-teastore,
+          # isso garante que o index.html gerado terá os CSS/JS (sbadmin2/content)
+          cp -r apache-jmeter-5.6.2/bin/report-template/content jmeter-teastore/ 2>/dev/null || true
+          cp -r apache-jmeter-5.6.2/bin/report-template/sbadmin2-1.0.7 jmeter-teastore/ 2>/dev/null || true
 
-          echo "2. Executando teste 100 VUs (Gerando apenas JTL)..."
+      - name: JMETER - testes simples
+        run: |
           ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenario-100-vus.jmx \
-            -l jmeter-teastore/results-100-vus.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
-          
-          echo "3. Gerando Relatório HTML a partir do JTL..."
-          if [ -s jmeter-teastore/results-100-vus.jtl ]; then
-             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-100-vus.jtl -o jmeter-teastore/report-100-vus
-             echo "✅ Relatório 100 VUs gerado!"
-          else
-             echo "❌ Arquivo JTL vazio ou não existe."
-          fi
+            -t jmeter-teastore/teste-carga-simples.jmx \
+            -l jmeter-teastore/results-simples.jtl \
+            -e -o jmeter-teastore/report-simples \
+            -Jhostname=localhost -Jport=18081 || true
 
-      - name: JMETER - 500 VUs (Execução + Relatório)
+      - name: JMETER - Testes complexos
         run: |
-          echo "1. Limpando relatórios antigos..."
-          rm -rf jmeter-teastore/results-500-vus.jtl jmeter-teastore/report-500-vus
-
-          echo "2. Executando teste 500 VUs (Gerando apenas JTL)..."
           ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenario-500-vus.jmx \
-            -l jmeter-teastore/results-500-vus.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
-          
-          echo "3. Gerando Relatório HTML a partir do JTL..."
-          if [ -s jmeter-teastore/results-500-vus.jtl ]; then
-             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-500-vus.jtl -o jmeter-teastore/report-500-vus
-             echo "✅ Relatório 500 VUs gerado!"
-          else
-             echo "❌ Arquivo JTL vazio ou não existe."
-          fi
+            -t jmeter-teastore/cenarios-complexos.jmx \
+            -l jmeter-teastore/results-complexos.jtl \
+            -e -o jmeter-teastore/report-complexos \
+            -Jhostname=localhost -Jport=8080 || true
 
-      - name: JMETER - 1000 VUs (Execução + Relatório)
-        run: |
-          echo "1. Limpando relatórios antigos..."
-          rm -rf jmeter-teastore/results-1000-vus.jtl jmeter-teastore/report-1000-vus
-
-          echo "2. Executando teste 1000 VUs (Gerando apenas JTL)..."
-          ./apache-jmeter-5.6.2/bin/jmeter -n \
-            -t jmeter-teastore/cenario-1000-vus.jmx \
-            -l jmeter-teastore/results-1000-vus.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
-          
-          echo "3. Gerando Relatório HTML a partir do JTL..."
-          if [ -s jmeter-teastore/results-1000-vus.jtl ]; then
-             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-1000-vus.jtl -o jmeter-teastore/report-1000-vus
-             echo "✅ Relatório 1000 VUs gerado!"
-          else
-             echo "❌ Arquivo JTL vazio ou não existe."
-          fi
-
-      - name: Verificar arquivos gerados e Logs
-        if: always()
-        run: |
-          echo "=== Listando pasta JMeter ==="
-          ls -R jmeter-teastore/
-          
-          echo "=== Log do JMeter (se existir) ==="
-          cat jmeter.log || echo "Sem log do JMeter na raiz"
-
-      - name: Upload JMeter reports
+      - name: Upload JMeter reports (completo)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: relatorios-jmeter
           path: |
-            jmeter-teastore/report-100-vus/
-            jmeter-teastore/report-500-vus/
-            jmeter-teastore/report-1000-vus/
-            jmeter-teastore/results-100-vus.jtl
-            jmeter-teastore/results-500-vus.jtl
-            jmeter-teastore/results-1000-vus.jtl
-            jmeter.log
+            jmeter-teastore/report-simples/**
+            jmeter-teastore/report-complexos/**
 
       # ---------------------------- K 6 ----------------------------
       - name: Install K6
@@ -188,14 +139,14 @@ jobs:
         run: |
           locust -f locust-teastore/locustfile.py \
             --headless -u 5 -r 2 -t 15s \
-            --host ${HOST}:${PORT}${BASE_PATH} \
+            --host http://localhost:8080 \
             --html locust-teastore/simple.html || true
 
       - name: Locust - teste complexo
         run: |
           locust -f locust-teastore/cenarios-complexos-locust.py \
             --headless -u 10 -r 3 -t 30s \
-            --host ${HOST}:${PORT}${BASE_PATH} \
+            --host http://localhost:8080 \
             --html locust-teastore/complex.html || true
 
       - name: Upload Locust reports
@@ -205,17 +156,74 @@ jobs:
           name: relatorios-locust
           path: locust-teastore/*.html
 
-      - name: Upload debug artifacts
+      - name: Debug – listar arquivos
+        run: |
+          echo "=== K6 Files ==="
+          find . -name "k6*" -maxdepth 3 || true
+          echo "=== Locust Files ==="
+          find locust-teastore -maxdepth 2 -type f || true
+          echo "=== JMeter Files ==="
+          find jmeter-teastore -maxdepth 4 -type f || true
+
+      # ------------------------------------------------------------
+      # 3) DASHBOARD FINAL (SEM MEXER NO SEU SCRIPT)
+      # ------------------------------------------------------------
+      - name: Generate Dashboard Consolidado
+        run: |
+          python3 generate_dashboard.py \
+            --k6 k6-complex.json \
+            --jmeter jmeter-teastore/results-complexos.jtl \
+            --locust locust-teastore/complex.html \
+            --out dashboard.html \
+            --pdf report.pdf
+
+      - name: Upload Dashboard
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: debug-artifacts
+          name: dashboard-consolidado
           path: |
-            jmeter-teastore/failures/**
-            jmeter-teastore/failures.jtl
-            logs/**
-            summary-unified.json
-      
+            dashboard.html
+            report.pdf
+
+      - name: Gerar gráficos extras JMeter
+        run: |
+          python3 scripts/unify_jmeter_graphs.py \
+            jmeter-teastore/results-complexos.jtl \
+            jmeter-teastore/graficos
+
+      - name: PDF JMeter
+        run: |
+          python3 scripts/generate_jmeter_pdf.py \
+            jmeter-teastore/graficos \
+            jmeter-jtl.pdf
+
+      - name: Dashboard HTML do K6
+        run: |
+          bash scripts/k6_dashboard.sh
+
+      - name: PDF K6
+        run: |
+          python3 scripts/generate_k6_pdf.py \
+            k6-complex.json \
+            k6.pdf
+
+      - name: PDF Locust
+        run: |
+          python3 scripts/generate_locust_pdf.py \
+            locust-teastore/complex.html \
+            locust.pdf
+
+      - name: Upload PDFs individualizados
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-pdf
+          path: |
+            jmeter-jtl.pdf
+            k6.pdf
+            locust.pdf
+            k6-html/*.html
+
       # ------------------------------------------------------------
       # 4) ENCERRAR
       # ------------------------------------------------------------

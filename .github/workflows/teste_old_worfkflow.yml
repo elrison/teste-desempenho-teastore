@@ -1,4 +1,4 @@
-name: Pipeline de Performance Atualizado (Fix JMeter Report)
+name: Pipeline de Performance Reteste
 
 on:
   workflow_dispatch:
