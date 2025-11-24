@@ -124,8 +124,8 @@ jobs:
       #        echo "❌ Arquivo JTL vazio ou não existe."
       #     fi
       
-       name: JMETER - Testes 500VUS
-       run: |
+      - name: JMETER - Testes 500VUS
+        run: |
           echo "1. Limpando relatórios antigos..."
           rm -rf jmeter-teastore/results-500-vus.jtl jmeter-teastore/report-500-vus
 
