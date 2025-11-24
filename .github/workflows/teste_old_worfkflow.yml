@@ -129,20 +129,27 @@ jobs:
           echo "1. Limpando relatórios antigos..."
           rm -rf jmeter-teastore/results-500-vus.jtl jmeter-teastore/report-500-vus
 
-          echo "2. Executando teste complexo (Gerando apenas JTL)..."
+          echo "2. Executando teste 500 VUs (com ramp-up realista de 5 min)..."
+
+          JVM_ARGS="-Xms1g -Xmx2g -XX:+UseG1GC"
+
           ./apache-jmeter-5.6.2/bin/jmeter -n \
             -t jmeter-teastore/cenario-500-vus.jmx \
             -l jmeter-teastore/results-500-vus.jtl \
-            -Jhostname=${HOSTNAME} -Jport=${PORT} || echo "⚠️ JMeter executou com erros"
-          
-          echo "3. Gerando Relatório HTML a partir do JTL..."
+            -Jhostname=${HOSTNAME} -Jport=${PORT} \
+            -Jthreads=500 \
+            -Jrampup=300 \
+            -Jthroughput=200 \
+            || echo "⚠️ JMeter executou com warnings"
+
+          echo "3. Gerando Relatório HTML..."
           if [ -s jmeter-teastore/results-500-vus.jtl ]; then
              ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-500-vus.jtl -o jmeter-teastore/report-500-vus
-             echo "✅ Relatório complexo gerado!"
+             echo "✅ Relatório 500 VUs gerado!"
           else
-             echo "❌ Arquivo JTL vazio ou não existe."
+             echo "❌ Arquivo JTL vazio — teste interrompido antes do fim."
           fi
-        
+  
       # - name: JMETER - Testes 1000VUS
       #   run: |
       #     echo "1. Limpando relatórios antigos..."
