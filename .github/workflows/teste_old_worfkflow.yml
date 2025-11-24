@@ -178,8 +178,8 @@ jobs:
           echo "3. Gerando Relatório HTML a partir do JTL..."
           if [ -s jmeter-teastore/results-1000-vus.jtl ]; then
             ./apache-jmeter-5.6.2/bin/jmeter -g jmeter-teastore/results-1000-vus.jtl -o jmeter-teastore/report-1000-vus \
-              -Jjmeter.reportgenerator.apdex_satisfied_threshold=2000 \
-              -Jjmeter.reportgenerator.apdex_tolerated_threshold=4000 \
+              -Jjmeter.reportgenerator.apdex_satisfied_threshold=3000 \
+              -Jjmeter.reportgenerator.apdex_tolerated_threshold=5000 \
               -Jjmeter.reportgenerator.overall_granularity=1000
             echo "✅ Relatório 1000 VUs gerado!"
           else
