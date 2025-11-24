@@ -27,18 +27,20 @@
 
     <hashTree>
 
-      <!-- THREAD GROUP -->
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="500 Usuários - 3 minutos" enabled="true">
-        <intProp name="ThreadGroup.num_threads">500</intProp>
-        <intProp name="ThreadGroup.ramp_time">60</intProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
-        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
-          <stringProp name="LoopController.loops">-1</stringProp>
-          <boolProp name="LoopController.continue_forever">false</boolProp>
-        </elementProp>
-        <!-- <stringProp name="ThreadGroup.duration">180</stringProp> -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Usuários - 500 VUs (ajustado)" enabled="true">
+         <intProp name="ThreadGroup.num_threads">500</intProp>
+         <intProp name="ThreadGroup.ramp_time">120</intProp>
+         <boolProp name="ThreadGroup.scheduler">true</boolProp>
+         <!-- duração total em segundos enquanto o scheduler está ativo -->
+         <stringProp name="ThreadGroup.duration">180</stringProp>
+         <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
+         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" enabled="true">
+         <stringProp name="LoopController.loops">-1</stringProp>
+         <boolProp name="LoopController.continue_forever">false</boolProp>
+         </elementProp>
       </ThreadGroup>
+
 
       <hashTree>
 
